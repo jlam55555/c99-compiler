@@ -1,0 +1,11 @@
+
+The files ltest.out and ltest.err were the result of running the sample
+input through the lexer tester as follows:
+ gcc -E ltests/*.c | ./lextest >ltest.out 2>ltest.err
+
+tokens-manual.h contains an enum definition for the token codes used in
+the above sample lexer program.  If you want your output to be diff-able
+against the reference test output, make sure to use the same textual
+representation (names) for the tokens and to adhere to the format defined
+in the assignment worksheet.  Otherwise you'll have to compare by hand.
+

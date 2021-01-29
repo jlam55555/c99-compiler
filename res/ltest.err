@@ -1,0 +1,3 @@
+ltests/chars.c:6:Warning:Unsupported multibyte character literal truncated to first byte
+ltests/chars.c:7:Warning:Hex escape sequence \xabcdef out of range
+
