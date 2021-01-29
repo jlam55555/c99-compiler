@@ -1,6 +1,6 @@
 enum tokens {
 	TOKEOF=0,
-	IDENT=257,	/* This is where yacc will put it */
+	IDENT=0x101,
 	CHARLIT,
 	STRING,
 	NUMBER,
@@ -62,5 +62,5 @@ enum tokens {
 	WHILE,
 	_BOOL,
 	_COMPLEX,
-	_IMAGINARY
+	_IMAGINARY,
 };
