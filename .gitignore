@@ -1,2 +1,3 @@
 lex.yy.c
 lexer
+*.o

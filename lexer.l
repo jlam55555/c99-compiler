@@ -14,7 +14,7 @@ typedef union {
 	char *s;
 } YYSTYPE;
 
-extern YYSTYPE yylval;
+YYSTYPE yylval;
 %}
 
 DEC		[1-9]+[0-9]*
@@ -25,13 +25,10 @@ P 		[pP][+-]?{DEC}+
 REAL 		[0-9]*\.[0-9]*
 
 SIMESC		\\['"\?\\abfnrtv]
-OCTESC		\\[0-8]{1,3}	
+OCTESC		\\[0-7]{1,3}	
 HEXESC		\\x[0-9a-fA-F]+
 
 %%
- /* IDENT */
-[a-zA-Z_][0-9a-zA-Z_]+	{yylval.s = yytext; return IDENT;}
-
  /* NUMBER */
 {DEC}		{return NUMBER;}
 {DEC}U		{return NUMBER;}
@@ -65,7 +62,7 @@ HEXESC		\\x[0-9a-fA-F]+
 <CHRMODE>[^\'\\\n]+	{append_text(yytext);}
 <CHRMODE>\'		{yylval.s = end_string();
 			 BEGIN INITIAL; return STRING;}
-[(u8)uUL]?\"		{begin_string(yytext, 1);}
+[(u8)uUL]?\"		{begin_string(yytext, 1); BEGIN STRMODE;}
 <STRMODE>[^\"\\\n]+	{append_text(yytext);}
 <STRMODE>\"		{yylval.s = end_string();
 			 BEGIN INITIAL; return STRING;}
@@ -74,10 +71,15 @@ HEXESC		\\x[0-9a-fA-F]+
 <CHRMODE>{SIMESC}	{/* these are the same for chars/strings */
 			 parse_append_escape(yytext);}
 <CHRMODE>{OCTESC}	{parse_append_octal(yytext);}
-<CHRMODE>{HEXESC}	{parse_append_hexidecimal(yytext);}
+<CHRMODE>{HEXESC}	{parse_append_hexadecimal(yytext);}
 <STRMODE>{SIMESC}	{parse_append_escape(yytext);}
 <STRMODE>{OCTESC}	{parse_append_octal(yytext);}
-<STRMODE>{HEXESC}	{parse_append_hexidecimal(yytext);}
+<STRMODE>{HEXESC}	{parse_append_hexadecimal(yytext);}
+
+ /* STRING and CHARLIT errors */
+<STRMODE>.		{/* TODO: fix error handling */
+			 fprintf(stderr, "Invalid string character found\n");}
+<CHRMODE>.		{fprintf(stderr, "Invalid character literal found\n");}
 
  /* */
 indsel		{return INDSEL;}
@@ -139,11 +141,13 @@ _bool		{return _BOOL;}
 _complex	{return _COMPLEX;}
 _imaginary	{return _IMAGINARY;}
 
+[a-zA-Z_][a-zA-Z0-9_]*	{yylval.s = yytext; return IDENT;}
+
 [!#%\^&\*\(\)\-\=\+\[\]\{\}\|\;\<\>\.\?] {return yytext[0];}
 
 [ \t\n\v\f\r]+	{; /* ignore whitespace */}
 
-.		{fprintf(stderr, "Lexical error: '%c' encountered", yytext[0]);
+.		{fprintf(stderr, "Lexical error: '%c' encountered\n", yytext[0]);
 		 /* TODO: handle error better */}
 %%
 // TODO: escaped characters?

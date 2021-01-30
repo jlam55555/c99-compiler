@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "stringutils.h"
 
-void begin_string(char *yyText, int isstr) {
+void begin_string(char *yytext, int isstr) {
 	/* TODO */
 }
 
@@ -10,16 +10,16 @@ char *end_string() {
 	return NULL;
 }
 
-void append_text(char *yyText) {
+void append_text(char *yytext) {
 	/* TODO */
 }
 
-void parse_append_escape(char *yyText) {
+void parse_append_escape(char *yytext) {
 	/* TODO */
 }
-void parse_append_octal(char *yyText) {
+void parse_append_octal(char *yytext) {
 	/* TODO */
 }
-void parse_append_hexadecimal(char *yyText) {
+void parse_append_hexadecimal(char *yytext) {
 	/* TODO */
 }
