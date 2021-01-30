@@ -4,13 +4,19 @@
 %{
 #include "tokensmanual.h"
 #include "stringutils.h"
+#include "errorutils.h"
+
+struct number {
+	int type;
+	int sign;
+	long long int int_val;
+	long double real_val;
+};
 
 // TODO: choose appropriate types
 typedef union {
-	int i;
+	struct number num;
 	char c;
-	float f;
-	double d;
 	char *s;
 } YYSTYPE;
 
@@ -29,6 +35,9 @@ OCTESC		\\[0-7]{1,3}
 HEXESC		\\x[0-9a-fA-F]+
 
 %%
+ /* Reading a preprocessor line number */
+#[ ]{DEC}[ ]\"[^\"]+\".*\n	{parse_lineno();}
+
  /* NUMBER */
 {DEC}		{return NUMBER;}
 {DEC}U		{return NUMBER;}
@@ -36,7 +45,6 @@ HEXESC		\\x[0-9a-fA-F]+
 {DEC}LU		{return NUMBER;}
 {DEC}LL		{return NUMBER;}
 {DEC}LLU		{return NUMBER;}
-[0]?{DEC}+{EXP}[f]?	{return NUMBER;}
 
 {OCT}		{return NUMBER;}
 {OCT}U		{return NUMBER;}
@@ -55,6 +63,7 @@ HEXESC		\\x[0-9a-fA-F]+
 
 {REAL}		{return NUMBER;}
 {REAL}L 	{return NUMBER;}
+[0]?{DEC}+{EXP}[f]?	{return NUMBER;}
 {REAL}f		{return NUMBER;}
 
  /* STRING and CHARLIT; these differ between the two */
@@ -77,9 +86,8 @@ HEXESC		\\x[0-9a-fA-F]+
 <STRMODE>{HEXESC}	{parse_append_hexadecimal(yytext);}
 
  /* STRING and CHARLIT errors */
-<STRMODE>.		{/* TODO: fix error handling */
-			 fprintf(stderr, "Invalid string character found\n");}
-<CHRMODE>.		{fprintf(stderr, "Invalid character literal found\n");}
+<STRMODE>.		{print_lexical_error();}
+<CHRMODE>.		{print_lexical_error();}
 
  /* */
 indsel		{return INDSEL;}
@@ -141,18 +149,22 @@ _bool		{return _BOOL;}
 _complex	{return _COMPLEX;}
 _imaginary	{return _IMAGINARY;}
 
+ /* IDENT */
 [a-zA-Z_][a-zA-Z0-9_]*	{yylval.s = yytext; return IDENT;}
 
+ /* single-character operators get their ASCII value passed as token type */
 [!#%\^&\*\(\)\-\=\+\[\]\{\}\|\;\<\>\.\?] {return yytext[0];}
 
-[ \t\n\v\f\r]+	{; /* ignore whitespace */}
+ /* ignore whitespace (except newline, see below) */
+[ \t\v\f\r]+	{;}
 
-.		{fprintf(stderr, "Lexical error: '%c' encountered\n", yytext[0]);
-		 /* TODO: handle error better */}
+ /* newline isn't counted as a token but it updates line counter */
+[\n]		{++lineno;}
+
+ /* invalid characters */
+.		{print_lexical_error();}
 %%
-// TODO: escaped characters?
-// TODO: digraphs?
-// TODO: is it okay to break up strings into many tokens like this?
+// TODO: maybe do digraphs?
 
 int main() {
 	int t;
