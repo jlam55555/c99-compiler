@@ -3,46 +3,83 @@
 %x CHRMODE
 %{
 #include "tokensmanual.h"
+#include "stringutils.h"
 
-enum {
-	CHSTART = 0x801,
-	CHEND,
-	STSTART,
-	STEND,
-	TEXT,
-	SIMESC,
-	OCTESC,
-	HEXESC
-};
+// TODO: choose appropriate types
+typedef union {
+	int i;
+	char c;
+	float f;
+	double d;
+	char *s;
+} YYSTYPE;
 
-// union yylval {
-// 	int i;
-// }
-int yylval;
+extern YYSTYPE yylval;
 %}
+
+DEC		[1-9]+[0-9]*
+EXP 		[eE][+-]?{DEC}+
+OCT 		0[0-7]+
+HEX 		0[xX][0-9A-Fa-f]+
+P 		[pP][+-]?{DEC}+
+REAL 		[0-9]*\.[0-9]*
+
+SIMESC		\\['"\?\\abfnrtv]
+OCTESC		\\[0-8]{1,3}	
+HEXESC		\\x[0-9a-fA-F]+
+
 %%
-asdfklmafklm	{return IDENT; /* TODO */}
+ /* IDENT */
+[a-zA-Z_][0-9a-zA-Z_]+	{yylval.s = yytext; return IDENT;}
 
-0[xX][0-9a-fA-F]+[pe]*[-]*[0-9]+		{return NUMBER;}
-[-+]?[0-9]*[.]?[0-9]*[pe]?[-]?[0-9]+[LU]?	{return NUMBER;}
+ /* NUMBER */
+{DEC}		{return NUMBER;}
+{DEC}U		{return NUMBER;}
+{DEC}L		{return NUMBER;}
+{DEC}LU		{return NUMBER;}
+{DEC}LL		{return NUMBER;}
+{DEC}LLU		{return NUMBER;}
+[0]?{DEC}+{EXP}[f]?	{return NUMBER;}
 
+{OCT}		{return NUMBER;}
+{OCT}U		{return NUMBER;}
+{OCT}L		{return NUMBER;}
+{OCT}LU		{return NUMBER;}
+{OCT}LL		{return NUMBER;}
+{OCT}LLU		{return NUMBER;}
 
-[uUL]?\'			{/* these differ between chars/strings */
-				 BEGIN CHRMODE; return CHSTART;}
-<CHRMODE>[^\'\\\n]+		{return TEXT;}
-<CHRMODE>\'			{BEGIN INITIAL; return CHEND;}
-[(u8)uUL]?\"			{BEGIN STRMODE; return STSTART;}
-<STRMODE>[^\"\\\n]+		{return TEXT;}
-<STRMODE>\"			{BEGIN INITIAL; return STEND;}
+{HEX}		{return NUMBER;}
+{HEX}U		{return NUMBER;}
+{HEX}L		{return NUMBER;}
+{HEX}LU		{return NUMBER;}
+{HEX}LL		{return NUMBER;}
+{HEX}LLU		{return NUMBER;}
+{HEX}{P}	{return NUMBER;}
 
-<CHRMODE>\\['"\?\\abfnrtv]	{/* these are the same for chars/strings */
-				 return SIMESC;}
-<CHRMODE>\\[0-8]{1,3}		{return OCTESC;}
-<CHRMODE>\\x[0-9a-fA-F]+	{return HEXESC;}
-<STRMODE>\\['"\?\\abfnrtv]	{return SIMESC;}
-<STRMODE>\\[0-8]{1,3}		{return OCTESC;}
-<STRMODE>\\x[0-9a-fA-F]+	{return HEXESC;}
+{REAL}		{return NUMBER;}
+{REAL}L 	{return NUMBER;}
+{REAL}f		{return NUMBER;}
 
+ /* STRING and CHARLIT; these differ between the two */
+[uUL]?\'		{begin_string(yytext, 0); BEGIN CHRMODE;}
+<CHRMODE>[^\'\\\n]+	{append_text(yytext);}
+<CHRMODE>\'		{yylval.s = end_string();
+			 BEGIN INITIAL; return STRING;}
+[(u8)uUL]?\"		{begin_string(yytext, 1);}
+<STRMODE>[^\"\\\n]+	{append_text(yytext);}
+<STRMODE>\"		{yylval.s = end_string();
+			 BEGIN INITIAL; return STRING;}
+
+ /* STRING and CHARLIT: these escape sequences are common between the two */
+<CHRMODE>{SIMESC}	{/* these are the same for chars/strings */
+			 parse_append_escape(yytext);}
+<CHRMODE>{OCTESC}	{parse_append_octal(yytext);}
+<CHRMODE>{HEXESC}	{parse_append_hexidecimal(yytext);}
+<STRMODE>{SIMESC}	{parse_append_escape(yytext);}
+<STRMODE>{OCTESC}	{parse_append_octal(yytext);}
+<STRMODE>{HEXESC}	{parse_append_hexidecimal(yytext);}
+
+ /* */
 indsel		{return INDSEL;}
 \+\+		{return PLUSPLUS;}
 --		{return MINUSMINUS;}
@@ -106,10 +143,12 @@ _imaginary	{return _IMAGINARY;}
 
 [ \t\n\v\f\r]+	{; /* ignore whitespace */}
 
-.		{ /* TODO: handle error */ ;}
+.		{fprintf(stderr, "Lexical error: '%c' encountered", yytext[0]);
+		 /* TODO: handle error better */}
 %%
 // TODO: escaped characters?
 // TODO: digraphs?
+// TODO: is it okay to break up strings into many tokens like this?
 
 int main() {
 	int t;
