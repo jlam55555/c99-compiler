@@ -95,6 +95,12 @@ struct string end_string() {
 	return str;
 }
 
+struct charlit end_charlit() {
+	// TODO
+	struct charlit chr = {};
+	return chr;
+}
+
 void append_text() {
 	unsigned len = strlen(yytext);
 	append_buffer(yytext, len);

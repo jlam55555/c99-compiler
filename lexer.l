@@ -19,6 +19,7 @@ typedef union {
 	char c;
 	char *ident;
 	struct string string;
+	struct charlit charlit;
 } YYSTYPE;
 
 YYSTYPE yylval;
@@ -70,8 +71,8 @@ HEXESC		\\x[0-9a-fA-F]+
  /* STRING and CHARLIT; these differ between the two */
 [uUL]?\'		{begin_string(0); BEGIN CHRMODE;}
 <CHRMODE>[^\'\\\n]+	{append_text();}
-<CHRMODE>\'		{yylval.string = end_string();
-			 BEGIN INITIAL; return STRING;}
+<CHRMODE>\'		{yylval.charlit = end_charlit();
+			 BEGIN INITIAL; return CHARLIT;}
 [(u8)uUL]?\"		{begin_string(1); BEGIN STRMODE;}
 <STRMODE>[^\"\\\n]+	{append_text();}
 <STRMODE>\"		{yylval.string = end_string();
