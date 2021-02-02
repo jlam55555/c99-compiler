@@ -16,11 +16,7 @@ void print_string(struct string *str) {
 	// necessary to iterate over length, since there may be null
 	// characters within the string
 	unsigned i;
-	char *c, *to_print;
-
-	// indicate start of string;
-	// TODO: this should be different for characters
-	fprintf(stdout, "\"");
+	unsigned char *c, *to_print;
 
 	for (i = 0, c = str->buf; i < str->length; i++, c++) {
 		// printable character: print literally
@@ -55,9 +51,6 @@ void print_string(struct string *str) {
 		// common escape code: print escape code
 		fprintf(stdout, to_print);
 	}
-
-	// indicate end of string
-	fprintf(stdout, "\"");
 }
 
 // for building the string; buf_len includes the null character at the
@@ -115,6 +108,7 @@ void parse_append_escape() {
 		case '\\':
 		case '\'':
 		case '"':
+		case '?':
 			val = yytext[1];
 			break;
 		case 'a': val = '\a'; break;
@@ -126,14 +120,15 @@ void parse_append_escape() {
 		case 'v': val = '\v'; break;
 		default:
 			// TODO: need better error handling
-			fprintf(stderr, "Error: bad escape code");
+			fprintf(stderr, "Error: bad escape code %c\n",
+				yytext[1]);
 			return;
 	}
 	append_buffer(&val, 1);
 }
 
 void parse_append_octal() {
-	char val = 0, *it = yytext;
+	unsigned char val = 0, *it = yytext;
 
 	// skip over leading slash
 	while (*++it) {
@@ -151,9 +146,9 @@ static unsigned char htod(char c) {
 	if (c >= '0' && c <= '9') {
 		return c - '0';
 	} else if (c >= 'A' && c <= 'F') {
-		return c - 'A';
+		return 10 + c - 'A';
 	} else if (c >= 'a' && c <= 'f') {
-		return c - 'a';
+		return 10 + c - 'a';
 	} else {
 		fprintf(stderr, "Error: invalid hexidecimal character");
 		return 0;
@@ -161,7 +156,7 @@ static unsigned char htod(char c) {
 }
 
 void parse_append_hexadecimal() {
-	char val = 0, *it = yytext + 1;
+	unsigned char val = 0, *it = yytext + 1;
 
 	// skip over leading \x
 	while (*++it) {
