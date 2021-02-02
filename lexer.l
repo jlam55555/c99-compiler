@@ -69,11 +69,11 @@ HEXESC		\\x[0-9a-fA-F]+
 {REAL}f		{return NUMBER;}
 
  /* STRING and CHARLIT; these differ between the two */
-[uUL]?\'		{begin_string(0); BEGIN CHRMODE;}
+[uUL]?\'		{begin_literal(); BEGIN CHRMODE;}
 <CHRMODE>[^\'\\\n]+	{append_text();}
 <CHRMODE>\'		{yylval.charlit = end_charlit();
 			 BEGIN INITIAL; return CHARLIT;}
-[(u8)uUL]?\"		{begin_string(1); BEGIN STRMODE;}
+[(u8)uUL]?\"		{begin_literal(); BEGIN STRMODE;}
 <STRMODE>[^\"\\\n]+	{append_text();}
 <STRMODE>\"		{yylval.string = end_string();
 			 BEGIN INITIAL; return STRING;}
@@ -168,14 +168,15 @@ _imaginary	{return _IMAGINARY;}
  /* invalid characters */
 .		{print_lexical_error();}
 %%
-// TODO: maybe do digraphs?
-// TODO: can we assume null-terminated strings? E.g., how to print string like \0\0\0?
 
 int main() {
 	int t;
 
 	while (t = yylex()) {
-		fprintf(stdout, "%s: %d\n", yytext, t);
+
+		// TODO: remove this
+		// fprintf(stdout, "%s: %d\n", yytext, t);
+
 		switch (t) {
 			case NUMBER:
 				fprintf(stdout, "Number found\n");
@@ -185,6 +186,11 @@ int main() {
 				print_string(&yylval.string);
 				fprintf(stdout, "\n");
 				destroy_string(&yylval.string);
+				break;
+			case CHARLIT:
+				fprintf(stdout, "Character literal found (type %d): %x\n",
+					yylval.charlit.width,
+					*((unsigned long *) &yylval.charlit.value));
 				break;
 		}
 	}

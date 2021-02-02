@@ -10,6 +10,14 @@
 
 extern char *yytext;
 
+size_t char_widths[5] = {
+	sizeof(char),			// CW_NONE
+	sizeof(wchar_t),		// CW_L
+	sizeof(char16_t),		// CW_u
+	sizeof(char32_t),		// CW_U
+	sizeof(unsigned char)		// CW_u8
+};
+
 // TODO: this should probably return a regular C string rather than
 // print to stdout (e.g., in the case of needing to print to stderr)
 void print_string(struct string *str) {
@@ -57,48 +65,122 @@ void print_string(struct string *str) {
 // end, cur_len does not
 static char *strbuf = NULL;
 static unsigned cur_len, buf_len, initial_size = 16;
+enum literal_type literal_type;
+enum char_width char_width;
+union char_t char_val;
 
-// helper function to append chars and dynamically allocate memory as needed
-static void append_buffer(char *append_buf, unsigned append_buf_len) {
-	// realloc when necessary; doubles buffer size until sufficient
-	if (buf_len - cur_len - 1 < append_buf_len) {
-		while (buf_len - cur_len - 1 < append_buf_len)
-			buf_len <<= 1;
-		strbuf = (char *) realloc(strbuf, buf_len);
-	}
-
-	memcpy(strbuf + cur_len, append_buf, append_buf_len);
-	cur_len += append_buf_len;
-}
-
-void begin_string(int isstr) {
+void begin_literal() {
 	unsigned len = strlen(yytext);
 
-	// yytext len > 1 <=> wide characters
-	// TODO: wide chars not implemented (yet?)
-	if (len > 1) {
-		fprintf(stderr, "Error: wide characters not implemented");
-		return;
+	// detecting literal type
+	literal_type = yytext[len-1] == '"' ? LT_STRING : LT_CHARLIT;
+
+	// detecting character width
+	switch (yytext[0]) {
+		case '\'': case '\"':
+			char_width = CW_NONE;
+			break;
+		case 'U':
+			char_width = CW_U;
+			break;
+		case 'L':
+			char_width = CW_L;
+			break;
+		case 'u':
+			char_width = yytext[1] == '8' ? CW_u8 : CW_u;
+			break;
+		default:
+			fprintf(stderr, "Error: unknown char width");
+			return;
 	}
 
-	strbuf = (char *) malloc(initial_size * sizeof(char));
-	buf_len = initial_size;
-	cur_len = 0;
+	// initialize empty string/character
+	if (literal_type == LT_STRING) {
+		strbuf = (void *) malloc(initial_size * sizeof(char));
+		buf_len = initial_size;
+		cur_len = 0;
+	} else {
+		// cur_len to indicate whether character is filled or not
+		// in the case of multi-character literals (which are
+		// not supported in this implementation); also used to
+		// indicate empty character constant (an error)
+		cur_len = 0;
+	}
 }
 
 struct string end_string() {
 	strbuf[cur_len] = 0;
-	struct string str = {
+	return (struct string) {
+		.width = char_width,
 		.length = cur_len,
-		.buf = realloc(strbuf, cur_len + 1)
+		.buf = realloc(strbuf, (cur_len+1) * char_widths[char_width])
 	};
-	return str;
 }
 
 struct charlit end_charlit() {
-	// TODO
-	struct charlit chr = {};
-	return chr;
+	// empty character constant is an error
+	if (!cur_len) {
+		fprintf(stderr, "Error: empty character constant.\n");
+		return (struct charlit) {};
+	}
+
+	// multiple code points is a warning; we mimick the behavior of gcc8
+	// by returning only the last code point in the character constant
+	if (cur_len > 1) {
+		fprintf(stderr, "Warning: multiple code points in character "
+			"constant.\n");
+	}
+
+	return (struct charlit) {
+		.width = char_width,
+		.value = char_val
+	};
+}
+
+// helper function to append chars and dynamically allocate memory as needed
+// for strings, and sets the character for character literals
+static void append_buffer(void *append_buf, unsigned append_buf_len) {
+	// strings
+	if (literal_type == LT_STRING) {
+		// realloc when necessary; doubles buffer size until sufficient
+		if (buf_len - cur_len - 1 < append_buf_len) {
+			while (buf_len - cur_len - 1 < append_buf_len)
+				buf_len <<= 1;
+			strbuf = realloc(strbuf, buf_len);
+		}
+
+		memcpy(strbuf + cur_len, append_buf, append_buf_len);
+		cur_len += append_buf_len;
+		return;
+	}
+
+	// character literal: no dynamic allocation, simply write to value
+	// this assumes that append_buf_len == 1
+
+	// this matches the behavior on gcc: if
+	// multiple characters in a character constant,
+	// last one overwrites the previous ones
+	switch (char_width) {
+		case CW_NONE:
+			char_val.none = *((char *) append_buf);
+			break;
+		case CW_L:
+			char_val.L = *((wchar_t *) append_buf);
+			break;
+		case CW_u:
+			char_val.u = *((char16_t *) append_buf);
+			break;
+		case CW_U:
+			char_val.U = *((char32_t *) append_buf);
+			break;
+		case CW_u8:
+			char_val.u8 = *((unsigned char *) append_buf);
+			break;
+		default: 
+			fprintf(stderr, "Error: unknown character type\n");
+			return;
+	}
+	cur_len++;
 }
 
 void append_text() {
@@ -133,17 +215,26 @@ void parse_append_escape() {
 	append_buffer(&val, 1);
 }
 
+// note that this assumes a little-endian system; unsigned
+// long should be at least as long as all possible character types
+// (i.e., at least 32 bits), so it acts as a simple LE-buffer
 void parse_append_octal() {
-	unsigned char val = 0, *it = yytext;
+	unsigned long val = 0;
+	char *it = yytext;
 
-	// skip over leading slash
-	while (*++it) {
-		val = (val<<3) + (*it-'0');
+	// detect and handle overflow; overflow is only possible if
+	// 3 digits with first digit is > 3 and 1 byte width
+	if (char_widths[char_width] == 1 && 
+		strlen(yytext) == 4 && yytext[1] == '3') {
+		fprintf(stderr, "Warning: octal escape code %s exceeds "
+			"code point width.\n", yytext);
 	}
 
-	append_buffer(&val, 1);
+	// skip over leading slash
+	while (*++it)
+		val = (val<<3) + (*it-'0');
 
-	// TODO: handle overflow
+	append_buffer(&val, char_widths[char_width]);
 }
 
 // helper function to convert hexidecimal to decimal;
@@ -162,15 +253,22 @@ static unsigned char htod(char c) {
 }
 
 void parse_append_hexadecimal() {
-	unsigned char val = 0, *it = yytext + 1;
+	// see notes for parse_append_octcal
+	unsigned long val = 0;
+	char *it = yytext + 1;
+
+	// detect overflow: since each byte is 2 hex digits,
+	// overflow if digits > 2 * char_width
+	if (strlen(yytext) - 2 > 2 * char_widths[char_width]) {
+		fprintf(stderr, "Warning: hexadecimal escape code %s exceeds "
+			"code point width.\n", yytext);
+	}
 
 	// skip over leading \x
-	while (*++it) {
+	while (*++it)
 		val = (val<<4) + htod(*it);
-	}
-	append_buffer(&val, 1);
 
-	// TODO: handle overflow
+	append_buffer(&val, 1);
 }
 
 void destroy_string(struct string *str) {
