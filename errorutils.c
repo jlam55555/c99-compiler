@@ -2,7 +2,7 @@
 #include "errorutils.h"
 
 int lineno;
-char filename[255];
+char filename[255] = "<stdin>";
 
 extern char *yytext;
 
@@ -14,7 +14,7 @@ void parse_lineno() {
 	while (*c < '0' || *c > '9')
 		++c;
 
-	// read lineno
+	// read line number
 	lineno = 0;
 	while (*c >= '0' && *c <= '9')
 		lineno = lineno * 10 + (*c++ - '0');
@@ -31,6 +31,6 @@ void parse_lineno() {
 }
 
 void print_lexical_error() {
-	fprintf(stderr, "%s: %d:\nError: unexpected '%s'.\n",
+	fprintf(stderr, "%s: %d: Error: unexpected '%s'.\n",
 		filename, lineno, yytext);
 }

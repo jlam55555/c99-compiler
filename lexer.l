@@ -17,7 +17,8 @@ struct number {
 typedef union {
 	struct number num;
 	char c;
-	char *s;
+	char *ident;
+	struct string string;
 } YYSTYPE;
 
 YYSTYPE yylval;
@@ -67,27 +68,29 @@ HEXESC		\\x[0-9a-fA-F]+
 {REAL}f		{return NUMBER;}
 
  /* STRING and CHARLIT; these differ between the two */
-[uUL]?\'		{begin_string(yytext, 0); BEGIN CHRMODE;}
-<CHRMODE>[^\'\\\n]+	{append_text(yytext);}
-<CHRMODE>\'		{yylval.s = end_string();
+[uUL]?\'		{begin_string(0); BEGIN CHRMODE;}
+<CHRMODE>[^\'\\\n]+	{append_text();}
+<CHRMODE>\'		{yylval.string = end_string();
 			 BEGIN INITIAL; return STRING;}
-[(u8)uUL]?\"		{begin_string(yytext, 1); BEGIN STRMODE;}
-<STRMODE>[^\"\\\n]+	{append_text(yytext);}
-<STRMODE>\"		{yylval.s = end_string();
+[(u8)uUL]?\"		{begin_string(1); BEGIN STRMODE;}
+<STRMODE>[^\"\\\n]+	{append_text();}
+<STRMODE>\"		{yylval.string = end_string();
 			 BEGIN INITIAL; return STRING;}
 
  /* STRING and CHARLIT: these escape sequences are common between the two */
 <CHRMODE>{SIMESC}	{/* these are the same for chars/strings */
-			 parse_append_escape(yytext);}
-<CHRMODE>{OCTESC}	{parse_append_octal(yytext);}
-<CHRMODE>{HEXESC}	{parse_append_hexadecimal(yytext);}
-<STRMODE>{SIMESC}	{parse_append_escape(yytext);}
-<STRMODE>{OCTESC}	{parse_append_octal(yytext);}
-<STRMODE>{HEXESC}	{parse_append_hexadecimal(yytext);}
+			 parse_append_escape();}
+<CHRMODE>{OCTESC}	{parse_append_octal();}
+<CHRMODE>{HEXESC}	{parse_append_hexadecimal();}
+<STRMODE>{SIMESC}	{parse_append_escape();}
+<STRMODE>{OCTESC}	{parse_append_octal();}
+<STRMODE>{HEXESC}	{parse_append_hexadecimal();}
 
  /* STRING and CHARLIT errors */
 <STRMODE>.		{print_lexical_error();}
 <CHRMODE>.		{print_lexical_error();}
+<STRMODE>\n		{print_lexical_error();++lineno;}
+<CHRMODE>\n		{print_lexical_error();++lineno;}
 
  /* */
 indsel		{return INDSEL;}
@@ -150,7 +153,7 @@ _complex	{return _COMPLEX;}
 _imaginary	{return _IMAGINARY;}
 
  /* IDENT */
-[a-zA-Z_][a-zA-Z0-9_]*	{yylval.s = yytext; return IDENT;}
+[a-zA-Z_][a-zA-Z0-9_]*	{yylval.ident = yytext; return IDENT;}
 
  /* single-character operators get their ASCII value passed as token type */
 [!#%\^&\*\(\)\-\=\+\[\]\{\}\|\;\<\>\.\?] {return yytext[0];}
@@ -165,6 +168,7 @@ _imaginary	{return _IMAGINARY;}
 .		{print_lexical_error();}
 %%
 // TODO: maybe do digraphs?
+// TODO: can we assume null-terminated strings? E.g., how to print string like \0\0\0?
 
 int main() {
 	int t;
@@ -174,6 +178,12 @@ int main() {
 		switch (t) {
 			case NUMBER:
 				fprintf(stdout, "Number found\n");
+				break;
+			case STRING:
+				fprintf(stdout, "String found: ");
+				print_string(&yylval.string);
+				fprintf(stdout, "\n");
+				destroy_string(&yylval.string);
 				break;
 		}
 	}
