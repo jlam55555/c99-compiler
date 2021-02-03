@@ -105,7 +105,7 @@ indsel		{return INDSEL;}
 !=		{return NOTEQ;}
 &&		{return LOGAND;}
 \|\|		{return LOGOR;}
-\.\.		{return ELLIPSIS;}
+\.\.\.		{return ELLIPSIS;}
 \*=		{return TIMESEQ;}
 \/=		{return DIVEQ;}
 %=		{return MODEQ;}
@@ -176,9 +176,19 @@ int main() {
 
 		fprintf(stdout, "%s\t%d\t", filename, lineno);
 
+		// single character token
+		if (t < 0xFF) {
+			fprintf(stdout, "%c\n", t);
+			continue;
+		}
+
 		switch (t) {
 			case IDENT:
 				fprintf(stdout, "IDENT\t%s\n", yylval.ident);
+				break;
+			case NUMBER:
+				// TODO: do this
+				fprintf(stdout, "NUMBER\n");
 				break;
 			case STRING:
 				fprintf(stdout, "STRING\t");
@@ -192,7 +202,8 @@ int main() {
 					*((unsigned long *) &yylval.charlit.value));
 				break;
 			default:
-				fprintf(stdout, "\n");
+				// keywords
+				fprintf(stdout, "%s\n", yytext);
 		}
 	}
 
