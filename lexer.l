@@ -73,7 +73,7 @@ HEXESC		\\x[0-9a-fA-F]+
 <CHRMODE>[^\'\\\n]+	{append_text();}
 <CHRMODE>\'		{yylval.charlit = end_charlit();
 			 BEGIN INITIAL; return CHARLIT;}
-[(u8)uUL]?\"		{begin_literal(); BEGIN STRMODE;}
+(u8|[uUL])?\"		{begin_literal(); BEGIN STRMODE;}
 <STRMODE>[^\"\\\n]+	{append_text();}
 <STRMODE>\"		{yylval.string = end_string();
 			 BEGIN INITIAL; return STRING;}
@@ -178,6 +178,10 @@ int main() {
 		// fprintf(stdout, "%s: %d\n", yytext, t);
 
 		switch (t) {
+			case IDENT:
+				fprintf(stdout, "Identifier found: %s\n",
+					yylval.ident);
+				break;
 			case NUMBER:
 				fprintf(stdout, "Number found\n");
 				break;
@@ -188,8 +192,8 @@ int main() {
 				destroy_string(&yylval.string);
 				break;
 			case CHARLIT:
-				fprintf(stdout, "Character literal found (type %d): %x\n",
-					yylval.charlit.width,
+				fprintf(stdout, "Character literal found (width %d): %x\n",
+					char_widths[yylval.charlit.width],
 					*((unsigned long *) &yylval.charlit.value));
 				break;
 		}

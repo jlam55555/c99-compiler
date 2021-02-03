@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "stringutils.h"
+#include "unicodeutils.h"
 
 // TODO: need to differentiate between characters
 // TODO: watch for overflow with octal/hex constants
@@ -110,6 +111,27 @@ void begin_literal() {
 
 struct string end_string() {
 	strbuf[cur_len] = 0;
+	switch (char_width) {
+		case CW_NONE:
+			((char *) strbuf)[cur_len] = 0;
+			break;
+		case CW_L:
+			((wchar_t *) strbuf)[cur_len] = 0;
+			break;
+		case CW_u:
+			((char16_t *) strbuf)[cur_len] = 0;
+			break;
+		case CW_U:
+			((char32_t *) strbuf)[cur_len] = 0;
+			break;
+		case CW_u8:
+			((unsigned char *) strbuf)[cur_len] = 0;
+			break;
+		default:
+			fprintf(stderr, "Error: unknown character width.\n");
+			return (struct string) {};
+	}
+
 	return (struct string) {
 		.width = char_width,
 		.length = cur_len,
@@ -126,7 +148,7 @@ struct charlit end_charlit() {
 
 	// multiple code points is a warning; we mimick the behavior of gcc8
 	// by returning only the last code point in the character constant
-	if (cur_len > 1) {
+	if (cur_len > char_widths[char_width]) {
 		fprintf(stderr, "Warning: multiple code points in character "
 			"constant.\n");
 	}
@@ -138,8 +160,12 @@ struct charlit end_charlit() {
 }
 
 // helper function to append chars and dynamically allocate memory as needed
-// for strings, and sets the character for character literals
+// for strings, and sets the character for character literals;
+// append_buf_len is the number of bytes to add to the buffer, not the
+// number of characters (append_buf_length = number_of_characters*char_width
+// except for u8 strings, which have a VLE)
 static void append_buffer(void *append_buf, unsigned append_buf_len) {
+
 	// strings
 	if (literal_type == LT_STRING) {
 		// realloc when necessary; doubles buffer size until sufficient
@@ -154,12 +180,13 @@ static void append_buffer(void *append_buf, unsigned append_buf_len) {
 		return;
 	}
 
-	// character literal: no dynamic allocation, simply write to value
-	// this assumes that append_buf_len == 1
+	// character literal: no dynamic allocation, simply write to value;
+	// this assumes that append_buf_len == 1; the end behavior is
+	// consistent with the behavior of gcc8
 
-	// this matches the behavior on gcc: if
-	// multiple characters in a character constant,
-	// last one overwrites the previous ones
+	// this matches the behavior on gcc8: treat character constant as
+	// an integer, and truncate to the first char_width bytes, assuming
+	// a little-endian system
 	switch (char_width) {
 		case CW_NONE:
 			char_val.none = *((char *) append_buf);
@@ -180,18 +207,30 @@ static void append_buffer(void *append_buf, unsigned append_buf_len) {
 			fprintf(stderr, "Error: unknown character type\n");
 			return;
 	}
-	cur_len++;
+	cur_len += append_buf_len;
 }
 
+// this assumes a UTF-8 source file
+// TODO: document this somewhere else
 void append_text() {
-	unsigned len = strlen(yytext);
-	append_buffer(yytext, len);
+	void *buf;
+	int len;
+
+	// for a UTF-8 string paste string literally
+	if (literal_type == LT_STRING && char_width == CW_u8) {
+		append_buffer(yytext, strlen(yytext));
+		return;
+	}
+
+	// otherwise, convert to unicode string with fixed width
+	len = utowc(yytext, char_widths[char_width], &buf);
+	append_buffer(buf, len);
+	free(buf);
 }
 
 void parse_append_escape() {
-	char val;
+	unsigned long val;
 
-	// TODO: should move this to a map using an array
 	switch (yytext[1]) {
 		case '\\':
 		case '\'':

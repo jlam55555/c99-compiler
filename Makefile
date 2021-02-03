@@ -1,5 +1,5 @@
-lexer: lex.yy.o stringutils.o errorutils.o
-	gcc -o lexer lex.yy.o stringutils.o errorutils.o
+lexer: lex.yy.o stringutils.o errorutils.o unicodeutils.o
+	gcc -o lexer lex.yy.o stringutils.o errorutils.o unicodeutils.o
 
 lex.yy.o: lex.yy.c
 	gcc -c -o lex.yy.o lex.yy.c
@@ -12,6 +12,9 @@ stringutils.o: stringutils.c
 
 errorutils.o: errorutils.c
 	gcc -c -o errorutils.o errorutils.c
+
+unicodeutils.o: unicodeutils.c
+	gcc -c -o unicodeutils.o unicodeutils.c
 
 clean:
 	rm -f lex.yy.c lexer *.o
