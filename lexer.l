@@ -27,7 +27,7 @@ YYSTYPE yylval;
 
 DEC		[1-9]+[0-9]*
 EXP 		[eE][+-]?{DEC}+
-OCT 		0[0-7]+
+OCT 		0[0-7]*
 HEX 		0[xX][0-9A-Fa-f]+
 P 		[pP][+-]?{DEC}+
 REAL 		[0-9]*\.[0-9]*
