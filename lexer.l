@@ -157,7 +157,7 @@ _Imaginary	{return _IMAGINARY;}
 [a-zA-Z_][a-zA-Z0-9_]*	{yylval.ident = yytext; return IDENT;}
 
  /* single-character operators get their ASCII value passed as token type */
-[!#%\^&\*\(\)\-\=\+\[\]\{\}\|\;\<\>\.\?] {return yytext[0];}
+[~!#%\^&\*\(\)\-\=\+\[\]\{\}\|\;:\<\>,\.\?/] {return yytext[0];}
 
  /* ignore whitespace (except newline, see below) */
 [ \t\v\f\r]+	{;}
