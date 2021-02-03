@@ -174,25 +174,20 @@ int main() {
 
 	while (t = yylex()) {
 
-		// TODO: remove this
-		// fprintf(stdout, "%s: %d\n", yytext, t);
+		fprintf(stdout, "%s\t%d\t", filename, lineno);
 
 		switch (t) {
 			case IDENT:
-				fprintf(stdout, "Identifier found: %s\n",
-					yylval.ident);
-				break;
-			case NUMBER:
-				fprintf(stdout, "Number found\n");
+				fprintf(stdout, "IDENT\t%s\n", yylval.ident);
 				break;
 			case STRING:
-				fprintf(stdout, "String found: ");
+				fprintf(stdout, "STRING\t");
 				print_string(&yylval.string);
 				fprintf(stdout, "\n");
 				destroy_string(&yylval.string);
 				break;
 			case CHARLIT:
-				fprintf(stdout, "Character literal found (width %d): %x\n",
+				fprintf(stdout, "CHARLIT (width %d)\t\\x%x\n",
 					char_widths[yylval.charlit.width],
 					*((unsigned long *) &yylval.charlit.value));
 				break;
