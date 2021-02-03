@@ -264,7 +264,7 @@ void parse_append_octal() {
 	// detect and handle overflow; overflow is only possible if
 	// 3 digits with first digit is > 3 and 1 byte width
 	if (char_widths[char_width] == 1 && 
-		strlen(yytext) == 4 && yytext[1] == '3') {
+		strlen(yytext) == 4 && yytext[1] > '3') {
 		fprintf(stderr, "Warning: octal escape code %s exceeds "
 			"code point width.\n", yytext);
 	}
