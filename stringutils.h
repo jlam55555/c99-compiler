@@ -1,12 +1,44 @@
 #ifndef STRINGUTILSH
 #define STRINGUTILSH
 
+#include <uchar.h>
+
+enum literal_type {
+	LT_STRING,
+	LT_CHARLIT
+};
+
+// allows C11 char types
+enum char_width {
+	CW_NONE = 0,
+	CW_L,
+	CW_u,
+	CW_U,
+	CW_u8	// for strings only
+};
+extern size_t char_widths[5];
+
+// more generic char type
+union char_t {
+	char none;
+	wchar_t L;
+	char16_t u;
+	char32_t U;
+	unsigned char u8;
+};
+
 // this struct allows for arbitrary-length buffers. The buffer will still be
 // null-terminated; the length field is only if we want to print out the string,
 // which will correctly print out strings with null characters
 struct string {
 	unsigned length;
-	char *buf;
+	enum char_width width;
+	void *buf;
+};
+
+struct charlit {
+	enum char_width width;
+	union char_t value;
 };
 
 // helper to print a struct string, showing escape sequences
@@ -15,10 +47,11 @@ void print_string(struct string *);
 
 // begin building a string or (potentially wide) character constant in memory
 // isstr=1 if string literal, isstr=0 for character constant
-void begin_string(int isstr);
+void begin_literal();
 
 // finish building the string, returns the built string
 struct string end_string();
+struct charlit end_charlit();
 
 // appends a simple string to the current string being built
 void append_text();
