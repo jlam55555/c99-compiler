@@ -2,9 +2,11 @@
 %x STRMODE
 %x CHRMODE
 %{
+#include <stdlib.h>
 #include "tokensmanual.h"
 #include "stringutils.h"
 #include "errorutils.h"
+#include "numutils.h"
 
 struct number {
 	int type;
@@ -41,7 +43,8 @@ HEXESC		\\x[0-9a-fA-F]+
 #[ ]{DEC}[ ]\"[^\"]+\".*\n	{parse_lineno();}
 
  /* NUMBER */
-{DEC}		{return NUMBER;}
+ /*Integer*/
+{DEC}		{yylval.num.int_val = UNSIGNED; return NUMBER;}
 {DEC}U		{return NUMBER;}
 {DEC}L		{return NUMBER;}
 {DEC}LU		{return NUMBER;}
@@ -63,6 +66,7 @@ HEXESC		\\x[0-9a-fA-F]+
 {HEX}LLU		{return NUMBER;}
 {HEX}{P}	{return NUMBER;}
 
+ /*Float*/
 {REAL}		{return NUMBER;}
 {REAL}L 	{return NUMBER;}
 [0]?{DEC}+{EXP}[f]?	{return NUMBER;}
@@ -177,6 +181,9 @@ int main() {
 		fprintf(stdout, "%s\t%d\t", filename, lineno);
 
 		switch (t) {
+			case NUMBER:
+				fprintf(stdout, )
+				break;
 			case IDENT:
 				fprintf(stdout, "IDENT\t%s\n", yylval.ident);
 				break;

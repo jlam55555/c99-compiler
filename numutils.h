@@ -1,4 +1,15 @@
-#ifndef NUMUTILSH
-#define NUMUTILSH
+/* Define Sign and Types */
+enum sign {
+    UNSIGNED,
+    SIGNED,
+};
 
-#endif
+enum type {
+    INT,
+    LONG,
+    LONGLONG,
+    DOUBLE,
+    FLOAT,
+};
+
+
