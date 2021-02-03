@@ -149,9 +149,9 @@ unsigned	{return UNSIGNED;}
 void		{return VOID;}
 volatile	{return VOLATILE;}
 while		{return WHILE;}
-_bool		{return _BOOL;}
-_complex	{return _COMPLEX;}
-_imaginary	{return _IMAGINARY;}
+_Bool		{return _BOOL;}
+_Complex	{return _COMPLEX;}
+_Imaginary	{return _IMAGINARY;}
 
  /* IDENT */
 [a-zA-Z_][a-zA-Z0-9_]*	{yylval.ident = yytext; return IDENT;}
@@ -191,6 +191,8 @@ int main() {
 					char_widths[yylval.charlit.width],
 					*((unsigned long *) &yylval.charlit.value));
 				break;
+			default:
+				fprintf(stdout, "\n");
 		}
 	}
 
