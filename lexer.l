@@ -9,7 +9,6 @@
 #include "errorutils.h"
 #include "numutils.h"
 
-// TODO: choose appropriate types
 typedef union {
 	struct number num;
 	char *ident;

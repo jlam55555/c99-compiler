@@ -5,10 +5,6 @@
 #include "stringutils.h"
 #include "unicodeutils.h"
 
-// TODO: need to differentiate between characters
-// TODO: watch for overflow with octal/hex constants
-// TODO: implement wide chars
-
 extern char *yytext;
 
 size_t char_widths[5] = {
@@ -167,8 +163,7 @@ static void append_buffer(void *append_buf, unsigned append_buf_len) {
 	cur_len += append_buf_len;
 }
 
-// this assumes a UTF-8 source file
-// TODO: document this somewhere else
+// this assumes a valid UTF-8 source file -- see the README and unicodeutils.h
 void append_text() {
 	void *buf;
 	int len;
@@ -203,7 +198,6 @@ void parse_append_escape() {
 		case 't': val = '\t'; break;
 		case 'v': val = '\v'; break;
 		default:
-			// TODO: need better error handling
 			fprintf(stderr, "Error: bad escape code %c\n",
 				yytext[1]);
 			return;
