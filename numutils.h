@@ -1,5 +1,6 @@
 #ifndef NUMUTILSH
 #define NUMUTILSH
+
 /* Define Sign and Types */
 enum sign {
     UNSIGNED_T,
@@ -22,6 +23,12 @@ struct number {
 	long double real_val;
 };
 
+// helper functions to make struct numbers for lexer
+struct number make_int(int radix, enum sign sign, enum type type);
+struct number make_fp(enum type type);
+
+// helper function to print a number in the desired format;
+// returns a dynamically-allocated string that should be freed after use
 char *print_number(struct number num);
 
 #endif

@@ -9,69 +9,72 @@
 #include "errorutils.h"
 #include "numutils.h"
 
-
-
 // TODO: choose appropriate types
 typedef union {
 	struct number num;
-	char c;
 	char *ident;
 	struct string string;
 	struct charlit charlit;
 } YYSTYPE;
 
 YYSTYPE yylval;
+
+// helper for making integral and float types
+#define MAKEINT(radix, sign, type) \
+	yylval.num = make_int(radix, sign, type);\
+	return NUMBER;
+#define MAKEFP(type) \
+	yylval.num = make_fp(type);\
+	return NUMBER;
 %}
 
-DEC		[1-9]+[0-9]*
-EXP 		[eE][+-]?{DEC}+
-OCT 		0[0-7]*
-HEX 		0[xX][0-9A-Fa-f]+
-P 		[pP][+-]?{DEC}+
-REAL 		([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)
+DEC	[1-9]+[0-9]*
+EXP 	[eE][+-]?{DEC}+
+OCT 	0[0-7]*
+HEX 	0[xX][0-9A-Fa-f]+
+P	[pP][+-]?{DEC}+
+REAL	([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)
 
-SIMESC		\\['"\?\\abfnrtv]
-OCTESC		\\[0-7]{1,3}	
-HEXESC		\\x[0-9a-fA-F]+
+UL	([Ll][Uu]|[Uu][Ll])
+LL	[Ll][Ll]	
+ULL	([Uu](LL|ll)|(LL|ll)[Uu])	
 
+SIMESC	\\['"\?\\abfnrtv]
+OCTESC	\\[0-7]{1,3}	
+HEXESC	\\x[0-9a-fA-F]+
 %%
  /* Reading a preprocessor line number */
 #[ ]{DEC}[ ]\"[^\"]+\".*\n	{parse_lineno();}
 
- /* NUMBER */
- /*Integer*/
-{DEC}		{yylval.num.int_val=strtoull(yytext,NULL,10); yylval.num.sign=SIGNED_T; yylval.num.type=INT_T; return NUMBER;}
-{DEC}[Uu]	{yylval.num.int_val=strtoull(yytext,NULL,10); yylval.num.sign=UNSIGNED_T; yylval.num.type = INT_T; return NUMBER;}
-{DEC}[Ll]	{yylval.num.int_val=strtoull(yytext,NULL,10); yylval.num.sign=SIGNED_T; yylval.num.type = LONG_T; return NUMBER;}
-{DEC}([Ll][Uu]|[Uu][Ll])	{yylval.num.int_val=strtoull(yytext,NULL,10); yylval.num.sign=UNSIGNED_T; yylval.num.type = LONG_T;return NUMBER;}
-{DEC}[Ll][Ll]	{yylval.num.int_val=strtoull(yytext,NULL,10); yylval.num.sign=SIGNED_T; yylval.num.type = LONGLONG_T; return NUMBER;}
-{DEC}([Uu](LL|ll)|(LL|ll)[Uu])	{yylval.num.int_val=strtoull(yytext,NULL,10); yylval.num.sign=UNSIGNED_T; yylval.num.type = LONGLONG_T; return NUMBER;}
+ /* Integer */
+{DEC}		{MAKEINT(10, SIGNED_T, INT_T);}
+{DEC}[Uu]	{MAKEINT(10, UNSIGNED_T, INT_T);}
+{DEC}[Ll]	{MAKEINT(10, SIGNED_T, LONG_T);}
+{DEC}{UL}	{MAKEINT(10, UNSIGNED_T, LONG_T);}
+{DEC}{LL}	{MAKEINT(10, SIGNED_T, LONGLONG_T);}
+{DEC}{ULL}	{MAKEINT(10, UNSIGNED_T, LONGLONG_T);}
 
-{OCT}		{yylval.num.int_val=strtoull(yytext,NULL,8); yylval.num.sign=SIGNED_T; yylval.num.type=INT_T; return NUMBER;}
-{OCT}[Uu]	{yylval.num.int_val=strtoull(yytext,NULL,8); yylval.num.sign=UNSIGNED_T; yylval.num.type = INT_T; return NUMBER;}
-{OCT}[Ll]	{yylval.num.int_val=strtoull(yytext,NULL,8); yylval.num.sign=SIGNED_T; yylval.num.type = LONG_T; return NUMBER;}
-{OCT}([Ll][Uu]|[Uu][Ll])	{yylval.num.int_val=strtoull(yytext,NULL,8); yylval.num.sign=UNSIGNED_T; yylval.num.type = LONG_T;return NUMBER;}
-{OCT}[Ll][Ll]	{yylval.num.int_val=strtoull(yytext,NULL,8); yylval.num.sign=SIGNED_T; yylval.num.type = LONGLONG_T; return NUMBER;}
-{OCT}([Uu](LL|ll)|(LL|ll)[Uu])	{yylval.num.int_val=strtoull(yytext,NULL,8); yylval.num.sign=UNSIGNED_T; yylval.num.type = LONGLONG_T; return NUMBER;}
+{OCT}		{MAKEINT(8, SIGNED_T, INT_T);}
+{OCT}[Uu]	{MAKEINT(8, UNSIGNED_T, INT_T);}
+{OCT}[Ll]	{MAKEINT(8, SIGNED_T, LONG_T);}
+{OCT}{UL}	{MAKEINT(8, UNSIGNED_T, LONG_T);}
+{OCT}{LL}	{MAKEINT(8, SIGNED_T, LONGLONG_T);}
+{OCT}{ULL}	{MAKEINT(8, UNSIGNED_T, LONGLONG_T);}
 
+{HEX}		{MAKEINT(16, SIGNED_T, INT_T);}
+{HEX}[Uu]	{MAKEINT(16, UNSIGNED_T, INT_T);}
+{HEX}[Ll]	{MAKEINT(16, SIGNED_T, LONG_T);}
+{HEX}{UL}	{MAKEINT(16, UNSIGNED_T, LONG_T);}
+{HEX}{LL}	{MAKEINT(16, SIGNED_T, LONGLONG_T);}
+{HEX}{ULL}	{MAKEINT(16, UNSIGNED_T, LONGLONG_T);}
 
-{HEX}		{yylval.num.int_val=strtoull(yytext,NULL,16); yylval.num.sign=SIGNED_T; yylval.num.type=INT_T; return NUMBER;}
-{HEX}[Uu]	{yylval.num.int_val=strtoull(yytext,NULL,16); yylval.num.sign=UNSIGNED_T; yylval.num.type = INT_T; return NUMBER;}
-{HEX}[Ll]	{yylval.num.int_val=strtoull(yytext,NULL,16); yylval.num.sign=SIGNED_T; yylval.num.type = LONG_T; return NUMBER;}
-{HEX}([Ll][Uu]|[Uu][Ll])	{yylval.num.int_val=strtoull(yytext,NULL,16); yylval.num.sign=UNSIGNED_T; yylval.num.type = LONG_T;return NUMBER;}
-{HEX}[Ll][Ll]	{yylval.num.int_val=strtoull(yytext,NULL,16); yylval.num.sign=SIGNED_T; yylval.num.type = LONGLONG_T; return NUMBER;}
-{HEX}([Uu](LL|ll)|(LL|ll)[Uu])	{yylval.num.int_val=strtoull(yytext,NULL,16); yylval.num.sign=UNSIGNED_T; yylval.num.type = LONGLONG_T; return NUMBER;}
-
- /*Float*/
-{REAL}		{yylval.num.real_val=strtod(yytext,NULL); yylval.num.sign=SIGNED_T; yylval.num.type = DOUBLE_T; return NUMBER;}
-{REAL}[Ll] 	{yylval.num.real_val=strtod(yytext,NULL); yylval.num.sign=SIGNED_T; yylval.num.type = LONGDOUBLE_T; return NUMBER;}
-{REAL}[Ff]	{yylval.num.real_val=strtof(yytext,NULL); yylval.num.sign=SIGNED_T; yylval.num.type = FLOAT_T; return NUMBER;}
-{HEX}{P}	{yylval.num.real_val=strtod(yytext,NULL); yylval.num.sign=SIGNED_T; yylval.num.type = DOUBLE_T; return NUMBER;}
-[0]?{DEC}+{EXP}[Ff]?	{char temp = yytext[strlen(yytext)-1];
-						yylval.num.real_val=strtod(yytext,NULL); yylval.num.sign=SIGNED_T; 
-						if(temp=='F'||temp=='f') yylval.num.type = FLOAT_T; 
-						else yylval.num.type = DOUBLE_T;
-						return NUMBER;}
+ /* Float */
+{REAL}		{MAKEFP(DOUBLE_T);}
+{REAL}[Ll] 	{MAKEFP(LONGDOUBLE_T);}
+{REAL}[Ff]	{MAKEFP(FLOAT_T);}
+{HEX}{P}	{MAKEFP(DOUBLE_T);}
+[0]?{DEC}+{EXP}[Ff]?	{char tmp=yytext[strlen(yytext)-1];
+			 MAKEFP((tmp|32)=='f'?FLOAT_T:DOUBLE_T);}
 
  /* STRING and CHARLIT; these differ between the two */
 [uUL]?\'		{begin_literal(); BEGIN CHRMODE;}

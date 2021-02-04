@@ -3,6 +3,24 @@
 #include <ctype.h>
 #include "numutils.h"
 
+extern char *yytext;
+
+struct number make_int(int radix, enum sign sign, enum type type) {
+	return (struct number) {
+		.int_val = strtoull(yytext, NULL, radix),
+		.sign = sign,
+		.type = type
+	};
+}
+
+struct number make_fp(enum type type) {
+	return (struct number) {
+		.real_val = strtod(yytext, NULL),
+		.sign = SIGNED_T,
+		.type = type
+	};
+}
+
 char *print_number(struct number num) {
 	char *outbuf = malloc(30);
 	int pos = 0;
