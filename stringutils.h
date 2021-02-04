@@ -1,9 +1,13 @@
 #ifndef STRINGUTILSH
 #define STRINGUTILSH
 
-/*#include <uchar.h>*/
-typedef uint_least16_t char16_t;
-typedef uint_least32_t char32_t;
+// macros from https://stackoverflow.com/a/5920028/2397327
+#ifdef __APPLE__
+	typedef uint_least16_t char16_t;
+	typedef uint_least32_t char32_t;
+#elif __linux__
+	#include <uchar.h>
+#endif
 
 enum literal_type {
 	LT_STRING,

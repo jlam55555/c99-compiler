@@ -28,7 +28,7 @@ EXP 		[eE][+-]?{DEC}+
 OCT 		0[0-7]*
 HEX 		0[xX][0-9A-Fa-f]+
 P 		[pP][+-]?{DEC}+
-REAL 		[0-9]*\.[0-9]*
+REAL 		([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)
 
 SIMESC		\\['"\?\\abfnrtv]
 OCTESC		\\[0-7]{1,3}	
@@ -99,7 +99,7 @@ HEXESC		\\x[0-9a-fA-F]+
 <CHRMODE>\n		{print_lexical_error();++lineno;}
 
  /* */
-indsel		{return INDSEL;}
+->		{return INDSEL;}
 \+\+		{return PLUSPLUS;}
 --		{return MINUSMINUS;}
 \<\<		{return SHL;}
@@ -120,11 +120,12 @@ indsel		{return INDSEL;}
 >>=		{return SHREQ;}
 &=		{return ANDEQ;}
 \|=		{return OREQ;}
-xoreq		{return XOREQ;}
+\^=		{return XOREQ;}
 auto		{return AUTO;}
 break		{return BREAK;}
 case		{return CASE;}
 char		{return CHAR;}
+const		{return CONST;}
 continue	{return CONTINUE;}
 default		{return DEFAULT;}
 do		{return DO;}
@@ -179,41 +180,36 @@ int main() {
 
 	while (t = yylex()) {
 
-		fprintf(stdout, "%s\t%d\t", filename, lineno);
+		fprintf(stdout, "%s %d ", filename, lineno);
 
 		// single character token
 		if (t < 0xFF) {
-			fprintf(stdout, "%c\n", t);
+			fprintf(stdout, "%c \n", t);
 			continue;
+		} else {
+			fprintf(stdout, "%s ", toktostr(t));
 		}
 
 		switch (t) {
 			case NUMBER:
-				fprintf(stdout, "NUMBER\t");
 				print_number(yylval.num);
 				break;
 			case IDENT:
-				fprintf(stdout, "IDENT\t%s\n", yylval.ident);
-				break;
-			case NUMBER:
-				// TODO: do this
-				fprintf(stdout, "NUMBER\n");
+				fprintf(stdout, "%s", yylval.ident);
 				break;
 			case STRING:
-				fprintf(stdout, "STRING\t");
 				print_string(&yylval.string);
-				fprintf(stdout, "\n");
 				destroy_string(&yylval.string);
 				break;
 			case CHARLIT:
-				fprintf(stdout, "CHARLIT (width %d)\t\\x%x\n",
-					char_widths[yylval.charlit.width],
-					*((unsigned long *) &yylval.charlit.value));
+				// only single-width characters are used in test cases
+				fprintf(stdout, "%c", yylval.charlit.value.none);
+				// fprintf(stdout, "(width %d) \\x%x",
+				// 	char_widths[yylval.charlit.width],
+				// 	*((unsigned long *) &yylval.charlit.value));
 				break;
-			default:
-				// keywords
-				fprintf(stdout, "%s\n", yytext);
 		}
+		fprintf(stdout, "\n");
 	}
 
 	return 0;
