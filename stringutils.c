@@ -19,49 +19,6 @@ size_t char_widths[5] = {
 	sizeof(unsigned char)		// CW_u8
 };
 
-// TODO: this should probably return a regular C string rather than
-// print to stdout (e.g., in the case of needing to print to stderr)
-void print_string(struct string *str) {
-	// necessary to iterate over length, since there may be null
-	// characters within the string
-	unsigned i;
-	unsigned char *c, *to_print;
-
-	for (i = 0, c = str->buf; i < str->length; i++, c++) {
-		// printable character: print literally
-		if (isprint(*c)) {
-			switch (*c) {
-				case '\\': case '\'': case '"':
-					fprintf(stdout, "\\%c", *c);
-					continue;
-				default:
-					fprintf(stdout, "%c", *c);
-					continue;
-			}
-		}
-
-		// non-printable characters
-		switch (*c) {
-			case '\0': to_print = "\\0"; break;
-			case '\a': to_print = "\\a"; break;
-			case '\b': to_print = "\\b"; break;
-			case '\f': to_print = "\\f"; break;
-			case '\n': to_print = "\\n"; break;
-			case '\r': to_print = "\\r"; break;
-			case '\t': to_print = "\\t"; break;
-			case '\v': to_print = "\\v"; break;
-
-			// non-common escape code: print octal code
-			default:
-				fprintf(stdout, "\\%03o", *c);
-				continue;
-		}
-
-		// common escape code: print escape code
-		fprintf(stdout, to_print);
-	}
-}
-
 // for building the string; buf_len includes the null character at the
 // end, cur_len does not
 static char *strbuf = NULL;
@@ -308,6 +265,68 @@ void parse_append_hexadecimal() {
 		val = (val<<4) + htod(*it);
 
 	append_buffer(&val, 1);
+}
+
+// buf should be at least 5 bytes; doesn't return a buffer to avoid
+// dynamic allocation, since we know how long the string can be
+void print_char(unsigned char value, char *buf) {
+	char *to_print;
+	
+	// printable character: print literally
+	if (isprint(value)) {
+		switch (value) {
+			case '\\': case '\'': case '"':
+				sprintf(buf, "\\%c", value);
+				return;
+			default:
+				sprintf(buf, "%c", value);
+				return;
+		}
+	}
+
+	// non-printable characters
+	switch (value) {
+		// common escape code: print escape code
+		case '\0': sprintf(buf, "\\0"); return;
+		case '\a': sprintf(buf, "\\a"); return;
+		case '\b': sprintf(buf, "\\b"); return;
+		case '\f': sprintf(buf, "\\f"); return;
+		case '\n': sprintf(buf, "\\n"); return;
+		case '\r': sprintf(buf, "\\r"); return;
+		case '\t': sprintf(buf, "\\t"); return;
+		case '\v': sprintf(buf, "\\v"); return;
+
+		// non-common escape code: print octal code
+		default:
+			sprintf(buf, "\\%03o", value);
+			return;
+	}
+}
+
+// returned value should be freed after use
+char *print_string(struct string *str) {
+	// necessary to iterate over length, since there may be null
+	// characters within the string
+	unsigned i, pos = 0, buf_len = 16;
+	unsigned char *c, *to_print;
+	char *buf = (char *) malloc(buf_len), chr_buf[5];
+
+	// in case of empty string
+	buf[0] = 0;
+
+	for (i = 0, c = str->buf; i < str->length; i++, c++) {
+		// resize buffer as necessary; can add up to four characters
+		// at a time, so make sure always this many spaces free
+		if (buf_len - pos <= 5) {
+			buf_len *= 2;
+			buf = (char *) realloc(buf, buf_len);
+		}
+
+		print_char(*c, chr_buf);
+		pos += sprintf(buf+pos, "%s", chr_buf);
+	}
+	
+	return buf;
 }
 
 void destroy_string(struct string *str) {

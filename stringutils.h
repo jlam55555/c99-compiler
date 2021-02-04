@@ -47,10 +47,6 @@ struct charlit {
 	union char_t value;
 };
 
-// helper to print a struct string, showing escape sequences
-// (including null characters); prints non-printable characters in octal
-void print_string(struct string *);
-
 // begin building a string or (potentially wide) character constant in memory
 // isstr=1 if string literal, isstr=0 for character constant
 void begin_literal();
@@ -66,6 +62,15 @@ void append_text();
 void parse_append_escape();
 void parse_append_octal();
 void parse_append_hexadecimal();
+
+// helper to print a single byte, showing escape sequences;
+// prints to the buffer, which should be at least 5 bytes long
+void print_char(unsigned char value, char *buf);
+
+// helper to print a struct string, showing escape sequences
+// (including null characters); prints non-printable characters in octal;
+// returns a dynamically-allocated string that should be fred
+char *print_string(struct string *);
 
 // helper function; frees the pointer of a struct string
 void destroy_string(struct string *);

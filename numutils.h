@@ -22,6 +22,6 @@ struct number {
 	long double real_val;
 };
 
-void print_number(struct number num);
+char *print_number(struct number num);
 
 #endif
