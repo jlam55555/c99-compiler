@@ -1,7 +1,3 @@
-3c3
-< ltests/chars.c 3 CHARLIT '
----
-> ltests/chars.c 3 CHARLIT \'
 7c7
 < ltests/chars.c 7 STRING AB\357g
 ---

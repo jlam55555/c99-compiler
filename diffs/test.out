@@ -1,6 +1,6 @@
 ltests/chars.c 1 STRING \0\0\0
 ltests/chars.c 2 STRING \a\0\n
-ltests/chars.c 3 CHARLIT '
+ltests/chars.c 3 CHARLIT \'
 ltests/chars.c 4 STRING \\\"\\\'
 ltests/chars.c 5 STRING \0018\377\001\256Z
 ltests/chars.c 6 CHARLIT a
