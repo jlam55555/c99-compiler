@@ -1,3 +1,6 @@
+#ifndef TOKENSMANUALH
+#define TOKENSMANUALH
+
 enum tokens {
 	TOKEOF=0,
 	IDENT=0x101,
@@ -64,3 +67,5 @@ enum tokens {
 	_COMPLEX,
 	_IMAGINARY,
 };
+
+#endif // TOKENSMANUALH

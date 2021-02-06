@@ -1,6 +1,8 @@
 #ifndef STRINGUTILSH
 #define STRINGUTILSH
 
+#include <stddef.h>
+
 // macros from https://stackoverflow.com/a/5920028/2397327
 #ifdef __APPLE__
 	typedef uint_least16_t char16_t;

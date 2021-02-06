@@ -1,0 +1,135 @@
+BINARY  OP  ,
+  ASSIGNMENT
+    IDENT  a
+    IDENT  b
+  ASSIGNMENT
+    IDENT  c
+    BINARY  OP  +
+      IDENT  c
+      BINARY  OP  /
+        UNARY  OP  -
+          CONSTANT:  (type=int)10
+        IDENT  d
+
+TERNARY  OP,  IF:      
+  COMPARISON  OP  !=
+    STRING	X
+    STRING	Y
+THEN:
+  ASSIGNMENT
+    IDENT  e
+    BINARY  OP  -
+      IDENT  e
+      CONSTANT:  (type=int)1
+ELSE:
+  UNARY  OP  POSTINC
+    IDENT  f
+
+ASSIGNMENT
+  IDENT  g
+  BINARY  OP  -
+    IDENT  g
+    DEREF
+      BINARY  OP  +
+        STRING	ABC
+        CONSTANT:  (type=int)3
+
+ASSIGNMENT
+  IDENT  h
+  BINARY  OP  %
+    IDENT  h
+    UNARY  OP  +
+      IDENT  i
+
+ASSIGNMENT
+  IDENT  i
+  BINARY  OP  /
+    IDENT  i
+    CONSTANT:  (type=double)15.3
+
+ASSIGNMENT
+  IDENT  j
+  BINARY  OP  <<
+    IDENT  j
+    CONSTANT:  (type=int)3
+
+BINARY  OP  ,
+  ASSIGNMENT
+    IDENT  j
+    BINARY  OP  >>
+      IDENT  j
+      IDENT  k
+  IDENT  l
+
+ASSIGNMENT
+  IDENT  m
+  BINARY  OP  &
+    IDENT  m
+    LOGICAL  OP  &&
+      IDENT  n
+      IDENT  o
+
+ASSIGNMENT
+  IDENT  n
+  BINARY  OP  |
+    IDENT  n
+    BINARY  OP  ^
+      IDENT  n
+      IDENT  o
+
+ASSIGNMENT
+  IDENT  o
+  BINARY  OP  ^
+    IDENT  o
+    CONSTANT:  (type=int)65
+
+COMPARISON  OP  >=
+  FNCALL,  3  arguments
+    IDENT fn
+  arg  #1=
+    LOGICAL  OP  ||
+      LOGICAL  OP  &&
+        IDENT  a
+        IDENT  b
+      IDENT  c
+  arg  #2=
+    BINARY  OP  |
+      BINARY  OP  &
+        IDENT  d
+        IDENT  e
+      BINARY  OP  ^
+        IDENT  f
+        IDENT  g
+  arg  #3=
+    COMPARISON  OP  !=
+      COMPARISON  OP  ==
+        CONSTANT:  (type=int)10
+        CONSTANT:  (type=int)20
+      CONSTANT:  (type=int)0
+  BINARY  OP  <<
+    UNARY  OP  ~
+      IDENT  a
+    CONSTANT:  (type=int)2
+
+ASSIGNMENT
+  IDENT p
+  ADDRESSOF
+    SELECT
+      DEREF
+	IDENT x
+      IDENT m
+
+DEREF
+  UNARY  OP  POSTINC
+    SELECT
+      IDENT p
+      IDENT n
+
+ASSIGNMENT
+  IDENT  s
+  SIZEOF
+    ASSIGNMENT
+      IDENT  a
+      BINARY  OP  +
+        IDENT  a
+        CONSTANT:  (type=int)1

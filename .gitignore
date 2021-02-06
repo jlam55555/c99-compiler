@@ -1,3 +1,13 @@
+# bison/flex files
 lex.yy.c
-lexer
+*.output
+*.tab.*
+
+# executable target
+parser
+
+# object files
 *.o
+
+# vscode tmp files
+*~
