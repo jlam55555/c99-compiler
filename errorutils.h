@@ -15,4 +15,7 @@ void parse_lineno();
 // (start condition ~ environment).
 void print_lexical_error();
 
+// Prints the name of the token type.
+char *toktostr(int enumval);
+
 #endif	// ERRORUTILSH

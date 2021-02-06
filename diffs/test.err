@@ -1,0 +1,2 @@
+Warning: multiple code points in character constant.
+Warning: hexadecimal escape code \xabcdef exceeds code point width.
