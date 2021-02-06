@@ -11,6 +11,7 @@ enum astnode_type {
 	NT_OPERATOR,
 	NT_STRING,
 	NT_CHARLIT,
+	NT_IDENT,
 
 	// nonterminals
 	NT_BINOP,
@@ -37,6 +38,23 @@ struct astnode_number {
 	struct number num;
 };
 
+struct astnode_ident {
+	enum astnode_type type;
+	char *ident;
+	union astnode *prev, *next;
+};
+
+struct astnode_charlit {
+	enum astnode_type type;
+	char c;
+	union astnode *prev, *next;
+};
+
+struct astnode_string {
+	/*TODO*/
+	enum astnode_type type;
+};
+
 union astnode {
 	// generic acts as interface assuming proper alignment
 	struct astnode_generic {int type;} generic;
@@ -44,6 +62,9 @@ union astnode {
 	struct astnode_number num;
 	struct astnode_binop binop;
 	struct astnode_unop unop;
+	struct astnode_ident ident;
+	struct astnode_charlit charlit;
+	struct astnode_string string;
 };
 
 // helper to allocate an astnode
