@@ -2,85 +2,77 @@
 %x STRMODE
 %x CHRMODE
 %{
-#include <stdlib.h>
-#include <stddef.h>
 #include "tokensmanual.h"
 #include "stringutils.h"
 #include "errorutils.h"
-#include "numutils.h"
 
+struct number {
+	int type;
+	int sign;
+	long long int int_val;
+	long double real_val;
+};
+
+// TODO: choose appropriate types
 typedef union {
 	struct number num;
+	char c;
 	char *ident;
 	struct string string;
-	struct charlit charlit;
 } YYSTYPE;
 
 YYSTYPE yylval;
-
-// helper for making integral and float types
-#define MAKEINT(radix, sign, type) \
-	yylval.num = make_int(radix, sign, type);\
-	return NUMBER;
-#define MAKEFP(type) \
-	yylval.num = make_fp(type);\
-	return NUMBER;
 %}
 
-DEC	[1-9]+[0-9]*
-EXP 	[eE][+-]?{DEC}+
-OCT 	0[0-7]*
-HEX 	0[xX][0-9A-Fa-f]+
-P	[pP][+-]?{DEC}+
-REAL	([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)
+DEC		[1-9]+[0-9]*
+EXP 		[eE][+-]?{DEC}+
+OCT 		0[0-7]+
+HEX 		0[xX][0-9A-Fa-f]+
+P 		[pP][+-]?{DEC}+
+REAL 		[0-9]*\.[0-9]*
 
-UL	([Ll][Uu]|[Uu][Ll])
-LL	[Ll][Ll]	
-ULL	([Uu](LL|ll)|(LL|ll)[Uu])	
+SIMESC		\\['"\?\\abfnrtv]
+OCTESC		\\[0-7]{1,3}	
+HEXESC		\\x[0-9a-fA-F]+
 
-SIMESC	\\['"\?\\abfnrtv]
-OCTESC	\\[0-7]{1,3}	
-HEXESC	\\x[0-9a-fA-F]+
 %%
  /* Reading a preprocessor line number */
 #[ ]{DEC}[ ]\"[^\"]+\".*\n	{parse_lineno();}
 
- /* Integer */
-{DEC}		{MAKEINT(10, SIGNED_T, INT_T);}
-{DEC}[Uu]	{MAKEINT(10, UNSIGNED_T, INT_T);}
-{DEC}[Ll]	{MAKEINT(10, SIGNED_T, LONG_T);}
-{DEC}{UL}	{MAKEINT(10, UNSIGNED_T, LONG_T);}
-{DEC}{LL}	{MAKEINT(10, SIGNED_T, LONGLONG_T);}
-{DEC}{ULL}	{MAKEINT(10, UNSIGNED_T, LONGLONG_T);}
+ /* NUMBER */
+{DEC}		{return NUMBER;}
+{DEC}U		{return NUMBER;}
+{DEC}L		{return NUMBER;}
+{DEC}LU		{return NUMBER;}
+{DEC}LL		{return NUMBER;}
+{DEC}LLU		{return NUMBER;}
 
-{OCT}		{MAKEINT(8, SIGNED_T, INT_T);}
-{OCT}[Uu]	{MAKEINT(8, UNSIGNED_T, INT_T);}
-{OCT}[Ll]	{MAKEINT(8, SIGNED_T, LONG_T);}
-{OCT}{UL}	{MAKEINT(8, UNSIGNED_T, LONG_T);}
-{OCT}{LL}	{MAKEINT(8, SIGNED_T, LONGLONG_T);}
-{OCT}{ULL}	{MAKEINT(8, UNSIGNED_T, LONGLONG_T);}
+{OCT}		{return NUMBER;}
+{OCT}U		{return NUMBER;}
+{OCT}L		{return NUMBER;}
+{OCT}LU		{return NUMBER;}
+{OCT}LL		{return NUMBER;}
+{OCT}LLU		{return NUMBER;}
 
-{HEX}		{MAKEINT(16, SIGNED_T, INT_T);}
-{HEX}[Uu]	{MAKEINT(16, UNSIGNED_T, INT_T);}
-{HEX}[Ll]	{MAKEINT(16, SIGNED_T, LONG_T);}
-{HEX}{UL}	{MAKEINT(16, UNSIGNED_T, LONG_T);}
-{HEX}{LL}	{MAKEINT(16, SIGNED_T, LONGLONG_T);}
-{HEX}{ULL}	{MAKEINT(16, UNSIGNED_T, LONGLONG_T);}
+{HEX}		{return NUMBER;}
+{HEX}U		{return NUMBER;}
+{HEX}L		{return NUMBER;}
+{HEX}LU		{return NUMBER;}
+{HEX}LL		{return NUMBER;}
+{HEX}LLU		{return NUMBER;}
+{HEX}{P}	{return NUMBER;}
 
- /* Float */
-{REAL}		{MAKEFP(DOUBLE_T);}
-{REAL}[Ll] 	{MAKEFP(LONGDOUBLE_T);}
-{REAL}[Ff]	{MAKEFP(FLOAT_T);}
-{HEX}{P}	{MAKEFP(DOUBLE_T);}
-[0]?{DEC}+{EXP}[Ff]?	{char tmp=yytext[strlen(yytext)-1];
-			 MAKEFP((tmp|32)=='f'?FLOAT_T:DOUBLE_T);}
+{REAL}		{return NUMBER;}
+{REAL}L 	{return NUMBER;}
+[0]?{DEC}+{EXP}[f]?	{return NUMBER;}
+{REAL}f		{return NUMBER;}
 
  /* STRING and CHARLIT; these differ between the two */
-[uUL]?\'		{begin_literal(); BEGIN CHRMODE;}
+[uUL]?\'		{begin_string(0); BEGIN CHRMODE;}
 <CHRMODE>[^\'\\\n]+	{append_text();}
-<CHRMODE>\'		{yylval.charlit = end_charlit();
-			 BEGIN INITIAL; return CHARLIT;}
-(u8|[uUL])?\"		{begin_literal(); BEGIN STRMODE;}
+<CHRMODE>\'		{yylval.string = end_string();
+			 BEGIN INITIAL; return STRING;}
+[(u8)uUL]?\"		{begin_string(1); BEGIN STRMODE;}
 <STRMODE>[^\"\\\n]+	{append_text();}
 <STRMODE>\"		{yylval.string = end_string();
 			 BEGIN INITIAL; return STRING;}
@@ -101,7 +93,7 @@ HEXESC	\\x[0-9a-fA-F]+
 <CHRMODE>\n		{print_lexical_error();++lineno;}
 
  /* */
-->		{return INDSEL;}
+indsel		{return INDSEL;}
 \+\+		{return PLUSPLUS;}
 --		{return MINUSMINUS;}
 \<\<		{return SHL;}
@@ -112,7 +104,7 @@ HEXESC	\\x[0-9a-fA-F]+
 !=		{return NOTEQ;}
 &&		{return LOGAND;}
 \|\|		{return LOGOR;}
-\.\.\.		{return ELLIPSIS;}
+\.\.		{return ELLIPSIS;}
 \*=		{return TIMESEQ;}
 \/=		{return DIVEQ;}
 %=		{return MODEQ;}
@@ -122,12 +114,11 @@ HEXESC	\\x[0-9a-fA-F]+
 >>=		{return SHREQ;}
 &=		{return ANDEQ;}
 \|=		{return OREQ;}
-\^=		{return XOREQ;}
+xoreq		{return XOREQ;}
 auto		{return AUTO;}
 break		{return BREAK;}
 case		{return CASE;}
 char		{return CHAR;}
-const		{return CONST;}
 continue	{return CONTINUE;}
 default		{return DEFAULT;}
 do		{return DO;}
@@ -157,15 +148,15 @@ unsigned	{return UNSIGNED;}
 void		{return VOID;}
 volatile	{return VOLATILE;}
 while		{return WHILE;}
-_Bool		{return _BOOL;}
-_Complex	{return _COMPLEX;}
-_Imaginary	{return _IMAGINARY;}
+_bool		{return _BOOL;}
+_complex	{return _COMPLEX;}
+_imaginary	{return _IMAGINARY;}
 
  /* IDENT */
 [a-zA-Z_][a-zA-Z0-9_]*	{yylval.ident = yytext; return IDENT;}
 
  /* single-character operators get their ASCII value passed as token type */
-[~!#%\^&\*\(\)\-\=\+\[\]\{\}\|\;:\<\>,\.\?/] {return yytext[0];}
+[!#%\^&\*\(\)\-\=\+\[\]\{\}\|\;\<\>\.\?] {return yytext[0];}
 
  /* ignore whitespace (except newline, see below) */
 [ \t\v\f\r]+	{;}
@@ -176,50 +167,25 @@ _Imaginary	{return _IMAGINARY;}
  /* invalid characters */
 .		{print_lexical_error();}
 %%
+// TODO: maybe do digraphs?
+// TODO: can we assume null-terminated strings? E.g., how to print string like \0\0\0?
 
 int main() {
 	int t;
-	char *buf = NULL, chr_buf[5];
 
 	while (t = yylex()) {
-
-		fprintf(stdout, "%s %d ", filename, lineno);
-
-		// single character token
-		if (t < 0xFF) {
-			fprintf(stdout, "%c \n", t);
-			continue;
-		} else {
-			fprintf(stdout, "%s ", toktostr(t));
-		}
-
-		// special token types
+		fprintf(stdout, "%s: %d\n", yytext, t);
 		switch (t) {
 			case NUMBER:
-				buf = print_number(yylval.num);
-				break;
-			case IDENT:
-				fprintf(stdout, "%s", yylval.ident);
+				fprintf(stdout, "Number found\n");
 				break;
 			case STRING:
-				buf = print_string(&yylval.string);
+				fprintf(stdout, "String found: ");
+				print_string(&yylval.string);
+				fprintf(stdout, "\n");
 				destroy_string(&yylval.string);
 				break;
-			case CHARLIT:
-				// only single-width (ASCII) characters are
-				// used in test cases
-				print_char(yylval.charlit.value.none, chr_buf);
-				fprintf(stdout, "%s", chr_buf);
-				break;
 		}
-
-		// print_number and print_string dynamically allocate a buffer
-		if (buf) {
-			fprintf(stdout, "%s", buf);
-			free(buf);
-			buf = NULL;
-		}
-		fprintf(stdout, "\n");
 	}
 
 	return 0;
