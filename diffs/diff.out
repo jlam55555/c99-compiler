@@ -1,6 +1,0 @@
-7c7
-< ltests/chars.c 7 STRING AB\357g
----
-> ltests/chars.c 7 STRING AB\377g
-171a172
-> 
