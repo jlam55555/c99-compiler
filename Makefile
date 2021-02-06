@@ -27,4 +27,4 @@ unicodeutils.o: unicodeutils.c
 	gcc -c -o unicodeutils.o unicodeutils.c
 
 clean:
-	rm -f lex.yy.c parser.tab.c *.o parser
+	rm -f *.o lex.yy.c parser.tab.* parser parser.output
