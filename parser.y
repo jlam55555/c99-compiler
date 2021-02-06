@@ -5,10 +5,6 @@
 
 #include "parser.h"
 
-// shorthand for allocating a new AST node
-#define ALLOC(var)\
-	var = astnode_alloc();
-
 %}
 %union {
 	struct number num;
@@ -33,17 +29,24 @@
 
 %type <astnode>	expr NUMBER
 %%
-exprlist:	expr			{print_astnode($1);}
+exprlist:	expr		{print_astnode($1);}
 
-expr:		NUMBER			{ALLOC($$);$$->num=(struct astnode_number){0,(struct number){}};}
-		| expr '+' expr		{ALLOC($$);$$->binop=(struct astnode_binop){.type=NT_BINOP,.operator='+',.left=$1,.right=$3};}
-		| expr '-' expr		{ALLOC($$);$$->binop=(struct astnode_binop){.type=NT_BINOP,.operator='-',.left=$1,.right=$3};}
-		| expr '*' expr		{ALLOC($$);$$->binop=(struct astnode_binop){.type=NT_BINOP,.operator='*',.left=$1,.right=$3};}
-		| expr '/' expr		{ALLOC($$);if (!$3) fprintf(stderr, "/0 err\n"); else $$->binop=(struct astnode_binop){.type=NT_BINOP,.operator='/',.left=$1,.right=$3};}
-		| '-' expr %prec '('    {ALLOC($$);$$->unop=(struct astnode_unop){.type=NT_UNOP,.operator='-',.arg=$2};}
-		| '(' expr ')'		{$$=$2;}
-		;
+expr:	NUMBER			{ALLOC($$);
+				 $$->num=(struct astnode_number)
+				 {0,(struct number){}};}
+	| expr '+' expr		{ALLOC_SET_BINOP($$, '+', $1, $3);}
+	| expr '-' expr		{ALLOC_SET_BINOP($$, '-', $1, $3);}
+	| expr '*' expr		{ALLOC_SET_BINOP($$, '*', $1, $3);}
+	| expr '/' expr		{/* TODO: check for division by zero if
+				 3 is a literal zero constant */
+				 if (!$3) fprintf(stderr, "/0 err\n");
+				 else ALLOC_SET_BINOP($$, '/', $1, $3);}
+	| '-' expr %prec '('    {ALLOC_SET_UNOP($$, '-', $2);}
+	| '(' expr ')'		{$$=$2;}
+	;
 %%
+// TODO: do we have to cover cases of divide by zero symbolically?
+
 int main()
 {
 	yydebug = 1;
@@ -60,24 +63,44 @@ union astnode *astnode_alloc()
 	return malloc(sizeof(union astnode));
 }
 
-void print_astnode_recursive(union astnode *node, int depth) {
-	int i;
+char *astnodetype_tostring(enum astnode_type type)
+{
+	switch (type) {
+		case NT_NUMBER:		return "NT_NUMBER";
+		case NT_KEYWORD:	return "NT_KEYWORD";
+		case NT_OPERATOR:	return "NT_OPERATOR";
+		case NT_STRING:		return "NT_STRING";
+		case NT_CHARLIT:	return "NT_CHARLIT";
 
-	for (i = 0; i < depth; i++) {
-		fprintf(stdout, " ");
+		case NT_BINOP:		return "NT_BINOP";
+		case NT_UNOP:		return "NT_UNOP";
+
+		default:
+			fprintf(stderr, "Error: unknown AST node type.\n");
+			return "";
 	}
+}
 
-	fprintf(stdout, "AST node: %d\n", node->generic.type);
+void print_astnode_recursive(union astnode *node, int depth)
+{
+	INDENT(depth);
+	fprintf(stdout, "AST node: %s\n",
+		astnodetype_tostring(node->generic.type));
 
 	switch (node->generic.type) {
 		case NT_NUMBER:
+			INDENT(depth);
 			fprintf(stdout, "value: %d\n", node->num.num.int_val);
 			break;
 		case NT_BINOP:
+			INDENT(depth);
+			fprintf(stdout, "op: %c\n", node->binop.operator);
 			print_astnode_recursive(node->binop.left, depth+1);
 			print_astnode_recursive(node->binop.right, depth+1);
 			break;
 		case NT_UNOP:
+			INDENT(depth);
+			fprintf(stdout, "op: %c\n", node->unop.operator);
 			print_astnode_recursive(node->unop.arg, depth+1);
 			break;
 		default:
@@ -87,13 +110,7 @@ void print_astnode_recursive(union astnode *node, int depth) {
 
 void print_astnode(union astnode *node)
 {
-	fprintf(stdout, "\n\n\nReading a node:\n");
+	fprintf(stdout, "\n\n\nExpression AST:\n");
 	print_astnode_recursive(node, 0);
 	fprintf(stdout, "\n\n\n");
 }
-
-/*
-exprlist:   	expr			{print_astnode($1);}
-        	| exprlist NL expr	{printf("EXPR VALUE IS  %d\n", $3);}
-        	;
-		*/
