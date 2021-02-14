@@ -82,8 +82,8 @@ pofexpr:	pexpr				{/*TODO*/}
 		| '(' typename ')' '{' initlist ',' '}'	{/*TODO*/}
 		;
 
-arglist:	asnexpr			{/*TODO*/}
-		| arglist ',' asnexpr	{/*TODO*/}
+arglist:	asnmtexpr		{/*TODO*/}
+		| arglist ',' asnmtexpr	{/*TODO*/}
 		|			{/*TODO*/}
 		;
 
@@ -268,8 +268,13 @@ structdecl:	declarator			{/*TODO*/}
 		| ':' constexpr			{/*TODO*/}
 		;
 
-enumspec:	ENUM IDENT		{/*TODO*/}
+enumspec:	ENUM IDENT '{' enumlist '}'		{/*TODO*/}
+		| ENUM IDENT '{' enumlist ',' '}'		{/*TODO*/}
+		| ENUM '{' enumlist '}'		{/*TODO*/}
+		| ENUM '{' enumlist ',' '}'		{/*TODO*/}
+		| ENUM IDENT		{/*TODO*/}
 		;
+
 enumlist:	enumrtr
 		| enumlist ',' enumrtr {/*TODO*/}
 		;
@@ -287,6 +292,56 @@ typequal:	CONST			{/*TODO*/}
 funcspec:	INLINE			{/*TODO*/}
 		;
 
+/* 6.7.5 Declarators */
+declarator:	pointer dirdeclarator	{/*TODO*/}
+		| pointer		{/*TODO*/}
+		;
+
+dirdeclarator:	IDENT							{/*TODO*/}
+		| '(' declarator ')'					{/*TODO*/}
+		| dirdeclarator '[' typequallistopt asnmtexpr ']'	{/*TODO*/}
+		| dirdeclarator '[' typequallistopt ']'			{/*TODO*/}
+		| dirdeclarator '[' STATIC typequallistopt asnmtexpr ']'	{/*TODO*/}
+		| dirdeclarator '[' STATIC typequallistopt ']'		{/*TODO*/}
+		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'	{/*TODO*/}
+		| dirdeclarator '[' typequallistopt '*' ']'		{/*TODO*/}
+		| dirdeclarator '(' paramtypelist ')'			{/*TODO*/}
+		| dirdeclarator '(' identlist ')'			{/*TODO*/}
+		| dirdeclarator '(' ')'					{/*TODO*/}
+		;
+
+pointer:	'*' typequallistopt	{/*TODO*/}
+		| '*' typequallistopt pointer	{/*TODO*/}
+		;
+
+typequallistopt:typequallist		{/*TODO*/}
+		|			{/*empty*/}
+		;
+
+paramtypelist:	paramlist
+		| paramlist ',' ELLIPSIS	{/*TODO*/}
+		;
+
+paramlist:	paramdecl			{/*TODO*/}
+		| paramlist ',' paramdecl	{/*TODO*/}
+		;
+
+paramdecl:	declspec declarator		{/*TODO*/}
+		| declspec abstdeclr		{/*TODO*/}
+		| declspec 					{/*TODO*/}
+		;
+
+identlist:	IDENT
+		| identlist ',' IDENT
+		;
+
+/*
+// these are all valid
+const const int const const i;
+int const i;
+const int *const i, *const *const (j);
+const int const i, const j;
+*/
 
 %%
 /*
