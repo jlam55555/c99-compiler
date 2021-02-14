@@ -75,6 +75,8 @@ HEXESC	\\x[0-9a-fA-F]+
 {HEX}{P}	{MAKEFP(DOUBLE_T);}
 [0]?{DEC}+{EXP}[Ff]?	{char tmp=yytext[strlen(yytext)-1];
 			 MAKEFP((tmp|32)=='f'?FLOAT_T:DOUBLE_T);}
+[0]?{DEC}+{EXP}[Ll]?	{char tmp=yytext[strlen(yytext)-1];
+			 MAKEFP((tmp|32)=='l'?LONGDOUBLE_T:DOUBLE_T);}
 
  /* STRING and CHARLIT; these differ between the two */
 [uUL]?\'		{begin_literal(); BEGIN CHRMODE;}
@@ -166,7 +168,7 @@ _Imaginary	{return _IMAGINARY;}
 [a-zA-Z_][a-zA-Z0-9_]*	{yylval.ident = yytext; return IDENT;}
 
  /* single-character operators get their ASCII value passed as token type */
-[~!#%\^&\*\(\)\-\=\+\[\]\{\}\|\;:\<\>,\.\?/] {return yytext[0];}
+[~!%\^&\*\(\)\-\=\+\[\]\{\}\|\;:\<\>,\.\?/] {return yytext[0];}
 
  /* ignore whitespace (except newline, see below) */
 [ \t\v\f\r]+	{;}

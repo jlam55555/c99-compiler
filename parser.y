@@ -27,7 +27,7 @@
 
 %right	'=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
 
-%left	'?' ':'		/* ternary */
+%right	'?' ':'		/* ternary */
 %left	LOGOR
 %left	LOGAND
 %left	'|'
@@ -46,11 +46,250 @@
 /* this precedence level also includes pre(inc|dec)rement */
 %left	'(' ')' '[' ']' '.' INDSEL
 
-%type <astnode>	expr
+%type <astnode>	pexpr
 %type <ident> IDENT
 %%
-exprlist:	expr		{print_astnode($1);}
+exprlist:	pexpr		{print_astnode($1);}
 
+/* 6.4.4.3 */
+enumconst:	IDENT		{/* TODO: identifier declared as an
+				 enum constant; might cause errors later by
+				 conflicting with IDENT? */}
+		;
+
+/* 6.4.4 */
+constant:	NUMBER		{/* TODO */}
+		| enumconst	{/* TODO */}
+		| CHARLIT	{/* TODO */}
+		;
+
+/* primary expr: 6.5.1; doesn't include C11 generic selections */
+pexpr:		IDENT		{/* TODO */}
+		| constant	{/* TODO */}
+		| STRING	{/* TODO */}
+		| '(' pexpr ')'	{/* TODO */}
+		;
+
+/* postfix expression: 6.5.2*/
+pofexpr:	pexpr				{/*TODO*/}
+		| pofexpr '[' expr ']'		{/*TODO*/}
+		| pofexpr '(' arglistopt ')'	{/*TODO*/}
+		| pofexpr '.' IDENT		{/*TODO*/}
+		| pofexpr INDSEL IDENT		{/*TODO*/}
+		| pofexpr PLUSPLUS		{/*TODO*/}
+		| pofexpr MINUSMINUS		{/*TODO*/}
+		| '(' typename ')' '{' initlist '}'	{/*TODO*/}
+		| '(' typename ')' '{' initlist ',' '}'	{/*TODO*/}
+		;
+
+arglist:	asnexpr			{/*TODO*/}
+		| arglist ',' asnexpr	{/*TODO*/}
+		|			{/*TODO*/}
+		;
+
+arglistopt:	arglist		{/* TODO */}
+		|		{/* empty */}
+		;
+
+/* unary operators: 6.5.3; doesn't include C11 _Alignof */
+uexpr:		pofexpr
+		| PLUSPLUS uexpr	{/*TODO*/}
+		| MINUSMINUS uexpr	{/*TODO*/}
+		| uop castexpr		{/*TODO*/}
+		| SIZEOF uexpr		{/*TODO*/}
+		| SIZEOF '(' typename ')'	{/*TODO*/}
+		;
+
+uop:		'&'		{/*TODO*/}
+		| '*'		{/*TODO*/}	
+		| '+'		{/*TODO*/}
+		| '-'		{/*TODO*/}
+		| '~'		{/*TODO*/}	
+		| '!'		{/*TODO*/}
+		;
+
+castexpr:	uexpr
+		| '(' typename ')' castexpr {/*TODO*/}
+		;
+
+multexpr:	castexpr		{/*TODO*/}
+		| multexpr '*' multexpr	{/*TODO*/}
+		| multexpr '/' multexpr	{/*TODO*/}
+		| multexpr '%' multexpr	{/*TODO*/}
+		;
+
+addexpr:	castexpr
+		| addexpr '+' multexpr {/*TODO*/}
+		| addexpr '-' multexpr {/*TODO*/}
+		;
+		
+
+shftexpr:	addexpr			{/*TODO*/}
+		| shftexpr SHL shftexpr	{/*TODO*/}
+		| shftexpr SHR shftexpr {/*TODO*/}
+		;
+
+relexpr:	shftexpr	{/*TODO*/}
+		| relexpr '<' shftexpr {/*TODO*/}
+		| relexpr '>' shftexpr {/*TODO*/}
+		| relexpr LTEQ shftexpr {/*TODO*/}
+		| relexpr GTEQ shftexpr {/*TODO*/}
+		;
+
+
+eqexpr:		relexpr			{/*TODO*/}
+		| eqexpr EQEQ eqexpr	{/*TODO*/}
+		| eqexpr NOTEQ eqexpr	{/*TODO*/}
+		;
+
+andexpr:	eqexpr			{/*TODO*/}
+		| andexpr '&' andexpr	{/*TODO*/}
+		;
+
+xorexpr:	andexpr			{/*TODO*/}
+		| orexpr '^' andexpr	{/*TODO*/}
+		;
+
+orexpr:		orexpr			{/*TODO*/}
+		| orexpr '|' xorexpr	{/*TODO*/}
+		;
+
+logandexpr:	orexpr			{/*TODO*/}
+		| logandexpr LOGAND orexpr	{/*TODO*/}
+		;
+
+logorexpr:	logandexpr		{/*TODO*/}
+		| logorexpr LOGOR logandexpr	{/*TODO*/}
+		;
+
+condexpr:	logorexpr
+		| logorexpr '?' expr ':' condexpr {/*TODO*/}
+		;
+
+asnmtexpr:	condexpr
+		| uexpr '=' asnmtexpr	{/*TODO*/}
+		| uexpr TIMESEQ asnmtexpr	{/*TODO*/}
+		| uexpr DIVEQ asnmtexpr	{/*TODO*/}
+		| uexpr MODEQ asnmtexpr	{/*TODO*/}
+		| uexpr PLUSEQ asnmtexpr	{/*TODO*/}
+		| uexpr MINUSEQ asnmtexpr	{/*TODO*/}
+		| uexpr SHLEQ asnmtexpr	{/*TODO*/}
+		| uexpr SHREQ asnmtexpr	{/*TODO*/}
+		| uexpr ANDEQ asnmtexpr	{/*TODO*/}
+		| uexpr XOREQ asnmtexpr	{/*TODO*/}
+		| uexpr OREQ asnmtexpr	{/*TODO*/}
+		;
+
+/*comma expression*/
+expr:	asnmtexpr
+		| expr ',' asnmtexpr	{/*TODO*/}
+		;
+
+/* 6.6 constant expressions */
+/* TODO: semantic parsing? */
+constexpr:	condexpr	{/*TODO*/}
+		;
+
+/* 6.7 DECLARATIONS */
+decl:	declspec			{/*TODO*/}
+	| declspec initdecllist	';'	{/*TODO*/}
+	;
+
+/* declaration specifier */
+declspec:	scspec 			{/*TODO*/}
+		| typespec 		{/*TODO*/}
+		| typequal 		{/*TODO*/}
+		| funcspec 		{/*TODO*/}
+		| declspec declspec	{/*TODO*/}
+		;
+
+initdecllist:	initdecl		{/*TODO*/}
+		| initdecllist ',' initdecl	{/*TODO*/}
+		;
+
+initdecl:	declarator
+		| declarator '=' initializer	{/*TODO*/}
+		;
+
+/* 6.7.1 storage class specifier */
+scspec:		TYPEDEF		{/*TODO*/}
+		| EXTERN		{/*TODO*/}
+		| STATIC		{/*TODO*/}
+		| AUTO		{/*TODO*/}
+		| REGISTER		{/*TODO*/}
+		;
+
+/* 6.7.2 type specifiers */
+typespec:	VOID		{/*TODO*/}
+		| CHAR		{/*TODO*/}	
+		| SHORT		{/*TODO*/}
+		| INT		{/*TODO*/}	
+		| LONG		{/*TODO*/}	
+		| FLOAT		{/*TODO*/}
+		| DOUBLE	{/*TODO*/}	
+		| SIGNED	{/*TODO*/}	
+		| UNSIGNED	{/*TODO*/}	
+		| _BOOL		{/*TODO*/}
+		| _COMPLEX	{/*TODO*/}	
+		| structunionspec	{/*TODO*/}
+		| enumspec	{/*TODO*/}	
+		| typedefname	{/*TODO*/}
+		;
+
+/* 6.7.2.1 structure and union specifiers */
+structunionspec:structunion '{' structdecllist '}'		{/*TODO*/}
+		| structunion IDENT '{' structdecllist '}'	{/*TODO*/}
+		| structunion IDENT				{/*TODO*/}
+		;
+
+structunion:	STRUCT		{/*TODO*/}
+		| UNION		{/*TODO*/}
+		;
+
+structdecllist:	structdecl	{/*TODO*/}
+		| structdecllist structdecl	{/*TODO*/}
+		;
+
+structdecl:	specquallist structdecllist ';'	{/*TODO*/}
+		;
+
+specquallist:	typespec specquallist		{/*TODO*/}
+		| typespec			{/*TODO*/}
+		| typequal specquallist		{/*TODO*/}
+		| typequal			{/*TODO*/}
+		;
+
+structdecllist:	structdecl
+		| structdecllist ',' structdecllist	{/*TODO*/}
+		;
+
+structdecl:	declarator			{/*TODO*/}
+		| declarator ':' constexpr	{/*TODO*/}
+		| ':' constexpr			{/*TODO*/}
+		;
+
+enumspec:	ENUM IDENT		{/*TODO*/}
+		;
+enumlist:	enumrtr
+		| enumlist ',' enumrtr {/*TODO*/}
+		;
+enumrtr:	enumconst
+		| enumconst '=' constexpr	{/*TODO*/}
+		;
+
+/* type qualifiers */
+typequal:	CONST			{/*TODO*/}
+		| RESTRICT		{/*TODO*/}
+		| VOLATILE		{/*TODO*/}
+		;
+
+/* 6.7.4 Function Declaration */
+funcspec:	INLINE			{/*TODO*/}
+		;
+
+
+%%
+/*
 expr:	IDENT			{ALLOC($$);$$->ident=(struct astnode_ident)
 				 {NT_IDENT,$1};}
 	| NUMBER		{ALLOC($$);
@@ -60,7 +299,7 @@ expr:	IDENT			{ALLOC($$);$$->ident=(struct astnode_ident)
 	| expr '-' expr		{ALLOC_SET_BINOP($$, '-', $1, $3);}
 	| expr '*' expr		{ALLOC_SET_BINOP($$, '*', $1, $3);}
 	| expr '/' expr		{/* TODO: check for division by zero if
-				 $3 is a literal zero constant */
+				 $3 is a literal zero constant *\/
 				 if (!$3) fprintf(stderr, "/0 err\n");
 				 else ALLOC_SET_BINOP($$, '/', $1, $3);}
 	| '+' expr %prec '!'    {ALLOC_SET_UNOP($$, '+', $2);}
@@ -69,7 +308,8 @@ expr:	IDENT			{ALLOC($$);$$->ident=(struct astnode_ident)
 	| '&' expr %prec '!'    {ALLOC_SET_UNOP($$, '&', $2);}
 	| '(' expr ')'		{$$=$2;}
 	;
-%%
+*/
+
 // TODO: do we have to cover cases of divide by zero symbolically?
 // TODO: deal with pre/post increment
 // TODO: deal with casting
