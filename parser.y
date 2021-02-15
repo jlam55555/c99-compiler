@@ -46,6 +46,10 @@
 /* this precedence level also includes pre(inc|dec)rement */
 %left	'(' ')' '[' ']' '.' INDSEL
 
+/* to correctly parse nested if...else statements */
+%left IF
+%left ELSE
+
 %type <astnode>	pexpr
 %type <ident> IDENT
 %%
@@ -328,7 +332,7 @@ paramlist:	paramdecl			{/*TODO*/}
 
 paramdecl:	declspec declarator		{/*TODO*/}
 		| declspec abstdeclr		{/*TODO*/}
-		| declspec 					{/*TODO*/}
+		| declspec 			{/*TODO*/}
 		;
 
 identlist:	IDENT
@@ -342,6 +346,145 @@ int const i;
 const int *const i, *const *const (j);
 const int const i, const j;
 */
+
+/* 6.7.6: type names */
+typename:	specquallist absdeclarator	{/*TODO*/}
+		| specquallist			{/*TODO*/}
+		;
+
+absdeclarator:	pointer
+		| pointer dirabsdeclarator		{/*TODO*/}
+		| dirabsdeclarator				{/*TODO*/}
+		;
+
+
+dirabsdeclarator:	'(' absdeclarator ')'			{/*TODO*/}
+		| dirabsdeclaratoropt '[' typequallistopt asnmtexpropt ']'	{/*TODO*/}
+		| dirabsdeclaratoropt '[' STATIC typequallistopt asnmtexpropt ']'	{/*TODO*/}
+		| dirabsdeclaratoropt '[' typequallist STATIC asnmtexpr ']'	{/*TODO*/}
+		| dirabsdeclaratoropt '[' '*' ']'		{/*TODO*/}
+		| dirabsdeclaratoropt '[' paramtypelistopt ']'	{/*TODO*/}
+		;
+
+dirabsdeclaratoropt:	dirabsdeclarator	{/*TODO*/}
+		| 				{/*empty*/}
+		;
+
+asnmtexpropt:	asnmtexpr	{/*TODO*/}
+		| 		{/*empty*/}
+		;
+
+paramtypelistopt:paramtypelist	{/*TODO*/}
+		|		{/*empty*/}
+		;
+
+/* 6.7.7 type definitions */
+typedefname:	IDENT		{/*TODO*/}
+		;
+
+/* 6.7.8 initialization */
+initializer:	asnmtexpr
+		| '{' initlist '}'		{/*TODO*/}
+		| '{' initlist ',' '}'	{/*TODO*/}
+		;
+
+initlist:	designationopt initializer			{/*TODO*/}
+		| initlist ',' designationopt initializer	{/*TODO*/}
+		;
+
+designation: 	designatorlist '='	{/*TODO*/}
+		;
+
+designationopt:	designation	{/*TODO*/}
+		|		{/*empty*/}
+		;
+
+designatorlist: designator			{/*TODO*/}
+		| designatorlist designator		{/*TODO*/}
+		;
+
+designator: '[' constexpr ']'	{/*TODO*/}
+		| '.' IDENT				{/*TODO*/}
+		;
+
+
+/* 6.8 statements and blocks */
+stmt:		labeledstmt		{/*TODO*/}
+		| compoundstmt		{/*TODO*/}
+		| exprstmt		{/*TODO*/}
+		| selectionstmt		{/*TODO*/}
+		| iterationstmt		{/*TODO*/}
+		| jumpstmt		{/*TODO*/}
+		;
+
+/* 6.8.1 labeled statements */
+labeledstmt:	IDENT ':' stmt			{/*TODO*/}
+		| CASE constexpr ':' stmt		{/*TODO*/}
+		| DEFAULT ':' stmt				{/*TODO*/}
+		;
+
+/* 6.8.2 compound statement */
+compoundstmt:	'{' blockitemlist '}'	{/*TODO*/}
+		| '{' '}'		{/*TODO*/}
+		;
+
+blockitemlist:	blockitem			{/*TODO*/}
+		| blockitemlist blockitem	{/*TODO*/}
+		;
+
+blockitem:	declaration		{/*TODO*/}
+		| statement		{/*TODO*/}
+		;
+
+/* 6.8.3 expression and null statements */
+exprstmt:	expr			{/*TODO*/}
+		|			{/*empty*/}
+		;
+
+/* 6.8.4 selection statements */
+selectionstmt:	IF '(' expr ')' stmt %prec IF			{/*TODO*/}
+		| IF '(' expr ')' stmt ELSE stmt %prec ELSE	{/*TODO*/}
+		| SWITCH '(' expr ')' stmt			{/*TODO*/}
+		;
+
+/* 6.8.5 Iteration statements */
+iterationstmt:	WHILE '(' expr ')' stmt							{/*TODO*/}
+		| DO stmt WHILE '(' expr ')'							{/*TODO*/}
+		| FOR '(' expropt ';' expropt ';' expropt ';' ')' stmt	{/*TODO*/}
+		| FOR '(' decl expropt ';' expropt ')' stmt				{/*TODO*/}
+		;
+
+expropt:	expr	{/*TODO*/}
+		| 		{/*empty*/}
+		;
+
+/* 6.8.6 Jump Statements */
+jumpstmt:	GOTO IDENT ';'		{/*TODO*/}
+		| CONTINUE ';'		{/*TODO*/}
+		| BREAK ';'		{/*TODO*/}
+		| RETURN expropt ';'	{/*TODO*/}
+		;
+
+/* 6.9 External Definitions */
+translnunit: externdecl 			{/*TODO*/}
+		| translnunit externdecl	{/*TODO*/}
+		;
+
+externdecl: funcdef			{/*TODO*/}
+		| decl				{/*TODO*/}
+		;
+
+/* 6.9.1 Function definitions */
+funcdef:	declspec declarator decllistopt compoundstmt	{/*TODO*/}
+		;
+
+decllist:	decl		{/*TODO*/}
+		| decllist decl	{/*TODO*/}
+		;
+
+decllistopt:	decllist	{/*TODO*/}
+		|		{/*empty*/}
+		;
 
 %%
 /*
