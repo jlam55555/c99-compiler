@@ -1,0 +1,151 @@
+AST node types
+
+6.5 expressions
+- primary expression
+	- value (identifier, strings, constants (number, enum, charlit))
+- binary
+	- operation
+	- left, right
+- unary
+	- operation
+	- argument
+- result of function invocation(maybe binary expression?)
+	- function
+	- arguments (linked list of expr)
+- struct/array/union initializer
+	- typename
+	- init list (linked list of struct field initializers)
+- struct/array/union field initializer
+	- (optional) constant expr [2+3]
+	- (optional) identifier .ident
+	- value expr
+- expression
+	- linked list of expressions (comma-separated)
+
+6.6 constant expressions
+- constant expression (???)
+
+6.7.1-4 declarations
+- declaration
+	- inline bool (for functions)
+	- declspec
+	- initdecllist (linked list of initdecl)
+- declspec
+	- decl type (keyword like "CONST")
+	- extra data pointer (for more complicated decl types, e.g.,struct spec)
+	- linked list of scspecs, typespecs, typequals, or function specs
+- initdecl
+	- declarator
+	- initializer (optional)
+- struct/union spec
+	- identifier (optional)
+	- struct declaration list (linked list of struct declarations)
+- struct field declarations (almost same as regular declarations but cannot have
+	initialization and can have bit fields)
+	- specifier qualifier list (subset of declaration spec, just use
+		declaration spec)
+	- struct declarator (subset of declarator (but has bitfields), just use
+		declarator)
+- enum spec
+	- identifier (optional)
+	- list of enum constants (linked list)
+- enum constant
+	- identifier
+	- constexpr (optional)
+
+6.7.5-6 declarators
+- declarator
+	- pointer (optional)
+	- direct declarator
+- pointer
+	- typequallist (linked list, subset of declspec)
+	- linkedlist pointer
+- direct declarator (union type of declarators)
+	- type ("normal" identifier, array, or function)
+	- (union type)
+- ("normal" identifier) declarator
+	- identifier
+- array declarator
+	- direct declarator (optional if abstract)
+	- static boolean
+	- type qualifier list (optional)
+	- (assignment) expr (optional)
+- function declarator
+	- direct declarator (optional if abstract)
+	- identlist (linked list of identifiers, use expr here)
+	- parameter type list (linked list of param declarations)
+- param declaration (declarator and abstract declarator are mutually exclusive)
+	- declspec (linked list)
+	- declarator (optional)
+	- abstract declarator (optional)
+- typename
+	- specquallist (subset of decllist)
+	- absdeclarator (optional)
+- absdeclarator
+	- pointer (optional)
+	- direct abstract declarator (optional, subset of regular direct
+		declarator but with optional direct-abstract-declarator)
+
+6.7.8 initialization
+- initializer (union)
+	- (assignment) expr
+	- initlist
+- initlist
+	- linked list of designators
+	- initializer
+	- linked list of initlist
+- designatorlist
+	- constexpr or ident (union type)
+	- linked list
+
+6.8 statements and blocks
+- stmt: union of stmt types
+- labeledstmt
+	- type (ident, case, or default)
+	- ident (for ident)
+	- constexpr (for case)
+	- stmt
+- compoundstmt
+	- blockitemlist
+- blockitemlist
+	- declaration or statement (union)
+	- linked list to itself
+- exprstmt
+	- expr (optional)
+- selectionstmt
+	- type
+	- expr
+	- stmt
+	- stmt2 (else condition)
+- iterationstmt
+	- type
+	- condexpr (may be optional)
+	- union (declaration or expr) first thing in for loop
+	- expr (last thing in for loop)
+	- stmt
+- jumpstmt
+	- type
+	- identifier or expr (optional)
+
+6.9 External definitions
+- translationunitlist
+	- type (funcdef or declaration)
+	- union (funcdef, declaration)
+	- recursive linked list
+- funcdef
+	- declspec (linked list type)
+	- declarator
+	- declaration linked list (for old-style param lists)
+	- compoundstmt
+
+other notes:
+- substitute a[b] -> *(a+b) (turns array indexing into unary operation composed
+	with addition)
+- substitute ++a -> (a += b), same with --a
+- substitute a++ -> ((a+=1)-1), same with a-- (??? is this optimal?)
+- consider cast expressions as binary
+- simply (a *= b) -> (a = a * b)
+- make everything a linked list
+
+questions for hak:
+- constant expressions?

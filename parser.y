@@ -67,7 +67,7 @@ constant:	NUMBER		{/* TODO */}
 		| CHARLIT	{/* TODO */}
 		;
 
-/* primary expr: 6.5.1; doesn't include C11 generic selections */
+/* primary expr: 6.5.1 */
 pexpr:		IDENT		{/* TODO */}
 		| constant	{/* TODO */}
 		| STRING	{/* TODO */}
@@ -88,7 +88,6 @@ pofexpr:	pexpr				{/*TODO*/}
 
 arglist:	asnmtexpr		{/*TODO*/}
 		| arglist ',' asnmtexpr	{/*TODO*/}
-		|			{/*TODO*/}
 		;
 
 arglistopt:	arglist		{/* TODO */}
@@ -139,7 +138,6 @@ relexpr:	shftexpr	{/*TODO*/}
 		| relexpr LTEQ shftexpr {/*TODO*/}
 		| relexpr GTEQ shftexpr {/*TODO*/}
 		;
-
 
 eqexpr:		relexpr			{/*TODO*/}
 		| eqexpr EQEQ eqexpr	{/*TODO*/}
@@ -195,7 +193,7 @@ constexpr:	condexpr	{/*TODO*/}
 		;
 
 /* 6.7 DECLARATIONS */
-decl:	declspec			{/*TODO*/}
+decl:	declspec ';'			{/*TODO*/}
 	| declspec initdecllist	';'	{/*TODO*/}
 	;
 
@@ -263,11 +261,11 @@ specquallist:	typespec specquallist		{/*TODO*/}
 		| typequal			{/*TODO*/}
 		;
 
-structdecllist:	structdecl
-		| structdecllist ',' structdecllist	{/*TODO*/}
+structdeclaratorlist:	structdeclarator
+		| structdeclaratorlist ',' structdeclarator	{/*TODO*/}
 		;
 
-structdecl:	declarator			{/*TODO*/}
+structdeclarator:declarator			{/*TODO*/}
 		| declarator ':' constexpr	{/*TODO*/}
 		| ':' constexpr			{/*TODO*/}
 		;
@@ -298,12 +296,12 @@ funcspec:	INLINE			{/*TODO*/}
 
 /* 6.7.5 Declarators */
 declarator:	pointer dirdeclarator	{/*TODO*/}
-		| pointer		{/*TODO*/}
+		| dirdeclarator		{/*TODO*/}
 		;
 
 dirdeclarator:	IDENT							{/*TODO*/}
 		| '(' declarator ')'					{/*TODO*/}
-		| dirdeclarator '[' typequallistopt asnmtexpr ']'	{/*TODO*/}
+		| dirdeclarator '[' typequallistopt asnmtexpropt ']'	{/*TODO*/}
 		| dirdeclarator '[' typequallistopt ']'			{/*TODO*/}
 		| dirdeclarator '[' STATIC typequallistopt asnmtexpr ']'	{/*TODO*/}
 		| dirdeclarator '[' STATIC typequallistopt ']'		{/*TODO*/}
@@ -450,7 +448,7 @@ selectionstmt:	IF '(' expr ')' stmt %prec IF			{/*TODO*/}
 /* 6.8.5 Iteration statements */
 iterationstmt:	WHILE '(' expr ')' stmt							{/*TODO*/}
 		| DO stmt WHILE '(' expr ')'							{/*TODO*/}
-		| FOR '(' expropt ';' expropt ';' expropt ';' ')' stmt	{/*TODO*/}
+		| FOR '(' expropt ';' expropt ';' expropt ')' stmt	{/*TODO*/}
 		| FOR '(' decl expropt ';' expropt ')' stmt				{/*TODO*/}
 		;
 
