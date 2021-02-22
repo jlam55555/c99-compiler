@@ -146,7 +146,7 @@ multexpr:	castexpr		{$$=$1;}
 		| multexpr '%' multexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-addexpr:	castexpr		{$$=$1;}
+addexpr:	multexpr		{$$=$1;}
 		| addexpr '+' multexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		| addexpr '-' multexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
