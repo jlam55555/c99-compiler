@@ -51,7 +51,8 @@
 %left IF
 %left ELSE
 
-%type <astnode>	constant pexpr pofexpr arglist arglistopt uexpr uop
+%type<sc> uop
+%type <astnode>	constant pexpr pofexpr arglist arglistopt uexpr
 %type <astnode>	castexpr multexpr addexpr shftexpr relexpr eqexpr andexpr
 %type <astnode>	xorexpr orexpr logandexpr logorexpr condexpr asnmtexpr expr
 %type <ident> IDENT
@@ -59,7 +60,7 @@
 %type <charlit> CHARLIT
 %type <num> NUMBER
 %%
-exprlist:	pexpr		{print_astnode($1);}
+exprlist:	expr		{print_astnode($1);}
 
 /* 6.4.4.3 */
  /*enumconst:	IDENT		{TODO: identifier declared as an
@@ -74,7 +75,7 @@ constant:	NUMBER		{ALLOC($$);$$->num=(struct astnode_number){NT_NUMBER,NULL,NULL
 		;
 
 /* primary expr: 6.5.1 */
-pexpr:		IDENT		{ALLOC($$);$$->ident=(struct astnode_ident){NT_IDENT,NULL,NULL,$1};}
+pexpr:		IDENT		{ALLOC_SET_IDENT($$,$1);}
 		| constant	{$$=$1;}
 		| STRING	{ALLOC($$);$$->string=(struct astnode_string){NT_STRING,NULL,NULL,$1};}
 		| '(' expr ')'	{$$=$2;}
@@ -88,8 +89,12 @@ pofexpr:	pexpr				{$$=$1;}
 						 ALLOC_SET_UNOP($$,'*',inner);}
 		| pofexpr '(' arglistopt ')'	{ALLOC($$);
 						 $$->fncall=(struct astnode_fncall){NT_FNCALL,NULL,NULL,$1,$3};}
-		| pofexpr '.' IDENT		{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| pofexpr INDSEL IDENT		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| pofexpr '.' IDENT		{union astnode *ident;
+						 ALLOC_SET_IDENT(ident,$3);
+						 ALLOC_SET_BINOP($$,$2,$1,ident);}
+		| pofexpr INDSEL IDENT		{union astnode *ident;
+						 ALLOC_SET_IDENT(ident,$3);
+						 ALLOC_SET_BINOP($$,$2,$1,ident);}
 		| pofexpr PLUSPLUS		{/*a++ <=> */ALLOC_SET_UNOP($$,$2,$1);}
 		| pofexpr MINUSMINUS		{ALLOC_SET_UNOP($$,$2,$1);}
 		/*| '(' typename ')' '{' initlist '}'	{TODO}
@@ -97,7 +102,7 @@ pofexpr:	pexpr				{$$=$1;}
 		;
 
 arglist:	asnmtexpr			{$$=$1;}
-		| arglist ',' asnmtexpr		{$$=$1;$1->generic->next=$3;}
+		| arglist ',' asnmtexpr		{$$=$1;$1->generic.next=$3;}
 		;
 
 arglistopt:	arglist				{$$=$1;}
@@ -109,26 +114,26 @@ uexpr:		pofexpr			{$$=$1;}
 		| PLUSPLUS uexpr	{/*replace ++a with a=a+1*/
 					 union astnode *one, *inner;
 					 ALLOC(one);
-					 one->number=(struct astnode_number){NT_NUMBER,NULL,NULL,struct number{INT_T,UNSIGNED_T,1}};
+					 one->num=(struct astnode_number){NT_NUMBER,NULL,NULL,(struct number){INT_T,UNSIGNED_T,1}};
 					 ALLOC_SET_BINOP(inner,'+',$2,one);
 					 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| MINUSMINUS uexpr	{/*replace --a with a=a-1*/
-					 union astnode *one;
+					 union astnode *one, *inner;
 					 ALLOC(one);
-					 one->number=(struct astnode_number){NT_NUMBER,NULL,NULL,struct number{INT_T,UNSIGNED_T,1}};
+					 one->num=(struct astnode_number){NT_NUMBER,NULL,NULL,(struct number){INT_T,UNSIGNED_T,1}};
 					 ALLOC_SET_BINOP(inner,'-',$2,one);
 					 ALLOC_SET_BINOP($$,'=',$2,inner);}
-		| uop castexpr		{ALLOC_SET_UNOP{$$, $1, $2};}
+		| uop castexpr		{ALLOC_SET_UNOP($$,$1,$2);}
 		/*| SIZEOF uexpr		{TODO}
 		| SIZEOF '(' typename ')'	{TODO}*/
 		;
 
-uop:		'&'		{$$->sc=$1;}
-		| '*'		{$$->sc=$1;}	
-		| '+'		{$$->sc=$1;}
-		| '-'		{$$->sc=$1;}
-		| '~'		{$$->sc=$1;}	
-		| '!'		{$$->sc=$1;}
+uop:		'&'		{$$=$1;}
+		| '*'		{$$=$1;}	
+		| '+'		{$$=$1;}
+		| '-'		{$$=$1;}
+		| '~'		{$$=$1;}	
+		| '!'		{$$=$1;}
 		;
 
 castexpr:	uexpr					{$$=$1;}
@@ -165,14 +170,14 @@ eqexpr:		relexpr			{$$=$1;}
 		;
 
 andexpr:	eqexpr			{$$=$1;}
-		| andexpr '&' andexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| andexpr '&' eqexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
 xorexpr:	andexpr			{$$=$1;}
-		| orexpr '^' andexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| xorexpr '^' andexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-orexpr:		orexpr			{$$=$1;}
+orexpr:		xorexpr			{$$=$1;}
 		| orexpr '|' xorexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
@@ -204,8 +209,10 @@ asnmtexpr:	condexpr			{$$=$1;}
 
 /*comma expression*/
 expr:	asnmtexpr			{$$=$1;}
-		| expr ',' asnmtexpr	{$$=$1;$1->generic->next=$2;}
+		| expr ',' asnmtexpr	{$$=$1;$1->generic.next=$3;}
 		;
+
+
 %%
 /*
 expr:	IDENT			{ALLOC($$);$$->ident=(struct astnode_ident)

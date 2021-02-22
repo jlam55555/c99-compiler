@@ -110,6 +110,10 @@ void print_astnode(union astnode *);
 #define ALLOC(var)\
 	var = astnode_alloc();
 
+#define ALLOC_SET_IDENT(var, idt)\
+	ALLOC(var);\
+	(var)->ident=(struct astnode_ident){NT_IDENT, NULL, NULL, idt}
+
 #define ALLOC_SET_BINOP(var, op, left, right)\
 	ALLOC(var);\
 	(var)->binop=(struct astnode_binop){NT_BINOP, NULL, NULL, op, left, right}
@@ -118,7 +122,7 @@ void print_astnode(union astnode *);
 	ALLOC(var);\
 	(var)->unop=(struct astnode_unop){NT_UNOP, NULL, NULL, op, arg};
 
-#define ALLOC_SET_TERNOP(var, op, first, second, third)\
+#define ALLOC_SET_TERNOP(var, first, second, third)\
 	ALLOC(var);\
 	(var)->ternop=(struct astnode_ternop){NT_TERNOP, NULL, NULL, first, second,third};
 
