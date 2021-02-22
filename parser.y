@@ -7,7 +7,7 @@
 
 %}
 %union {
-	char sc;	// single-character tokens
+	int sc;	// single-character tokens
 	struct number num;
 	char *ident;
 	struct string string;
@@ -24,54 +24,59 @@
 %token	UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 
 /* reference: https://en.cppreference.com/w/c/language/operator_precedence */
-%left	','
+%left<sc>	','
 
-%right	'=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
+%right<sc>	'=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
 
-%right	'?' ':'		/* ternary */
-%left	LOGOR
-%left	LOGAND
-%left	'|'
-%left	'^'
-%left	'&'		/* bitwise binary op */
-%left	EQEQ NOTEQ
-%left	'<' LTEQ '>' GTEQ
-%left	SHL SHR
-%left	'+' '-'		/* arithmetic binary ops */
-%left	'*' '/' '%'	/* arithmetic binary ops */
+%right<sc>	'?' ':'		/* ternary */
+%left<sc>	LOGOR
+%left<sc>	LOGAND
+%left<sc>	'|'
+%left<sc>	'^'
+%left<sc>	'&'		/* bitwise binary op */
+%left<sc>	EQEQ NOTEQ
+%left<sc>	'<' LTEQ '>' GTEQ
+%left<sc>	SHL SHR
+%left<sc>	'+' '-'		/* arithmetic binary ops */
+%left<sc>	'*' '/' '%'	/* arithmetic binary ops */
 
 /* this precedence level also includes unary +, -, *, &, post(inc|dec)rement,
    casting */
-%left	'!' '~' SIZEOF
+%left<sc>	'!' '~' SIZEOF MINUSMINUS PLUSPLUS
 
 /* this precedence level also includes pre(inc|dec)rement */
-%left	'(' ')' '[' ']' '.' INDSEL
+%left<sc>	'(' ')' '[' ']' '.' INDSEL
 
 /* to correctly parse nested if...else statements */
 %left IF
 %left ELSE
 
-%type <astnode>	pexpr
+%type <astnode>	constant pexpr pofexpr arglist arglistopt uexpr uop
+%type <astnode>	castexpr multexpr addexpr shftexpr relexpr eqexpr andexpr
+%type <astnode>	xorexpr orexpr logandexpr logorexpr condexpr asnmtexpr expr
 %type <ident> IDENT
+%type <string> STRING
+%type <charlit> CHARLIT
+%type <num> NUMBER
 %%
 exprlist:	pexpr		{print_astnode($1);}
 
 /* 6.4.4.3 */
-enumconst:	IDENT		{/* TODO: identifier declared as an
+ /*enumconst:	IDENT		{TODO: identifier declared as an
 				 enum constant; might cause errors later by
-				 conflicting with IDENT? */}
-		;
+				 conflicting with IDENT? } */
+		
 
 /* 6.4.4 */
-constant:	NUMBER		{ALLOC($$);$$->astnode=struct astnode_number{NT_NUMBER,NULL,NULL,$1};}
+constant:	NUMBER		{ALLOC($$);$$->num=(struct astnode_number){NT_NUMBER,NULL,NULL,$1};}
 		/*| enumconst	{TODO}*/
-		| CHARLIT	{ALLOC($$);$$->astnode=struct astnode_charlit{NT_CHARLIT,NULL,NULL,$1};}
+		| CHARLIT	{ALLOC($$);$$->charlit=(struct astnode_charlit){NT_CHARLIT,NULL,NULL,$1};}
 		;
 
 /* primary expr: 6.5.1 */
-pexpr:		IDENT		{ALLOC($$);$$->astnode=struct astnode_ident{NT_IDENT,NULL,NULL,$1};}
+pexpr:		IDENT		{ALLOC($$);$$->ident=(struct astnode_ident){NT_IDENT,NULL,NULL,$1};}
 		| constant	{$$=$1;}
-		| STRING	{ALLOC($$);$$->astnode=struct astnode_string(NT_STRING,NULL,NULL,$1);}
+		| STRING	{ALLOC($$);$$->string=(struct astnode_string){NT_STRING,NULL,NULL,$1};}
 		| '(' expr ')'	{$$=$2;}
 		;
 
@@ -82,17 +87,17 @@ pofexpr:	pexpr				{$$=$1;}
 						 ALLOC_SET_BINOP(inner,'+',$1,$3);
 						 ALLOC_SET_UNOP($$,'*',inner);}
 		| pofexpr '(' arglistopt ')'	{ALLOC($$);
-						 $$->fncall=struct astnode_fncall{NT_FNCALL,NULL,NULL,$1,$3};}
+						 $$->fncall=(struct astnode_fncall){NT_FNCALL,NULL,NULL,$1,$3};}
 		| pofexpr '.' IDENT		{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		| pofexpr INDSEL IDENT		{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| pofexpr PLUSPLUS		{ALLOC_SET_UNOP($$,$2,$1);}
+		| pofexpr PLUSPLUS		{/*a++ <=> */ALLOC_SET_UNOP($$,$2,$1);}
 		| pofexpr MINUSMINUS		{ALLOC_SET_UNOP($$,$2,$1);}
 		/*| '(' typename ')' '{' initlist '}'	{TODO}
 		| '(' typename ')' '{' initlist ',' '}'	{TODO}*/
 		;
 
 arglist:	asnmtexpr			{$$=$1;}
-		| arglist ',' asnmtexpr		{$1->generic->next=$3;}
+		| arglist ',' asnmtexpr		{$$=$1;$1->generic->next=$3;}
 		;
 
 arglistopt:	arglist				{$$=$1;}
@@ -101,15 +106,18 @@ arglistopt:	arglist				{$$=$1;}
 
 /* unary operators: 6.5.3; doesn't include C11 _Alignof */
 uexpr:		pofexpr			{$$=$1;}
-		| PLUSPLUS uexpr	{/*replace ++a with a+=1*/
+		| PLUSPLUS uexpr	{/*replace ++a with a=a+1*/
+					 union astnode *one, *inner;
+					 ALLOC(one);
+					 one->number=(struct astnode_number){NT_NUMBER,NULL,NULL,struct number{INT_T,UNSIGNED_T,1}};
+					 ALLOC_SET_BINOP(inner,'+',$2,one);
+					 ALLOC_SET_BINOP($$,'=',$2,inner);}
+		| MINUSMINUS uexpr	{/*replace --a with a=a-1*/
 					 union astnode *one;
 					 ALLOC(one);
-					 one->number=struct astnode_number{NT_NUMBER,NULL,NULL,struct number{INT_T,UNSIGNED_T,1}};
-					 ALLOC_SET_BINOP($$,PLUSEQ,$2,one);}
-		| MINUSMINUS uexpr	{union astnode *one;
-					 ALLOC(one);
-					 one->number=struct astnode_number{NT_NUMBER,NULL,NULL,struct number{INT_T,UNSIGNED_T,1}};
-					 ALLOC_SET_BINOP($$,MINUSEQ,$2,one);}
+					 one->number=(struct astnode_number){NT_NUMBER,NULL,NULL,struct number{INT_T,UNSIGNED_T,1}};
+					 ALLOC_SET_BINOP(inner,'-',$2,one);
+					 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| uop castexpr		{ALLOC_SET_UNOP{$$, $1, $2};}
 		/*| SIZEOF uexpr		{TODO}
 		| SIZEOF '(' typename ')'	{TODO}*/
@@ -128,75 +136,75 @@ castexpr:	uexpr					{$$=$1;}
 		;
 
 multexpr:	castexpr		{$$=$1;}
-		| multexpr '*' multexpr	{/*TODO*/}
-		| multexpr '/' multexpr	{/*TODO*/}
-		| multexpr '%' multexpr	{/*TODO*/}
+		| multexpr '*' multexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| multexpr '/' multexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| multexpr '%' multexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-addexpr:	castexpr
-		| addexpr '+' multexpr {/*TODO*/}
-		| addexpr '-' multexpr {/*TODO*/}
+addexpr:	castexpr		{$$=$1;}
+		| addexpr '+' multexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| addexpr '-' multexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 		
 
-shftexpr:	addexpr			{/*TODO*/}
-		| shftexpr SHL shftexpr	{/*TODO*/}
-		| shftexpr SHR shftexpr {/*TODO*/}
+shftexpr:	addexpr			{$$=$1;}
+		| shftexpr SHL shftexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| shftexpr SHR shftexpr {ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-relexpr:	shftexpr	{/*TODO*/}
-		| relexpr '<' shftexpr {/*TODO*/}
-		| relexpr '>' shftexpr {/*TODO*/}
-		| relexpr LTEQ shftexpr {/*TODO*/}
-		| relexpr GTEQ shftexpr {/*TODO*/}
+relexpr:	shftexpr		{$$=$1;}
+		| relexpr '<' shftexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| relexpr '>' shftexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| relexpr LTEQ shftexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| relexpr GTEQ shftexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-eqexpr:		relexpr			{/*TODO*/}
-		| eqexpr EQEQ eqexpr	{/*TODO*/}
-		| eqexpr NOTEQ eqexpr	{/*TODO*/}
+eqexpr:		relexpr			{$$=$1;}
+		| eqexpr EQEQ eqexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| eqexpr NOTEQ eqexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-andexpr:	eqexpr			{/*TODO*/}
-		| andexpr '&' andexpr	{/*TODO*/}
+andexpr:	eqexpr			{$$=$1;}
+		| andexpr '&' andexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-xorexpr:	andexpr			{/*TODO*/}
-		| orexpr '^' andexpr	{/*TODO*/}
+xorexpr:	andexpr			{$$=$1;}
+		| orexpr '^' andexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-orexpr:		orexpr			{/*TODO*/}
-		| orexpr '|' xorexpr	{/*TODO*/}
+orexpr:		orexpr			{$$=$1;}
+		| orexpr '|' xorexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-logandexpr:	orexpr			{/*TODO*/}
-		| logandexpr LOGAND orexpr	{/*TODO*/}
+logandexpr:	orexpr			{$$=$1;}
+		| logandexpr LOGAND orexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-logorexpr:	logandexpr		{/*TODO*/}
-		| logorexpr LOGOR logandexpr	{/*TODO*/}
+logorexpr:	logandexpr		{$$=$1;}
+		| logorexpr LOGOR logandexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
-condexpr:	logorexpr
-		| logorexpr '?' expr ':' condexpr {/*TODO*/}
+condexpr:	logorexpr		{$$=$1;}
+		| logorexpr '?' expr ':' condexpr {ALLOC_SET_TERNOP($$, $1, $3, $5);}
 		;
 
-asnmtexpr:	condexpr
-		| uexpr '=' asnmtexpr	{/*TODO*/}
-		| uexpr TIMESEQ asnmtexpr	{/*TODO*/}
-		| uexpr DIVEQ asnmtexpr	{/*TODO*/}
-		| uexpr MODEQ asnmtexpr	{/*TODO*/}
-		| uexpr PLUSEQ asnmtexpr	{/*TODO*/}
-		| uexpr MINUSEQ asnmtexpr	{/*TODO*/}
-		| uexpr SHLEQ asnmtexpr	{/*TODO*/}
-		| uexpr SHREQ asnmtexpr	{/*TODO*/}
-		| uexpr ANDEQ asnmtexpr	{/*TODO*/}
-		| uexpr XOREQ asnmtexpr	{/*TODO*/}
-		| uexpr OREQ asnmtexpr	{/*TODO*/}
+asnmtexpr:	condexpr			{$$=$1;}
+		| uexpr '=' asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr TIMESEQ asnmtexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr DIVEQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr MODEQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr PLUSEQ asnmtexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr MINUSEQ asnmtexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr SHLEQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr SHREQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr ANDEQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr XOREQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr OREQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
 /*comma expression*/
-expr:	asnmtexpr
-		| expr ',' asnmtexpr	{/*TODO*/}
+expr:	asnmtexpr			{$$=$1;}
+		| expr ',' asnmtexpr	{$$=$1;$1->generic->next=$2;}
 		;
 %%
 /*
@@ -246,7 +254,6 @@ char *astnodetype_tostring(enum astnode_type type)
 	switch (type) {
 		case NT_NUMBER:		return "NT_NUMBER";
 		case NT_KEYWORD:	return "NT_KEYWORD";
-		case NT_OPERATOR:	return "NT_OPERATOR";
 		case NT_STRING:		return "NT_STRING";
 		case NT_CHARLIT:	return "NT_CHARLIT";
 		case NT_IDENT:		return "NT_IDENT";
@@ -273,13 +280,13 @@ void print_astnode_recursive(union astnode *node, int depth)
 			break;
 		case NT_BINOP:
 			INDENT(depth);
-			fprintf(stdout, "op: %c\n", node->binop.operator);
+			fprintf(stdout, "op: %c\n", node->binop.op);
 			print_astnode_recursive(node->binop.left, depth+1);
 			print_astnode_recursive(node->binop.right, depth+1);
 			break;
 		case NT_UNOP:
 			INDENT(depth);
-			fprintf(stdout, "op: %c\n", node->unop.operator);
+			fprintf(stdout, "op: %c\n", node->unop.op);
 			print_astnode_recursive(node->unop.arg, depth+1);
 			break;
 		case NT_IDENT:

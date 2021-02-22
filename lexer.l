@@ -26,6 +26,9 @@ YYSTYPE yylval;
 #define MAKEFP(type) \
 	yylval.num = make_fp(type);\
 	return NUMBER;
+#define SC(x) \
+	yylval.sc = x;\
+	return x
 %}
 
 DEC	[1-9]+[0-9]*
@@ -101,71 +104,71 @@ HEXESC	\\x[0-9a-fA-F]+
 <CHRMODE>\n		{print_lexical_error();++lineno;}
 
  /* */
-->		{return INDSEL;}
-\+\+		{return PLUSPLUS;}
---		{return MINUSMINUS;}
-\<\<		{return SHL;}
->>		{return SHR;}
-\<=		{return LTEQ;}
->=		{return GTEQ;}
-==		{return EQEQ;}
-!=		{return NOTEQ;}
-&&		{return LOGAND;}
-\|\|		{return LOGOR;}
-\.\.\.		{return ELLIPSIS;}
-\*=		{return TIMESEQ;}
-\/=		{return DIVEQ;}
-%=		{return MODEQ;}
-\+=		{return PLUSEQ;}
--=		{return MINUSEQ;}
-\<\<=		{return SHLEQ;}
->>=		{return SHREQ;}
-&=		{return ANDEQ;}
-\|=		{return OREQ;}
-\^=		{return XOREQ;}
-auto		{return AUTO;}
-break		{return BREAK;}
-case		{return CASE;}
-char		{return CHAR;}
-const		{return CONST;}
-continue	{return CONTINUE;}
-default		{return DEFAULT;}
-do		{return DO;}
-double		{return DOUBLE;}
-else		{return ELSE;}
-enum		{return ENUM;}
-extern		{return EXTERN;}
-float		{return FLOAT;}
-for		{return FOR;}
-goto		{return GOTO;}
-if		{return IF;}
-inline		{return INLINE;}
-int		{return INT;}
-long		{return LONG;}
-register	{return REGISTER;}
-restrict	{return RESTRICT;}
-return		{return RETURN;}
-short		{return SHORT;}
-signed		{return SIGNED;}
-sizeof		{return SIZEOF;}
-static		{return STATIC;}
-struct		{return STRUCT;}
-switch		{return SWITCH;}
-typedef		{return TYPEDEF;}
-union		{return UNION;}
-unsigned	{return UNSIGNED;}
-void		{return VOID;}
-volatile	{return VOLATILE;}
-while		{return WHILE;}
-_Bool		{return _BOOL;}
-_Complex	{return _COMPLEX;}
-_Imaginary	{return _IMAGINARY;}
+->		{SC(INDSEL);}
+\+\+		{SC(PLUSPLUS);}
+--		{SC(MINUSMINUS);}
+\<\<		{SC(SHL);}
+>>		{SC(SHR);}
+\<=		{SC(LTEQ);}
+>=		{SC(GTEQ);}
+==		{SC(EQEQ);}
+!=		{SC(NOTEQ);}
+&&		{SC(LOGAND);}
+\|\|		{SC(LOGOR);}
+\.\.\.		{SC(ELLIPSIS);}
+\*=		{SC(TIMESEQ);}
+\/=		{SC(DIVEQ);}
+%=		{SC(MODEQ);}
+\+=		{SC(PLUSEQ);}
+-=		{SC(MINUSEQ);}
+\<\<=		{SC(SHLEQ);}
+>>=		{SC(SHREQ);}
+&=		{SC(ANDEQ);}
+\|=		{SC(OREQ);}
+\^=		{SC(XOREQ);}
+auto		{SC(AUTO);}
+break		{SC(BREAK);}
+case		{SC(CASE);}
+char		{SC(CHAR);}
+const		{SC(CONST);}
+continue	{SC(CONTINUE);}
+default		{SC(DEFAULT);}
+do		{SC(DO);}
+double		{SC(DOUBLE);}
+else		{SC(ELSE);}
+enum		{SC(ENUM);}
+extern		{SC(EXTERN);}
+float		{SC(FLOAT);}
+for		{SC(FOR);}
+goto		{SC(GOTO);}
+if		{SC(IF);}
+inline		{SC(INLINE);}
+int		{SC(INT);}
+long		{SC(LONG);}
+register	{SC(REGISTER);}
+restrict	{SC(RESTRICT);}
+return		{SC(RETURN);}
+short		{SC(SHORT);}
+signed		{SC(SIGNED);}
+sizeof		{SC(SIZEOF);}
+static		{SC(STATIC);}
+struct		{SC(STRUCT);}
+switch		{SC(SWITCH);}
+typedef		{SC(TYPEDEF);}
+union		{SC(UNION);}
+unsigned	{SC(UNSIGNED);}
+void		{SC(VOID);}
+volatile	{SC(VOLATILE);}
+while		{SC(WHILE);}
+_Bool		{SC(_BOOL);}
+_Complex	{SC(_COMPLEX);}
+_Imaginary	{SC(_IMAGINARY);}
 
  /* IDENT */
 [a-zA-Z_][a-zA-Z0-9_]*	{yylval.ident = yytext; return IDENT;}
 
  /* single-character operators get their ASCII value passed as token type */
-[~!%\^&\*\(\)\-\=\+\[\]\{\}\|\;:\<\>,\.\?/] {return yytext[0];}
+[~!%\^&\*\(\)\-\=\+\[\]\{\}\|\;:\<\>,\.\?/] {SC(yytext[0]);}
 
  /* ignore whitespace (except newline, see below) */
 [ \t\v\f\r]+	{;}
