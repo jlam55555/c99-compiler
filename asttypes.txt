@@ -145,7 +145,7 @@ other notes:
 - substitute a++ -> ((a+=1)-1), same with a-- (??? is this optimal?)
 - consider cast expressions as binary
 - simply (a *= b) -> (a = a * b)
-- make everything a linked list
+- make everything a linked list so don't need special list types
 
 questions for hak:
-- constant expressions?
+- constant expressions? will this be accomplished during semantic parsing?

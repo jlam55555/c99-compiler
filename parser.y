@@ -7,6 +7,7 @@
 
 %}
 %union {
+	char sc;	// single-character tokens
 	struct number num;
 	char *ident;
 	struct string string;
@@ -62,60 +63,71 @@ enumconst:	IDENT		{/* TODO: identifier declared as an
 		;
 
 /* 6.4.4 */
-constant:	NUMBER		{/* TODO */}
-		| enumconst	{/* TODO */}
-		| CHARLIT	{/* TODO */}
+constant:	NUMBER		{ALLOC($$);$$->astnode=struct astnode_number{NT_NUMBER,NULL,NULL,$1};}
+		/*| enumconst	{TODO}*/
+		| CHARLIT	{ALLOC($$);$$->astnode=struct astnode_charlit{NT_CHARLIT,NULL,NULL,$1};}
 		;
 
 /* primary expr: 6.5.1 */
-pexpr:		IDENT		{/* TODO */}
-		| constant	{/* TODO */}
-		| STRING	{/* TODO */}
-		| '(' pexpr ')'	{/* TODO */}
+pexpr:		IDENT		{ALLOC($$);$$->astnode=struct astnode_ident{NT_IDENT,NULL,NULL,$1};}
+		| constant	{$$=$1;}
+		| STRING	{ALLOC($$);$$->astnode=struct astnode_string(NT_STRING,NULL,NULL,$1);}
+		| '(' expr ')'	{$$=$2;}
 		;
 
 /* postfix expression: 6.5.2*/
-pofexpr:	pexpr				{/*TODO*/}
-		| pofexpr '[' expr ']'		{/*TODO*/}
-		| pofexpr '(' arglistopt ')'	{/*TODO*/}
-		| pofexpr '.' IDENT		{/*TODO*/}
-		| pofexpr INDSEL IDENT		{/*TODO*/}
-		| pofexpr PLUSPLUS		{/*TODO*/}
-		| pofexpr MINUSMINUS		{/*TODO*/}
-		| '(' typename ')' '{' initlist '}'	{/*TODO*/}
-		| '(' typename ')' '{' initlist ',' '}'	{/*TODO*/}
+pofexpr:	pexpr				{$$=$1;}
+		| pofexpr '[' expr ']'		{/* rewrite a[b]=*(a+b) */
+						 union astnode *inner;
+						 ALLOC_SET_BINOP(inner,'+',$1,$3);
+						 ALLOC_SET_UNOP($$,'*',inner);}
+		| pofexpr '(' arglistopt ')'	{ALLOC($$);
+						 $$->fncall=struct astnode_fncall{NT_FNCALL,NULL,NULL,$1,$3};}
+		| pofexpr '.' IDENT		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| pofexpr INDSEL IDENT		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| pofexpr PLUSPLUS		{ALLOC_SET_UNOP($$,$2,$1);}
+		| pofexpr MINUSMINUS		{ALLOC_SET_UNOP($$,$2,$1);}
+		/*| '(' typename ')' '{' initlist '}'	{TODO}
+		| '(' typename ')' '{' initlist ',' '}'	{TODO}*/
 		;
 
-arglist:	asnmtexpr		{/*TODO*/}
-		| arglist ',' asnmtexpr	{/*TODO*/}
+arglist:	asnmtexpr			{$$=$1;}
+		| arglist ',' asnmtexpr		{$1->generic->next=$3;}
 		;
 
-arglistopt:	arglist		{/* TODO */}
-		|		{/* empty */}
+arglistopt:	arglist				{$$=$1;}
+		|				{$$=NULL;}
 		;
 
 /* unary operators: 6.5.3; doesn't include C11 _Alignof */
-uexpr:		pofexpr
-		| PLUSPLUS uexpr	{/*TODO*/}
-		| MINUSMINUS uexpr	{/*TODO*/}
-		| uop castexpr		{/*TODO*/}
-		| SIZEOF uexpr		{/*TODO*/}
-		| SIZEOF '(' typename ')'	{/*TODO*/}
+uexpr:		pofexpr			{$$=$1;}
+		| PLUSPLUS uexpr	{/*replace ++a with a+=1*/
+					 union astnode *one;
+					 ALLOC(one);
+					 one->number=struct astnode_number{NT_NUMBER,NULL,NULL,struct number{INT_T,UNSIGNED_T,1}};
+					 ALLOC_SET_BINOP($$,PLUSEQ,$2,one);}
+		| MINUSMINUS uexpr	{union astnode *one;
+					 ALLOC(one);
+					 one->number=struct astnode_number{NT_NUMBER,NULL,NULL,struct number{INT_T,UNSIGNED_T,1}};
+					 ALLOC_SET_BINOP($$,MINUSEQ,$2,one);}
+		| uop castexpr		{ALLOC_SET_UNOP{$$, $1, $2};}
+		/*| SIZEOF uexpr		{TODO}
+		| SIZEOF '(' typename ')'	{TODO}*/
 		;
 
-uop:		'&'		{/*TODO*/}
-		| '*'		{/*TODO*/}	
-		| '+'		{/*TODO*/}
-		| '-'		{/*TODO*/}
-		| '~'		{/*TODO*/}	
-		| '!'		{/*TODO*/}
+uop:		'&'		{$$->sc=$1;}
+		| '*'		{$$->sc=$1;}	
+		| '+'		{$$->sc=$1;}
+		| '-'		{$$->sc=$1;}
+		| '~'		{$$->sc=$1;}	
+		| '!'		{$$->sc=$1;}
 		;
 
-castexpr:	uexpr
-		| '(' typename ')' castexpr {/*TODO*/}
+castexpr:	uexpr					{$$=$1;}
+		/*| '(' typename ')' castexpr {TODO}*/
 		;
 
-multexpr:	castexpr		{/*TODO*/}
+multexpr:	castexpr		{$$=$1;}
 		| multexpr '*' multexpr	{/*TODO*/}
 		| multexpr '/' multexpr	{/*TODO*/}
 		| multexpr '%' multexpr	{/*TODO*/}
@@ -186,304 +198,6 @@ asnmtexpr:	condexpr
 expr:	asnmtexpr
 		| expr ',' asnmtexpr	{/*TODO*/}
 		;
-
-/* 6.6 constant expressions */
-/* TODO: semantic parsing? */
-constexpr:	condexpr	{/*TODO*/}
-		;
-
-/* 6.7 DECLARATIONS */
-decl:	declspec ';'			{/*TODO*/}
-	| declspec initdecllist	';'	{/*TODO*/}
-	;
-
-/* declaration specifier */
-declspec:	scspec 			{/*TODO*/}
-		| typespec 		{/*TODO*/}
-		| typequal 		{/*TODO*/}
-		| funcspec 		{/*TODO*/}
-		| declspec declspec	{/*TODO*/}
-		;
-
-initdecllist:	initdecl		{/*TODO*/}
-		| initdecllist ',' initdecl	{/*TODO*/}
-		;
-
-initdecl:	declarator
-		| declarator '=' initializer	{/*TODO*/}
-		;
-
-/* 6.7.1 storage class specifier */
-scspec:		TYPEDEF		{/*TODO*/}
-		| EXTERN		{/*TODO*/}
-		| STATIC		{/*TODO*/}
-		| AUTO		{/*TODO*/}
-		| REGISTER		{/*TODO*/}
-		;
-
-/* 6.7.2 type specifiers */
-typespec:	VOID		{/*TODO*/}
-		| CHAR		{/*TODO*/}	
-		| SHORT		{/*TODO*/}
-		| INT		{/*TODO*/}	
-		| LONG		{/*TODO*/}	
-		| FLOAT		{/*TODO*/}
-		| DOUBLE	{/*TODO*/}	
-		| SIGNED	{/*TODO*/}	
-		| UNSIGNED	{/*TODO*/}	
-		| _BOOL		{/*TODO*/}
-		| _COMPLEX	{/*TODO*/}	
-		| structunionspec	{/*TODO*/}
-		| enumspec	{/*TODO*/}	
-		| typedefname	{/*TODO*/}
-		;
-
-/* 6.7.2.1 structure and union specifiers */
-structunionspec:structunion '{' structdecllist '}'		{/*TODO*/}
-		| structunion IDENT '{' structdecllist '}'	{/*TODO*/}
-		| structunion IDENT				{/*TODO*/}
-		;
-
-structunion:	STRUCT		{/*TODO*/}
-		| UNION		{/*TODO*/}
-		;
-
-structdecllist:	structdecl	{/*TODO*/}
-		| structdecllist structdecl	{/*TODO*/}
-		;
-
-structdecl:	specquallist structdecllist ';'	{/*TODO*/}
-		;
-
-specquallist:	typespec specquallist		{/*TODO*/}
-		| typespec			{/*TODO*/}
-		| typequal specquallist		{/*TODO*/}
-		| typequal			{/*TODO*/}
-		;
-
-structdeclaratorlist:	structdeclarator
-		| structdeclaratorlist ',' structdeclarator	{/*TODO*/}
-		;
-
-structdeclarator:declarator			{/*TODO*/}
-		| declarator ':' constexpr	{/*TODO*/}
-		| ':' constexpr			{/*TODO*/}
-		;
-
-enumspec:	ENUM IDENT '{' enumlist '}'		{/*TODO*/}
-		| ENUM IDENT '{' enumlist ',' '}'		{/*TODO*/}
-		| ENUM '{' enumlist '}'		{/*TODO*/}
-		| ENUM '{' enumlist ',' '}'		{/*TODO*/}
-		| ENUM IDENT		{/*TODO*/}
-		;
-
-enumlist:	enumrtr
-		| enumlist ',' enumrtr {/*TODO*/}
-		;
-enumrtr:	enumconst
-		| enumconst '=' constexpr	{/*TODO*/}
-		;
-
-/* type qualifiers */
-typequal:	CONST			{/*TODO*/}
-		| RESTRICT		{/*TODO*/}
-		| VOLATILE		{/*TODO*/}
-		;
-
-/* 6.7.4 Function Declaration */
-funcspec:	INLINE			{/*TODO*/}
-		;
-
-/* 6.7.5 Declarators */
-declarator:	pointer dirdeclarator	{/*TODO*/}
-		| dirdeclarator		{/*TODO*/}
-		;
-
-dirdeclarator:	IDENT							{/*TODO*/}
-		| '(' declarator ')'					{/*TODO*/}
-		| dirdeclarator '[' typequallistopt asnmtexpropt ']'	{/*TODO*/}
-		| dirdeclarator '[' typequallistopt ']'			{/*TODO*/}
-		| dirdeclarator '[' STATIC typequallistopt asnmtexpr ']'	{/*TODO*/}
-		| dirdeclarator '[' STATIC typequallistopt ']'		{/*TODO*/}
-		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'	{/*TODO*/}
-		| dirdeclarator '[' typequallistopt '*' ']'		{/*TODO*/}
-		| dirdeclarator '(' paramtypelist ')'			{/*TODO*/}
-		| dirdeclarator '(' identlist ')'			{/*TODO*/}
-		| dirdeclarator '(' ')'					{/*TODO*/}
-		;
-
-pointer:	'*' typequallistopt	{/*TODO*/}
-		| '*' typequallistopt pointer	{/*TODO*/}
-		;
-
-typequallistopt:typequallist		{/*TODO*/}
-		|			{/*empty*/}
-		;
-
-paramtypelist:	paramlist
-		| paramlist ',' ELLIPSIS	{/*TODO*/}
-		;
-
-paramlist:	paramdecl			{/*TODO*/}
-		| paramlist ',' paramdecl	{/*TODO*/}
-		;
-
-paramdecl:	declspec declarator		{/*TODO*/}
-		| declspec abstdeclr		{/*TODO*/}
-		| declspec 			{/*TODO*/}
-		;
-
-identlist:	IDENT
-		| identlist ',' IDENT
-		;
-
-/*
-// these are all valid
-const const int const const i;
-int const i;
-const int *const i, *const *const (j);
-const int const i, const j;
-*/
-
-/* 6.7.6: type names */
-typename:	specquallist absdeclarator	{/*TODO*/}
-		| specquallist			{/*TODO*/}
-		;
-
-absdeclarator:	pointer
-		| pointer dirabsdeclarator		{/*TODO*/}
-		| dirabsdeclarator				{/*TODO*/}
-		;
-
-
-dirabsdeclarator:	'(' absdeclarator ')'			{/*TODO*/}
-		| dirabsdeclaratoropt '[' typequallistopt asnmtexpropt ']'	{/*TODO*/}
-		| dirabsdeclaratoropt '[' STATIC typequallistopt asnmtexpropt ']'	{/*TODO*/}
-		| dirabsdeclaratoropt '[' typequallist STATIC asnmtexpr ']'	{/*TODO*/}
-		| dirabsdeclaratoropt '[' '*' ']'		{/*TODO*/}
-		| dirabsdeclaratoropt '[' paramtypelistopt ']'	{/*TODO*/}
-		;
-
-dirabsdeclaratoropt:	dirabsdeclarator	{/*TODO*/}
-		| 				{/*empty*/}
-		;
-
-asnmtexpropt:	asnmtexpr	{/*TODO*/}
-		| 		{/*empty*/}
-		;
-
-paramtypelistopt:paramtypelist	{/*TODO*/}
-		|		{/*empty*/}
-		;
-
-/* 6.7.7 type definitions */
-typedefname:	IDENT		{/*TODO*/}
-		;
-
-/* 6.7.8 initialization */
-initializer:	asnmtexpr
-		| '{' initlist '}'		{/*TODO*/}
-		| '{' initlist ',' '}'	{/*TODO*/}
-		;
-
-initlist:	designationopt initializer			{/*TODO*/}
-		| initlist ',' designationopt initializer	{/*TODO*/}
-		;
-
-designation: 	designatorlist '='	{/*TODO*/}
-		;
-
-designationopt:	designation	{/*TODO*/}
-		|		{/*empty*/}
-		;
-
-designatorlist: designator			{/*TODO*/}
-		| designatorlist designator		{/*TODO*/}
-		;
-
-designator: '[' constexpr ']'	{/*TODO*/}
-		| '.' IDENT				{/*TODO*/}
-		;
-
-
-/* 6.8 statements and blocks */
-stmt:		labeledstmt		{/*TODO*/}
-		| compoundstmt		{/*TODO*/}
-		| exprstmt		{/*TODO*/}
-		| selectionstmt		{/*TODO*/}
-		| iterationstmt		{/*TODO*/}
-		| jumpstmt		{/*TODO*/}
-		;
-
-/* 6.8.1 labeled statements */
-labeledstmt:	IDENT ':' stmt			{/*TODO*/}
-		| CASE constexpr ':' stmt		{/*TODO*/}
-		| DEFAULT ':' stmt				{/*TODO*/}
-		;
-
-/* 6.8.2 compound statement */
-compoundstmt:	'{' blockitemlist '}'	{/*TODO*/}
-		| '{' '}'		{/*TODO*/}
-		;
-
-blockitemlist:	blockitem			{/*TODO*/}
-		| blockitemlist blockitem	{/*TODO*/}
-		;
-
-blockitem:	declaration		{/*TODO*/}
-		| statement		{/*TODO*/}
-		;
-
-/* 6.8.3 expression and null statements */
-exprstmt:	expr			{/*TODO*/}
-		|			{/*empty*/}
-		;
-
-/* 6.8.4 selection statements */
-selectionstmt:	IF '(' expr ')' stmt %prec IF			{/*TODO*/}
-		| IF '(' expr ')' stmt ELSE stmt %prec ELSE	{/*TODO*/}
-		| SWITCH '(' expr ')' stmt			{/*TODO*/}
-		;
-
-/* 6.8.5 Iteration statements */
-iterationstmt:	WHILE '(' expr ')' stmt							{/*TODO*/}
-		| DO stmt WHILE '(' expr ')'							{/*TODO*/}
-		| FOR '(' expropt ';' expropt ';' expropt ')' stmt	{/*TODO*/}
-		| FOR '(' decl expropt ';' expropt ')' stmt				{/*TODO*/}
-		;
-
-expropt:	expr	{/*TODO*/}
-		| 		{/*empty*/}
-		;
-
-/* 6.8.6 Jump Statements */
-jumpstmt:	GOTO IDENT ';'		{/*TODO*/}
-		| CONTINUE ';'		{/*TODO*/}
-		| BREAK ';'		{/*TODO*/}
-		| RETURN expropt ';'	{/*TODO*/}
-		;
-
-/* 6.9 External Definitions */
-translnunit: externdecl 			{/*TODO*/}
-		| translnunit externdecl	{/*TODO*/}
-		;
-
-externdecl: funcdef			{/*TODO*/}
-		| decl				{/*TODO*/}
-		;
-
-/* 6.9.1 Function definitions */
-funcdef:	declspec declarator decllistopt compoundstmt	{/*TODO*/}
-		;
-
-decllist:	decl		{/*TODO*/}
-		| decllist decl	{/*TODO*/}
-		;
-
-decllistopt:	decllist	{/*TODO*/}
-		|		{/*empty*/}
-		;
-
 %%
 /*
 expr:	IDENT			{ALLOC($$);$$->ident=(struct astnode_ident)

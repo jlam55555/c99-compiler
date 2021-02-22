@@ -89,13 +89,10 @@ HEXESC	\\x[0-9a-fA-F]+
 			 BEGIN INITIAL; return STRING;}
 
  /* STRING and CHARLIT: these escape sequences are common between the two */
-<CHRMODE>{SIMESC}	{/* these are the same for chars/strings */
-			 parse_append_escape();}
-<CHRMODE>{OCTESC}	{parse_append_octal();}
-<CHRMODE>{HEXESC}	{parse_append_hexadecimal();}
-<STRMODE>{SIMESC}	{parse_append_escape();}
-<STRMODE>{OCTESC}	{parse_append_octal();}
-<STRMODE>{HEXESC}	{parse_append_hexadecimal();}
+<CHRMODE,STRMODE>{SIMESC}	{/* these are the same for chars/strings */
+				 parse_append_escape();}
+<CHRMODE,STRMODE>{OCTESC}	{parse_append_octal();}
+<CHRMODE,STRMODE>{HEXESC}	{parse_append_hexadecimal();}
 
  /* STRING and CHARLIT errors */
 <STRMODE>.		{print_lexical_error();}
