@@ -60,7 +60,9 @@
 %type <charlit> CHARLIT
 %type <num> NUMBER
 %%
-exprlist:	expr		{print_astnode($1);}
+exprstmt:	expr ';'		{print_astnode($1);}
+		| exprstmt expr ';'	{print_astnode($2);}
+		;
 
 /* 6.4.4.3 */
  /*enumconst:	IDENT		{TODO: identifier declared as an
@@ -308,6 +310,9 @@ void print_astnode_recursive(union astnode *node, int depth)
 void print_astnode(union astnode *node)
 {
 	fprintf(stdout, "\n\n\nExpression AST:\n");
-	print_astnode_recursive(node, 0);
+	while (node) {
+		print_astnode_recursive(node, 0);
+		node = node->generic.next;
+	}
 	fprintf(stdout, "\n\n\n");
 }

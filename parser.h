@@ -1,6 +1,7 @@
 #ifndef PARSERH
 #define PARSERH
 
+#include "string.h"
 #include "numutils.h"
 #include "stringutils.h"
 
@@ -112,7 +113,7 @@ void print_astnode(union astnode *);
 
 #define ALLOC_SET_IDENT(var, idt)\
 	ALLOC(var);\
-	(var)->ident=(struct astnode_ident){NT_IDENT, NULL, NULL, idt}
+	(var)->ident=(struct astnode_ident){NT_IDENT, NULL, NULL, strdup(idt)}
 
 #define ALLOC_SET_BINOP(var, op, left, right)\
 	ALLOC(var);\
