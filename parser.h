@@ -8,7 +8,6 @@
 enum astnode_type {
 	// terminals
 	NT_NUMBER,
-	NT_KEYWORD,
 	NT_STRING,
 	NT_CHARLIT,
 	NT_IDENT,
@@ -64,13 +63,13 @@ struct astnode_ident {
 struct astnode_charlit {
 	enum astnode_type type;
 	union astnode *prev, *next;
-	struct charlit c;
+	struct charlit charlit;
 };
 
 struct astnode_string {
 	enum astnode_type type;
 	union astnode *prev, *next;
-	struct string s;
+	struct string string;
 };
 
 struct astnode_fncall {		// function invocation
@@ -127,8 +126,14 @@ void print_astnode(union astnode *);
 	ALLOC(var);\
 	(var)->ternop=(struct astnode_ternop){NT_TERNOP, NULL, NULL, first, second,third};
 
+// rewrite assignment-equals operators
+#define ASNEQ(var, type, left, right) \
+	union astnode *inner; \
+	ALLOC_SET_BINOP(inner, type, left, right); \
+	ALLOC_SET_BINOP(var, '=', left, inner)
+
 // helper to indent to a specific depth
 #define INDENT(n)\
-	for (int indi = 0; indi < depth; indi++) fprintf(stdout, "\t");
+	for (int indi = 0; indi < depth; indi++) fprintf(stdout, "  ");
 
 #endif

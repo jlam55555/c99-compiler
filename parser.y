@@ -4,6 +4,7 @@
 #define parse.error verbose
 
 #include "parser.h"
+#include "errorutils.h"
 
 %}
 %union {
@@ -197,50 +198,25 @@ condexpr:	logorexpr		{$$=$1;}
 
 asnmtexpr:	condexpr			{$$=$1;}
 		| uexpr '=' asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr TIMESEQ asnmtexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr DIVEQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr MODEQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr PLUSEQ asnmtexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr MINUSEQ asnmtexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr SHLEQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr SHREQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr ANDEQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr XOREQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
-		| uexpr OREQ asnmtexpr		{ALLOC_SET_BINOP($$,$2,$1,$3);}
+		| uexpr TIMESEQ asnmtexpr	{ASNEQ($$,'*',$1,$3);}
+		| uexpr DIVEQ asnmtexpr		{ASNEQ($$,'/',$1,$3);}
+		| uexpr MODEQ asnmtexpr		{ASNEQ($$,'%',$1,$3);}
+		| uexpr PLUSEQ asnmtexpr	{ASNEQ($$,'+',$1,$3);}
+		| uexpr MINUSEQ asnmtexpr	{ASNEQ($$,'-',$1,$3);}
+		| uexpr SHLEQ asnmtexpr		{ASNEQ($$,SHL,$1,$3);}
+		| uexpr SHREQ asnmtexpr		{ASNEQ($$,SHR,$1,$3);}
+		| uexpr ANDEQ asnmtexpr		{ASNEQ($$,'&',$1,$3);}
+		| uexpr XOREQ asnmtexpr		{ASNEQ($$,'^',$1,$3);}
+		| uexpr OREQ asnmtexpr		{ASNEQ($$,'|',$1,$3);}
 		;
 
 /*comma expression*/
 expr:	asnmtexpr			{$$=$1;}
-		| expr ',' asnmtexpr	{$$=$1;$1->generic.next=$3;}
+		| expr ',' asnmtexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
 
 %%
-/*
-expr:	IDENT			{ALLOC($$);$$->ident=(struct astnode_ident)
-				 {NT_IDENT,$1};}
-	| NUMBER		{ALLOC($$);
-				 $$->num=(struct astnode_number)
-				 {0,(struct number){}};}
-	| expr '+' expr		{ALLOC_SET_BINOP($$, '+', $1, $3);}
-	| expr '-' expr		{ALLOC_SET_BINOP($$, '-', $1, $3);}
-	| expr '*' expr		{ALLOC_SET_BINOP($$, '*', $1, $3);}
-	| expr '/' expr		{/* TODO: check for division by zero if
-				 $3 is a literal zero constant *\/
-				 if (!$3) fprintf(stderr, "/0 err\n");
-				 else ALLOC_SET_BINOP($$, '/', $1, $3);}
-	| '+' expr %prec '!'    {ALLOC_SET_UNOP($$, '+', $2);}
-	| '-' expr %prec '!'    {ALLOC_SET_UNOP($$, '-', $2);}
-	| '*' expr %prec '!'    {ALLOC_SET_UNOP($$, '*', $2);}
-	| '&' expr %prec '!'    {ALLOC_SET_UNOP($$, '&', $2);}
-	| '(' expr ')'		{$$=$2;}
-	;
-*/
-
-// TODO: do we have to cover cases of divide by zero symbolically?
-// TODO: deal with pre/post increment
-// TODO: deal with casting
-// TODO: is ternary parsing correct?
 
 int main()
 {
@@ -258,61 +234,134 @@ union astnode *astnode_alloc()
 	return malloc(sizeof(union astnode));
 }
 
-char *astnodetype_tostring(enum astnode_type type)
-{
-	switch (type) {
-		case NT_NUMBER:		return "NT_NUMBER";
-		case NT_KEYWORD:	return "NT_KEYWORD";
-		case NT_STRING:		return "NT_STRING";
-		case NT_CHARLIT:	return "NT_CHARLIT";
-		case NT_IDENT:		return "NT_IDENT";
+// char *astnodetype_tostring(enum astnode_type type)
+// {
+// 	switch (type) {
+// 		case NT_NUMBER:		return "NT_NUMBER";
+// 		case NT_STRING:		return "NT_STRING";
+// 		case NT_CHARLIT:	return "NT_CHARLIT";
+// 		case NT_IDENT:		return "NT_IDENT";
 
-		case NT_BINOP:		return "NT_BINOP";
-		case NT_UNOP:		return "NT_UNOP";
+// 		case NT_BINOP:		return "NT_BINOP";
+// 		case NT_UNOP:		return "NT_UNOP";
 
-		default:
-			fprintf(stderr, "Error: unknown AST node type.\n");
-			return "";
-	}
-}
+// 		default:
+// 			fprintf(stderr, "Error: unknown AST node type.\n");
+// 			return "";
+// 	}
+// }
 
-void print_astnode_recursive(union astnode *node, int depth)
+// void print_astnode_recursive(union astnode *node, int depth)
+// {
+// 	INDENT(depth);
+// 	fprintf(stdout, "AST node: %s\n",
+// 		astnodetype_tostring(node->generic.type));
+
+// 	switch (node->generic.type) {
+// 		case NT_NUMBER:
+// 			INDENT(depth);
+// 			fprintf(stdout, "value: %d\n", node->num.num.int_val);
+// 			break;
+// 		case NT_BINOP:
+// 			INDENT(depth);
+// 			fprintf(stdout, "op: %c\n", node->binop.op);
+// 			print_astnode_recursive(node->binop.left, depth+1);
+// 			print_astnode_recursive(node->binop.right, depth+1);
+// 			break;
+// 		case NT_UNOP:
+// 			INDENT(depth);
+// 			fprintf(stdout, "op: %c\n", node->unop.op);
+// 			print_astnode_recursive(node->unop.arg, depth+1);
+// 			break;
+// 		case NT_IDENT:
+// 			INDENT(depth);
+// 			fprintf(stdout, "ident: %s\n", node->ident.ident);
+// 			break;
+// 		default:
+// 			fprintf(stdout, "unknown op\n");
+// 	}
+// }
+
+void print_astnode_rec(union astnode *node, int depth)
 {
 	INDENT(depth);
-	fprintf(stdout, "AST node: %s\n",
-		astnodetype_tostring(node->generic.type));
-
 	switch (node->generic.type) {
-		case NT_NUMBER:
-			INDENT(depth);
-			fprintf(stdout, "value: %d\n", node->num.num.int_val);
-			break;
-		case NT_BINOP:
-			INDENT(depth);
-			fprintf(stdout, "op: %c\n", node->binop.op);
-			print_astnode_recursive(node->binop.left, depth+1);
-			print_astnode_recursive(node->binop.right, depth+1);
-			break;
-		case NT_UNOP:
-			INDENT(depth);
-			fprintf(stdout, "op: %c\n", node->unop.op);
-			print_astnode_recursive(node->unop.arg, depth+1);
-			break;
-		case NT_IDENT:
-			INDENT(depth);
-			fprintf(stdout, "ident: %s\n", node->ident.ident);
-			break;
-		default:
-			fprintf(stdout, "unknown op\n");
+	case NT_NUMBER:
+		// TODO: fix this to properly handle all types
+		fprintf(stdout, "CONSTANT:  (type=%s)%d\n", "int",
+			node->num.num.int_val);
+		break;
+	case NT_STRING:
+		// assumes single-width, null-terminated strings
+		fprintf(stdout, "STRING  %s\n", node->string.string.buf);
+		break;
+	case NT_CHARLIT:
+		// assumes single-width character literal
+		fprintf(stdout, "CHARLIT  %c\n",
+			node->charlit.charlit.value.none);
+		break;
+	case NT_IDENT:
+		fprintf(stdout, "IDENT  %s\n", node->ident.ident);
+		break;
+	case NT_BINOP:
+		// assignment is special case of binary op (move to own type?)
+		if (node->binop.op == '=') {
+			fprintf(stdout, "ASSIGNMENT  \n");
+		} else {
+			fprintf(stdout, "BINARY  OP  ");
+			if (node->binop.op <= 0xff) {
+				fprintf(stdout, "%c\n", node->binop.op);
+			} else {
+				fprintf(stdout, "%s\n",
+					toktostr(node->binop.op));
+			}
+		}
+		print_astnode_rec(node->binop.left, depth+1);
+		print_astnode_rec(node->binop.right, depth+1);
+		break;
+	case NT_UNOP:
+		fprintf(stdout, "UNARY  OP  ");
+		if (node->unop.op <= 0xff) {
+			fprintf(stdout, "%c\n", node->unop.op);
+		} else {
+			// ++ and -- are special cases: prefix forms get
+			// rewritten, so these are specifically postfix forms
+			switch (node->unop.op) {
+			case PLUSPLUS:
+				fprintf(stdout, "POSTINC\n");
+				break;
+			case MINUSMINUS:
+				fprintf(stdout, "POSTDEC\n");
+				break;
+			default:
+				fprintf(stdout, "%s\n",
+					toktostr(node->unop.op));
+			}
+		}
+		print_astnode_rec(node->unop.arg, depth+1);
+		break;
+	case NT_TERNOP:
+		fprintf(stdout, "TERNARY  OP,  IF:\n");
+		print_astnode_rec(node->ternop.first, depth+1);
+		INDENT(depth);
+		fprintf(stdout, "THEN:\n");
+		print_astnode_rec(node->ternop.second, depth+1);
+		INDENT(depth);
+		fprintf(stdout, "ELSE:\n");
+		print_astnode_rec(node->ternop.third, depth+1);
+		break;
+	case NT_FNCALL:
+		fprintf(stdout, "FNCALL, TODO\n");
+		break;
+	default:
+		fprintf(stdout, "AST type %d not implemented yet.\n",
+			node->generic.type);
 	}
 }
 
 void print_astnode(union astnode *node)
 {
 	fprintf(stdout, "\n\n\nExpression AST:\n");
-	while (node) {
-		print_astnode_recursive(node, 0);
-		node = node->generic.next;
-	}
+	print_astnode_rec(node, 0);
 	fprintf(stdout, "\n\n\n");
 }
