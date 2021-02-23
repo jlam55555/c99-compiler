@@ -229,59 +229,6 @@ int yyerror(char *err)
 	fprintf(stderr, "Syntax err: %s\n", err);
 }
 
-union astnode *astnode_alloc()
-{
-	return malloc(sizeof(union astnode));
-}
-
-// char *astnodetype_tostring(enum astnode_type type)
-// {
-// 	switch (type) {
-// 		case NT_NUMBER:		return "NT_NUMBER";
-// 		case NT_STRING:		return "NT_STRING";
-// 		case NT_CHARLIT:	return "NT_CHARLIT";
-// 		case NT_IDENT:		return "NT_IDENT";
-
-// 		case NT_BINOP:		return "NT_BINOP";
-// 		case NT_UNOP:		return "NT_UNOP";
-
-// 		default:
-// 			fprintf(stderr, "Error: unknown AST node type.\n");
-// 			return "";
-// 	}
-// }
-
-// void print_astnode_recursive(union astnode *node, int depth)
-// {
-// 	INDENT(depth);
-// 	fprintf(stdout, "AST node: %s\n",
-// 		astnodetype_tostring(node->generic.type));
-
-// 	switch (node->generic.type) {
-// 		case NT_NUMBER:
-// 			INDENT(depth);
-// 			fprintf(stdout, "value: %d\n", node->num.num.int_val);
-// 			break;
-// 		case NT_BINOP:
-// 			INDENT(depth);
-// 			fprintf(stdout, "op: %c\n", node->binop.op);
-// 			print_astnode_recursive(node->binop.left, depth+1);
-// 			print_astnode_recursive(node->binop.right, depth+1);
-// 			break;
-// 		case NT_UNOP:
-// 			INDENT(depth);
-// 			fprintf(stdout, "op: %c\n", node->unop.op);
-// 			print_astnode_recursive(node->unop.arg, depth+1);
-// 			break;
-// 		case NT_IDENT:
-// 			INDENT(depth);
-// 			fprintf(stdout, "ident: %s\n", node->ident.ident);
-// 			break;
-// 		default:
-// 			fprintf(stdout, "unknown op\n");
-// 	}
-// }
-
 void print_astnode_rec(union astnode *node, int depth)
 {
 	INDENT(depth);

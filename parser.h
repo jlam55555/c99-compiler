@@ -100,15 +100,12 @@ union astnode {
 	struct astnode_comlit comlit;
 };
 
-// helper to allocate an astnode
-union astnode *astnode_alloc();
-
 // helper to print an astnode
 void print_astnode(union astnode *);
 
 // helpers to allocating and initialize new AST nodes
 #define ALLOC(var)\
-	var = astnode_alloc();
+	var = malloc(sizeof(union astnode));
 
 #define ALLOC_SET_IDENT(var, idt)\
 	ALLOC(var);\
