@@ -266,11 +266,11 @@ void print_astnode_rec(union astnode *node, int depth)
 		switch (node->binop.op) {
 		// these are differentiated in Hak's output
 		case '=':
-			fprintf(stdout, "ASSIGNMENT  \n");
+			fprintf(stdout, "ASSIGNMENT\n");
 			printsym = 0;
 			break;
 		case '.':
-			fprintf(stdout, "SELECT  \n");
+			fprintf(stdout, "SELECT\n");
 			printsym = 0;
 			break;
 		case EQEQ: case NOTEQ: case '>': case '<': case LTEQ: case GTEQ:
@@ -341,6 +341,11 @@ void print_astnode_rec(union astnode *node, int depth)
 			argnode = argnode->generic.next;
 		}
 		fprintf(stdout, "FNCALL,  %d  arguments\n", argc);
+
+		// print function declarator
+		print_astnode_rec(node->fncall.fnname, depth+1);
+
+		// print arglist
 		for (argc=0, argnode=node->fncall.arglist; argnode;
 			++argc, argnode = argnode->generic.next) {
 			INDENT(depth);
