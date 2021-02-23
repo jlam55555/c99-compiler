@@ -241,19 +241,22 @@ void print_astnode_rec(union astnode *node, int depth)
 {
 	INDENT(depth);
 	switch (node->generic.type) {
-	case NT_NUMBER:
-		// TODO: fix this to properly handle all types
-		fprintf(stdout, "CONSTANT:  (type=%s)%d\n", "int",
-			node->num.num.int_val);
+	case NT_NUMBER:;
+		char *numstring = print_number(node->num.num);
+		fprintf(stdout, "CONSTANT:  %s\n", numstring);
+		free(numstring);
 		break;
-	case NT_STRING:
+	case NT_STRING:;
+		char *strstring = print_string(&node->string.string);
 		// assumes single-width, null-terminated strings
-		fprintf(stdout, "STRING  %s\n", node->string.string.buf);
+		fprintf(stdout, "STRING  %s\n", strstring);
+		free(strstring);
 		break;
-	case NT_CHARLIT:
+	case NT_CHARLIT:;
+		char chrstring[5];
+		print_char(node->charlit.charlit.value.none, chrstring);
 		// assumes single-width character literal
-		fprintf(stdout, "CONSTANT  (type=int)%d\n",
-			node->charlit.charlit.value.none);
+		fprintf(stdout, "CHARLIT  %s\n", chrstring);
 		break;
 	case NT_IDENT:
 		fprintf(stdout, "IDENT  %s\n", node->ident.ident);
@@ -354,4 +357,5 @@ void print_astnode_rec(union astnode *node, int depth)
 void print_astnode(union astnode *node)
 {
 	print_astnode_rec(node, 0);
+	fprintf(stdout, "\n");
 }
