@@ -38,4 +38,4 @@ unicodeutils.o: unicodeutils.c
 	gcc -c -o unicodeutils.o unicodeutils.c
 
 clean:
-	rm -f *.o lex.yy.c parser.tab.* parser parser.output
+	rm -f *.o lex.yy.c lex.yy.h lexertest parser.tab.* parser parser.output

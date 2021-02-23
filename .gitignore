@@ -1,9 +1,10 @@
 # bison/flex files
-lex.yy.c
+lex.yy.*
 *.output
 *.tab.*
 
 # executable target
+lexertest
 parser
 
 # object files
