@@ -116,7 +116,7 @@ ASSIGNMENT
   ADDRESSOF
     SELECT
       DEREF
-	IDENT x
+	      IDENT x
       IDENT m
 
 DEREF

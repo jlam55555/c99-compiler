@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "errorutils.h"
-#include "tokensmanual.h"
+#include "numutils.h"
+#include "stringutils.h"
+#include "parser.tab.h"
 
 int lineno;
 char filename[255] = "<stdin>";
@@ -38,14 +40,13 @@ void print_lexical_error() {
 
 char *toktostr(int enumval) {
 	switch (enumval) {
-		case TOKEOF:	return "TOKEOF";
 		case IDENT:	return "IDENT";
 		case CHARLIT:	return "CHARLIT";
 		case STRING:	return "STRING";
 		case NUMBER:	return "NUMBER";
 		case INDSEL:	return "INDSEL";
 		case PLUSPLUS:	return "PLUSPLUS";
-		case MINUSMINUS:	return "MINUSMINUS";
+		case MINUSMINUS:return "MINUSMINUS";
 		case SHL:	return "SHL";
 		case SHR:	return "SHR";
 		case LTEQ:	return "LTEQ";
@@ -98,10 +99,10 @@ char *toktostr(int enumval) {
 		case UNSIGNED:	return "UNSIGNED";
 		case VOID:	return "VOID";
 		case VOLATILE:	return "VOLATILE";
-		case WHILE:		return "WHILE";
-		case _BOOL:		return "_BOOL";
-		case _COMPLEX:		return "_COMPLEX";
-		case _IMAGINARY:	return "_IMAGINARY";
+		case WHILE:	return "WHILE";
+		case _BOOL:	return "_BOOL";
+		case _COMPLEX:	return "_COMPLEX";
+		case _IMAGINARY:return "_IMAGINARY";
 	}
 	return NULL;
 }

@@ -24,7 +24,9 @@
 %token	SHORT SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF UNION
 %token	UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 
-/* reference: https://en.cppreference.com/w/c/language/operator_precedence */
+/* reference: https://en.cppreference.com/w/c/language/operator_precedence
+ * these are redundant because of rule hierarchy but still nice to have in
+ * one place */
 %left<sc>	','
 
 %right<sc>	'=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
@@ -86,7 +88,7 @@ pexpr:		IDENT		{ALLOC_SET_IDENT($$,$1);}
 
 /* postfix expression: 6.5.2*/
 pofexpr:	pexpr				{$$=$1;}
-		| pofexpr '[' expr ']'		{/* rewrite a[b]=*(a+b) */
+		| pofexpr '[' expr ']'		{/* rewrite a[b] <=> *(a+b) */
 						 union astnode *inner;
 						 ALLOC_SET_BINOP(inner,'+',$1,$3);
 						 ALLOC_SET_UNOP($$,'*',inner);}
@@ -95,9 +97,11 @@ pofexpr:	pexpr				{$$=$1;}
 		| pofexpr '.' IDENT		{union astnode *ident;
 						 ALLOC_SET_IDENT(ident,$3);
 						 ALLOC_SET_BINOP($$,$2,$1,ident);}
-		| pofexpr INDSEL IDENT		{union astnode *ident;
+		| pofexpr INDSEL IDENT		{/* rewrite a->b <=> (*a).b */
+						 union astnode *ident, *deref;
 						 ALLOC_SET_IDENT(ident,$3);
-						 ALLOC_SET_BINOP($$,$2,$1,ident);}
+						 ALLOC_SET_UNOP(deref,'*',$1);
+						 ALLOC_SET_BINOP($$,'.',deref,ident);}
 		| pofexpr PLUSPLUS		{/*a++ <=> */ALLOC_SET_UNOP($$,$2,$1);}
 		| pofexpr MINUSMINUS		{ALLOC_SET_UNOP($$,$2,$1);}
 		/*| '(' typename ')' '{' initlist '}'	{TODO}
@@ -105,7 +109,11 @@ pofexpr:	pexpr				{$$=$1;}
 		;
 
 arglist:	asnmtexpr			{$$=$1;}
-		| arglist ',' asnmtexpr		{$$=$1;$1->generic.next=$3;}
+		| arglist ',' asnmtexpr		{$$=$1;
+						 /* append $3 to end of linked list*/
+						 union astnode *argnode=$1;
+						 while (argnode->generic.next) argnode = argnode->generic.next;
+						 argnode->generic.next=$3;}
 		;
 
 arglistopt:	arglist				{$$=$1;}
@@ -127,8 +135,8 @@ uexpr:		pofexpr			{$$=$1;}
 					 ALLOC_SET_BINOP(inner,'-',$2,one);
 					 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| uop castexpr		{ALLOC_SET_UNOP($$,$1,$2);}
-		/*| SIZEOF uexpr		{TODO}
-		| SIZEOF '(' typename ')'	{TODO}*/
+		| SIZEOF uexpr		{ALLOC_SET_UNOP($$,$1,$2);}
+		/*| SIZEOF '(' typename ')'	{TODO}*/
 		;
 
 uop:		'&'		{$$=$1;}
@@ -220,7 +228,7 @@ expr:	asnmtexpr			{$$=$1;}
 
 int main()
 {
-	yydebug = 1;
+	yydebug = 0;
 	yyparse();
 }
 
@@ -244,43 +252,67 @@ void print_astnode_rec(union astnode *node, int depth)
 		break;
 	case NT_CHARLIT:
 		// assumes single-width character literal
-		fprintf(stdout, "CHARLIT  %c\n",
+		fprintf(stdout, "CONSTANT  (type=int)%d\n",
 			node->charlit.charlit.value.none);
 		break;
 	case NT_IDENT:
 		fprintf(stdout, "IDENT  %s\n", node->ident.ident);
 		break;
-	case NT_BINOP:
-		// assignment is special case of binary op (move to own type?)
-		if (node->binop.op == '=') {
+	case NT_BINOP:;
+		int printsym = 1;
+		switch (node->binop.op) {
+		// these are differentiated in Hak's output
+		case '=':
 			fprintf(stdout, "ASSIGNMENT  \n");
-		} else {
+			printsym = 0;
+			break;
+		case '.':
+			fprintf(stdout, "SELECT  \n");
+			printsym = 0;
+			break;
+		case EQEQ: case NOTEQ: case '>': case '<': case LTEQ: case GTEQ:
+			fprintf(stdout, "COMPARISON  OP  ");
+			break;
+		// logical operators are differentiated in hak's output
+		case LOGAND: case LOGOR:
+			fprintf(stdout, "LOGICAL  OP  ");
+			break;
+		default:
 			fprintf(stdout, "BINARY  OP  ");
-			if (node->binop.op <= 0xff) {
-				fprintf(stdout, "%c\n", node->binop.op);
-			} else {
-				fprintf(stdout, "%s\n",
-					toktostr(node->binop.op));
-			}
+		}
+		if (node->binop.op <= 0xff && printsym) {
+			fprintf(stdout, "%c\n", node->binop.op);
+		} else if (printsym) {
+			fprintf(stdout, "%s\n",
+				toktostr(node->binop.op));
 		}
 		print_astnode_rec(node->binop.left, depth+1);
 		print_astnode_rec(node->binop.right, depth+1);
 		break;
 	case NT_UNOP:
-		fprintf(stdout, "UNARY  OP  ");
-		if (node->unop.op <= 0xff) {
-			fprintf(stdout, "%c\n", node->unop.op);
-		} else {
-			// ++ and -- are special cases: prefix forms get
-			// rewritten, so these are specifically postfix forms
-			switch (node->unop.op) {
-			case PLUSPLUS:
-				fprintf(stdout, "POSTINC\n");
-				break;
-			case MINUSMINUS:
-				fprintf(stdout, "POSTDEC\n");
-				break;
-			default:
+		switch (node->unop.op) {
+		// these are differentiated in Hak's output
+		case '*':
+			fprintf(stdout, "DEREF\n");
+			break;
+		case '&':
+			fprintf(stdout, "ADDRESSOF\n");
+			break;
+		case SIZEOF:
+			fprintf(stdout, "SIZEOF\n");
+			break;
+		// ++ and -- are special cases: prefix forms
+		// get rewritten, so these are specifically
+		// postfix forms
+		case PLUSPLUS: case MINUSMINUS:
+			fprintf(stdout, "UNARY  OP  POST%s\n",
+				node->unop.op==PLUSPLUS ? "INC" : "DEC");
+			break;
+		default:
+			fprintf(stdout, "UNARY  OP  ");
+			if (node->unop.op <= 0xff) {
+				fprintf(stdout, "%c\n", node->unop.op);
+			} else {
 				fprintf(stdout, "%s\n",
 					toktostr(node->unop.op));
 			}
@@ -297,8 +329,21 @@ void print_astnode_rec(union astnode *node, int depth)
 		fprintf(stdout, "ELSE:\n");
 		print_astnode_rec(node->ternop.third, depth+1);
 		break;
-	case NT_FNCALL:
-		fprintf(stdout, "FNCALL, TODO\n");
+	case NT_FNCALL:;
+		// count number of arguments
+		int argc = 0;
+		union astnode *argnode = node->fncall.arglist;
+		while (argnode) {
+			++argc;
+			argnode = argnode->generic.next;
+		}
+		fprintf(stdout, "FNCALL,  %d  arguments\n", argc);
+		for (argc=0, argnode=node->fncall.arglist; argnode;
+			++argc, argnode = argnode->generic.next) {
+			INDENT(depth);
+			fprintf(stdout, "arg  #%d=\n", argc+1);
+			print_astnode_rec(argnode, depth+1);
+		}
 		break;
 	default:
 		fprintf(stdout, "AST type %d not implemented yet.\n",
@@ -308,7 +353,5 @@ void print_astnode_rec(union astnode *node, int depth)
 
 void print_astnode(union astnode *node)
 {
-	fprintf(stdout, "\n\n\nExpression AST:\n");
 	print_astnode_rec(node, 0);
-	fprintf(stdout, "\n\n\n");
 }

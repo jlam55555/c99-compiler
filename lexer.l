@@ -4,18 +4,10 @@
 %{
 #include <stdlib.h>
 #include <stddef.h>
-// #include "tokensmanual.h"
 #include "stringutils.h"
 #include "errorutils.h"
 #include "numutils.h"
 #include "parser.tab.h"
-
-// typedef union {
-// 	struct number num;
-// 	char *ident;
-// 	struct string string;
-// 	struct charlit charlit;
-// } YYSTYPE;
 
 YYSTYPE yylval;
 
