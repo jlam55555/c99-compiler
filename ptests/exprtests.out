@@ -11,7 +11,7 @@ BINARY  OP  ,
           CONSTANT:  (type=int)10
         IDENT  d
 
-TERNARY  OP,  IF:      
+TERNARY  OP,  IF:
   COMPARISON  OP  !=
     STRING  X
     STRING  Y

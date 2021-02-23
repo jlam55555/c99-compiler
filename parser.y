@@ -5,6 +5,8 @@
 
 #include "parser.h"
 #include "errorutils.h"
+#include "stringutils.h"
+#include "numutils.h"
 
 %}
 %union {
