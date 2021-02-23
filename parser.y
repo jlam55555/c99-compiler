@@ -239,6 +239,8 @@ int yyerror(char *err)
 	fprintf(stderr, "Syntax err: %s\n", err);
 }
 
+// for indenting
+int indi;
 void print_astnode_rec(union astnode *node, int depth)
 {
 	INDENT(depth);

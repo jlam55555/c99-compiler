@@ -130,7 +130,8 @@ void print_astnode(union astnode *);
 	ALLOC_SET_BINOP(var, '=', left, inner)
 
 // helper to indent to a specific depth
+extern int indi;
 #define INDENT(n)\
-	for (int indi = 0; indi < depth; indi++) fprintf(stdout, "  ");
+	for (indi = 0; indi < depth; indi++) fprintf(stdout, "  ");
 
 #endif
