@@ -11,10 +11,10 @@ BINARY  OP  ,
           CONSTANT:  (type=int)10
         IDENT  d
 
-TERNARY  OP,  IF:      
+TERNARY  OP,  IF:
   COMPARISON  OP  !=
-    STRING	X
-    STRING	Y
+    STRING  X
+    STRING  Y
 THEN:
   ASSIGNMENT
     IDENT  e
@@ -31,7 +31,7 @@ ASSIGNMENT
     IDENT  g
     DEREF
       BINARY  OP  +
-        STRING	ABC
+        STRING  ABC
         CONSTANT:  (type=int)3
 
 ASSIGNMENT
@@ -85,7 +85,7 @@ ASSIGNMENT
 
 COMPARISON  OP  >=
   FNCALL,  3  arguments
-    IDENT fn
+    IDENT  fn
   arg  #1=
     LOGICAL  OP  ||
       LOGICAL  OP  &&
@@ -112,18 +112,18 @@ COMPARISON  OP  >=
     CONSTANT:  (type=int)2
 
 ASSIGNMENT
-  IDENT p
+  IDENT  p
   ADDRESSOF
     SELECT
       DEREF
-	IDENT x
-      IDENT m
+        IDENT  x
+      IDENT  m
 
 DEREF
   UNARY  OP  POSTINC
     SELECT
-      IDENT p
-      IDENT n
+      IDENT  p
+      IDENT  n
 
 ASSIGNMENT
   IDENT  s
