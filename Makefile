@@ -1,10 +1,28 @@
-lexer: lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o
-	gcc -o lexer lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o
+# TODO: this file needs to be cleaned up
+
+parser: parser.tab.o lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o
+	gcc -o parser parser.tab.o lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o
+
+parser.tab.o: parser.y
+	bison -vd parser.y
+	gcc -c -o parser.tab.o parser.tab.c
+
+parser.tab.h: parser.tab.o
+
+lexertest: lex.yy.o lex.yy.h numutils.o stringutils.o errorutils.o unicodeutils.o lexertest.o
+	gcc -o lexertest lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o lexertest.o
+
+# only for lexertest
+lex.yy.h: lex.yy.c
+	flex --header-file=lex.yy.h lexer.l
+
+lexertest.o: lexertest.c lex.yy.h parser.tab.h
+	gcc -c -o lexertest.o lexertest.c
 
 lex.yy.o: lex.yy.c
 	gcc -c -o lex.yy.o lex.yy.c
 
-lex.yy.c: lexer.l
+lex.yy.c: lexer.l parser.tab.h
 	flex lexer.l
 
 numutils.o: numutils.c
@@ -20,4 +38,4 @@ unicodeutils.o: unicodeutils.c
 	gcc -c -o unicodeutils.o unicodeutils.c
 
 clean:
-	rm -f lex.yy.c lexer *.o
+	rm -f *.o lex.yy.c parser.tab.* parser parser.output
