@@ -1,41 +1,34 @@
-# TODO: this file needs to be cleaned up
+# This Makefile builds the parser
+# TODO: use src/ include/ build/ bin/ directory structure?
+SOURCEDIR=. lexerutils
+BUILDDIR=build
+BINARY=parser
 
-parser: parser.tab.o lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o
-	gcc -o parser parser.tab.o lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o
+# C files that are built by flex/bison and cannot be found automatically
+EXTRASOURCES=lex.yy.c parser.tab.c
 
-parser.tab.o: parser.y
-	bison -vd parser.y
-	gcc -c -o parser.tab.o parser.tab.c
+# extra headers (to be removed on make clean)
+EXTRAHEADERS=lex.yy.h parser.tab.h
 
-parser.tab.h: parser.tab.o
+# "build everything" inspired by https://stackoverflow.com/a/3774731
+SOURCES:=$(shell find $(SOURCEDIR) -maxdepth 1 -name '*.c') $(EXTRASOURCES)
+OBJECTS:=$(addprefix $(BUILDDIR)/,$(SOURCES:%.c=%.o))
 
-lexertest: lex.yy.o lex.yy.h numutils.o stringutils.o errorutils.o unicodeutils.o lexertest.o
-	gcc -o lexertest lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o lexertest.o
+$(BINARY): $(EXTRAHEADERS) $(OBJECTS)
+	$(CC) -o $(BINARY) $(OBJECTS)
 
-# only for lexertest
-lex.yy.h: lex.yy.c
+# special targets (flex/bison)
+lex.yy.c lex.yy.h: lexer.l parser.tab.h
 	flex --header-file=lex.yy.h lexer.l
 
-lexertest.o: lexertest.c lex.yy.h parser.tab.h
-	gcc -c -o lexertest.o lexertest.c
+parser.tab.c parser.tab.h: parser.y
+	bison -vd parser.y
 
-lex.yy.o: lex.yy.c
-	gcc -c -o lex.yy.o lex.yy.c
+# generic targets
+$(BUILDDIR)/%.o: %.c
+	mkdir -p $(dir $@)
+	$(CC) -c -o $@ $<
 
-lex.yy.c: lexer.l parser.tab.h
-	flex lexer.l
-
-numutils.o: numutils.c
-	gcc -c -o numutils.o numutils.c
-
-stringutils.o: stringutils.c
-	gcc -c -o stringutils.o stringutils.c
-
-errorutils.o: errorutils.c
-	gcc -c -o errorutils.o errorutils.c
-
-unicodeutils.o: unicodeutils.c
-	gcc -c -o unicodeutils.o unicodeutils.c
-
+.PHONY:
 clean:
-	rm -f *.o lex.yy.c lex.yy.h lexertest parser.tab.* parser parser.output
+	rm -rf build $(EXTRASOURCES) $(EXTRAHEADERS) $(BINARY)

@@ -2,7 +2,7 @@
 #include "errorutils.h"
 #include "numutils.h"
 #include "stringutils.h"
-#include "parser.tab.h"
+#include "../parser.tab.h"
 
 int lineno;
 char filename[255] = "<stdin>";

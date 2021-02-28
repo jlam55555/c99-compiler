@@ -4,10 +4,7 @@
 #define parse.error verbose
 
 #include "parser.h"
-#include "errorutils.h"
-#include "stringutils.h"
-#include "numutils.h"
-
+#include "lexerutils/errorutils.h"
 %}
 %union {
 	int sc;	// single-character tokens
