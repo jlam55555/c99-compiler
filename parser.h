@@ -1,8 +1,6 @@
 #ifndef PARSERH
 #define PARSERH
 
-#include "astnode.h"
-
 extern int yylex();
 int yyerror(char *err);
 

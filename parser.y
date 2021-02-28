@@ -5,62 +5,80 @@
 
 #include "parser.h"
 #include "lexerutils/errorutils.h"
+#include "astnode.h"
+#include "attnode.h"
 %}
 %union {
+	// from lexer
 	int sc;	// single-character tokens
 	struct number num;
 	char *ident;
 	struct string string;
 	struct charlit charlit;
-	union astnode *astnode;
+	
+	// from syntax parsing
+	union astnode *astnode;		// abstract syntax tree
+
+	// from declaration parsing
+	struct attnode_typequal *typequal;
+	struct attnode_storagespec *scspec;
+	union attnode_typespec *typespec;
+	union attnode *attnode;		// abstract type tree
 }
 
-%token	IDENT CHARLIT STRING NUMBER INDSEL PLUSPLUS MINUSMINUS SHL
-%token	SHR LTEQ GTEQ EQEQ NOTEQ LOGAND LOGOR ELLIPSIS TIMESEQ DIVEQ
-%token	MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ ANDEQ OREQ XOREQ AUTO BREAK
-%token	CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN
-%token	FLOAT FOR GOTO IF INLINE INT LONG REGISTER RESTRICT RETURN
-%token	SHORT SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF UNION
-%token	UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
+%token		IDENT NUMBER CHARLIT STRING
+%token<sc>	INDSEL PLUSPLUS MINUSMINUS SHL
+%token<sc>	SHR LTEQ GTEQ EQEQ NOTEQ LOGAND LOGOR ELLIPSIS TIMESEQ DIVEQ
+%token<sc>	MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ ANDEQ OREQ XOREQ AUTO BREAK
+%token<sc>	CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN
+%token<sc>	FLOAT FOR GOTO IF INLINE INT LONG REGISTER RESTRICT RETURN
+%token<sc>	SHORT SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF UNION
+%token<sc>	UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
+
+%token<sc>	',' '=' '?' ':' '|' '^' '&' '<' '>' '+' '-' '*' '/' '%' '!' '~'
+%token<sc>	'(' ')' '[' ']' '.'
 
 /* reference: https://en.cppreference.com/w/c/language/operator_precedence
  * these are redundant because of rule hierarchy but still nice to have in
  * one place */
-%left<sc>	','
+%left	','
 
-%right<sc>	'=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
+%right	'=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
 
-%right<sc>	'?' ':'		/* ternary */
-%left<sc>	LOGOR
-%left<sc>	LOGAND
-%left<sc>	'|'
-%left<sc>	'^'
-%left<sc>	'&'		/* bitwise binary op */
-%left<sc>	EQEQ NOTEQ
-%left<sc>	'<' LTEQ '>' GTEQ
-%left<sc>	SHL SHR
-%left<sc>	'+' '-'		/* arithmetic binary ops */
-%left<sc>	'*' '/' '%'	/* arithmetic binary ops */
+%right	'?' ':'		/* ternary */
+%left	LOGOR
+%left	LOGAND
+%left	'|'
+%left	'^'
+%left	'&'		/* bitwise binary op */
+%left	EQEQ NOTEQ
+%left	'<' LTEQ '>' GTEQ
+%left	SHL SHR
+%left	'+' '-'		/* arithmetic binary ops */
+%left	'*' '/' '%'	/* arithmetic binary ops */
 
 /* this precedence level also includes unary +, -, *, &, post(inc|dec)rement,
    casting */
-%left<sc>	'!' '~' SIZEOF MINUSMINUS PLUSPLUS
+%left	'!' '~' SIZEOF MINUSMINUS PLUSPLUS
 
 /* this precedence level also includes pre(inc|dec)rement */
-%left<sc>	'(' ')' '[' ']' '.' INDSEL
+%left	'(' ')' '[' ']' '.' INDSEL
 
 /* to correctly parse nested if...else statements */
 %left IF
 %left ELSE
 
-%type<sc> uop
-%type <astnode>	constant pexpr pofexpr arglist arglistopt uexpr
-%type <astnode>	castexpr multexpr addexpr shftexpr relexpr eqexpr andexpr
-%type <astnode>	xorexpr orexpr logandexpr logorexpr condexpr asnmtexpr expr
-%type <ident> IDENT
-%type <string> STRING
-%type <charlit> CHARLIT
-%type <num> NUMBER
+%type<sc> 	uop
+%type<astnode>	constant pexpr pofexpr arglist arglistopt uexpr
+%type<astnode>	castexpr multexpr addexpr shftexpr relexpr eqexpr andexpr
+%type<astnode>	xorexpr orexpr logandexpr logorexpr condexpr asnmtexpr expr
+%type<attnode>	decl initdecllist initdecl
+%type<scspec>	scspec
+%type<typespec>	typespec
+%type<ident> 	IDENT
+%type<string>	STRING
+%type<charlit>	CHARLIT
+%type<num>	NUMBER
 %%
 exprstmt:	expr ';'		{print_astnode($1);}
 		| exprstmt expr ';'	{print_astnode($2);}
@@ -222,6 +240,60 @@ expr:	asnmtexpr			{$$=$1;}
 		| expr ',' asnmtexpr	{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
+/* 6.7 DECLARATIONS */
+decl:	declspec ';'			{/*TODO*/}
+	| declspec initdecllist	';'	{/*TODO*/}
+	;
+
+/* declaration specifier */
+declspec:	scspec 			{/*create storage class spec (unless typedef, then create typdef)*/}
+		| typespec 		{/*create typespec*/}
+		| typequal 		{/*create typequal*/}
+		| funcspec 		{/*the only funcspec is INLINE; ignore*/}
+		| declspec declspec	{/*combine declaration specs*/}
+		;
+
+initdecllist:	initdecl		{$$=$1;}
+		| initdecllist ',' initdecl	{/*add initdecl to ll*/}
+		;
+
+initdecl:	declarator			{/*insert into symtab*/}
+		| declarator '=' initializer	{/*add initializer to variable,insert declarator into symtab*/}
+		;
+
+/* 6.7.1 storage class specifier */
+scspec:		TYPEDEF		{/*TODO*/}
+		| EXTERN		{/*TODO*/}
+		| STATIC		{/*TODO*/}
+		| AUTO		{/*TODO*/}
+		| REGISTER		{/*TODO*/}
+		;
+
+/* 6.7.2 type specifiers */
+typespec:	VOID		{}
+		| CHAR		{/*TODO*/}	
+		| SHORT		{/*TODO*/}
+		| INT		{/*TODO*/}	
+		| LONG		{/*TODO*/}	
+		| FLOAT		{/*TODO*/}
+		| DOUBLE	{/*TODO*/}	
+		| SIGNED	{/*TODO*/}	
+		| UNSIGNED	{/*TODO*/}	
+		| _BOOL		{/*TODO*/}
+		| _COMPLEX	{/*TODO*/}	
+		| structunionspec	{/*TODO*/}
+		| enumspec	{/*TODO*/}	
+		| typedefname	{/*TODO*/}
+		;
+
+/*dummy rules*/
+declarator:;
+enumspec:;
+funcspec:;
+initializer:;
+structunionspec:;
+typedefname:;
+typequal:;
 
 %%
 

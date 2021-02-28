@@ -5,52 +5,6 @@
 constexpr:	condexpr	{/*TODO*/}
 		;
 
-/* 6.7 DECLARATIONS */
-decl:	declspec ';'			{/*TODO*/}
-	| declspec initdecllist	';'	{/*TODO*/}
-	;
-
-/* declaration specifier */
-declspec:	scspec 			{/*TODO*/}
-		| typespec 		{/*TODO*/}
-		| typequal 		{/*TODO*/}
-		| funcspec 		{/*TODO*/}
-		| declspec declspec	{/*TODO*/}
-		;
-
-initdecllist:	initdecl		{/*TODO*/}
-		| initdecllist ',' initdecl	{/*TODO*/}
-		;
-
-initdecl:	declarator
-		| declarator '=' initializer	{/*TODO*/}
-		;
-
-/* 6.7.1 storage class specifier */
-scspec:		TYPEDEF		{/*TODO*/}
-		| EXTERN		{/*TODO*/}
-		| STATIC		{/*TODO*/}
-		| AUTO		{/*TODO*/}
-		| REGISTER		{/*TODO*/}
-		;
-
-/* 6.7.2 type specifiers */
-typespec:	VOID		{/*TODO*/}
-		| CHAR		{/*TODO*/}	
-		| SHORT		{/*TODO*/}
-		| INT		{/*TODO*/}	
-		| LONG		{/*TODO*/}	
-		| FLOAT		{/*TODO*/}
-		| DOUBLE	{/*TODO*/}	
-		| SIGNED	{/*TODO*/}	
-		| UNSIGNED	{/*TODO*/}	
-		| _BOOL		{/*TODO*/}
-		| _COMPLEX	{/*TODO*/}	
-		| structunionspec	{/*TODO*/}
-		| enumspec	{/*TODO*/}	
-		| typedefname	{/*TODO*/}
-		;
-
 /* 6.7.2.1 structure and union specifiers */
 structunionspec:structunion '{' structdecllist '}'		{/*TODO*/}
 		| structunion IDENT '{' structdecllist '}'	{/*TODO*/}
