@@ -241,8 +241,8 @@ expr:	asnmtexpr			{$$=$1;}
 		;
 
 /* 6.7 DECLARATIONS */
-decl:	declspec ';'			{/*TODO*/}
-	| declspec initdecllist	';'	{/*TODO*/}
+decl:	declspec ';'			{/*nothing to do here*/}
+	| declspec initdecllist	';'	{/*nothing to do here*/}
 	;
 
 /* declaration specifier */

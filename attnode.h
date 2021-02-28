@@ -27,10 +27,16 @@ storage spec:
 enum spec_type { ST_SCALAR, ST_FN, ST_TAG, ST_POINTER, ST_ARRAY,
 	ST_TYPEDEF } st;
 
+#define TS_SCALAR_SIGNED	0x4
+#define TS_SCALAR_LL		0x2
+#define TS_SCALAR_L		0x1
 struct attnode_typespec_scalar {
 	enum spec_type type;
 	int scalartype;	// using lexer/parser enum constants
-	struct attnode_typespec_scalar *next;
+	struct modifiers {
+		char ll: 2;
+		char sign: 1;
+	} modifiers;
 };
 
 struct attnode_typespec_fn {
@@ -51,10 +57,9 @@ struct attnode_typespec_array {
 // TODO: structs and unions
 
 struct attnode_typespec_struct_union {
-    union attnode *member;
-    int tag_define;
-    enum spec_type type;
-
+	union attnode *member;
+	int tag_define;
+	enum spec_type type;
 };
 
 union attnode_typespec {
@@ -66,13 +71,29 @@ union attnode_typespec {
 	struct attnode_typespec_array array;
 };
 
+#define TQ_CONST	0x1
+#define TQ_RESTRICT	0x2
+#define TQ_VOLATILE	0x4
 struct attnode_typequal {
-	enum type_qual { TQ_CONST, TQ_RESTRICT, TQ_VOLATILE } qual;
+	struct {
+		char qual_const: 1;
+		char qual_restrict: 1;
+		char qual_volatile: 1;
+	} qual;
 	struct attnode_typequal *next;
 };
 
+#define SS_EXTERN	0x1
+#define SS_STATIC	0x2
+#define SS_AUTO		0x4
+#define SS_REGISTER	0x8
 struct attnode_storagespec {	
-	enum storagespec { SS_EXTERN, SS_STATIC, SS_AUTO, SS_REGISTER } spec;
+	struct {
+		char spec_extern: 1;
+		char spec_static: 1;
+		char spec_auto: 1;
+		char spec_register: 1;
+	} spec;
 	struct attnode_storagespec *next;
 };
 
