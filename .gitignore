@@ -12,3 +12,6 @@ parser
 
 # vscode tmp files
 *~
+
+# Mac OS
+.DS_Store
