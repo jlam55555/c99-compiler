@@ -140,6 +140,7 @@ struct astnode_declarator {
 	_ASTNODE
 
 	union astnode *pointer, *dirdeclarator;
+	int is_abstract;
 };
 
 struct astnode_dirdeclarator {
@@ -190,21 +191,32 @@ extern const struct astnode_dirdeclarator ELLIPSIS_DECLARATOR;
 	(var)->basetype = scalartype;\
 	(var)->modifiers->lls = lls;
 
-#define ALLOC_DECLARATOR(var, dirdeclarator, ptr)
-
+#define ALLOC_DECLARATOR(var, dirdeclarator, ptr, abs)\
+	var = malloc(sizeof(strct astnode_declarator));\
+	(var)->type = NT_DECLARATOR;\
+	(var)->ptr = ptr;\
+	(var)->dirdeclarator = dirdeclarator;\
+	(var)->is_abstract = abs;
 
 #define ALLOC_REGULAR_DIRDECLARATOR(var, ident)\
 	var = malloc(sizeof(struct astnode_dirdeclarator));\
 	(var)->type = NT_DIRDECLARATOR;\
-	(var)->ident = ident;
+	(var)->ident = ident;\
+	(var)->is_abstract = 0;
 
-
-#define ALLOC_ARRAY_DIRDECLARATOR(var, dirdeclarator, typequalist, asnmntexpr)\
+#define ALLOC_ARRAY_DIRDECLARATOR(var, dirdeclarator, typequalist, asnmntexpr, abs)\
 	var = malloc(sizeof(struct astnode_dirdeclarator));\
 	(var)->type = NT_DIRDECLARATOR;\
+	(var)->ident = dirdeclarator;\
+	(var)->typequallist = typequallist;\
+	(var)->size = asnmntexpr;\
+	(var)->is_abstract = abs;
 
-#define ALLOC_FN_DIRDECLARATOR(var, dirdeclarator, paramtypelist)\
+#define ALLOC_FN_DIRDECLARATOR(var, dirdeclarator, paramtypelist, abs)\
 	var = malloc(sizeof(struct astnode_dirdeclarator));\
 	(var)->type = NT_DIRDECLARATOR;\
+	(var)->ident = dirdeclarator;\
+	(var)->paramtypelist = paramtypelist;\
+	(var)->is_abstract = abs;
 
 #endif // ATTNODEH
