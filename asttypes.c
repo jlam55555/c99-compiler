@@ -8,13 +8,13 @@
 #include <stdio.h>
 
 // declare constant ellipsis for use; this is declared in asttypes.c
-const struct astnode_dirdeclarator ELLIPSIS_DECLARATOR;
+union astnode ELLIPSIS_DECLARATOR;
 
 // for LL_APPEND to work
 union astnode *ll_append_iter;
 
 // combine declaration specifiers in the intended manner
-union astnode *mergedeclspec(union astnode *spec1, union astnode *spec2) {
+union astnode *merge_declspec(union astnode *spec1, union astnode *spec2) {
 	struct astnode_declspec ds1 = spec1->declspec,
 		ds2 = spec2->declspec;
 	struct astnode_typespec_scalar ats1, ats2;

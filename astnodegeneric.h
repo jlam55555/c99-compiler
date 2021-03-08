@@ -26,10 +26,12 @@ enum astnode_type {
 	NT_LABEL,
 	
 	// declarator types
+	NT_DECLSPEC,
 	NT_DECLARATOR,
 	NT_DIRDECLARATOR,
-	NT_PTR
-
+	NT_POINTER,
+	NT_PARAMDECLARATOR,
+	NT_TYPENAME
 };
 
 #define _ASTNODE\
@@ -39,12 +41,13 @@ enum astnode_type {
 // this is declared in asttypes.c
 extern union astnode *ll_append_iter;
 #define LL_APPEND(ll, node)\
-	ll_append_iter = node->generic;\
+	ll_append_iter = node;\
 	while (ll_append_iter->generic.next) {\
-		ll_append_iter = ll_append_iter->generic.next\
+		ll_append_iter = ll_append_iter->generic.next;\
 	}\
 	ll_append_iter->generic.next = node;
 
+// "interface" for astnodes
 struct astnode_generic {
 	_ASTNODE
 };

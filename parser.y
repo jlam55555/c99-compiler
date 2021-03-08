@@ -68,6 +68,10 @@
 %type<astnode>	castexpr multexpr addexpr shftexpr relexpr eqexpr andexpr
 %type<astnode>	xorexpr orexpr logandexpr logorexpr condexpr asnmtexpr expr
 %type<astnode>	decl initdecllist initdecl typespec scspec declspec typequal
+%type<astnode>	pointer dirdeclarator typequallist typequallistopt declarator
+%type<astnode>	asnmtexpropt paramlist paramtypelist paramdecl absdeclarator
+%type<astnode>	specquallist typename dirabsdeclarator dirabsdeclaratoropt
+%type<astnode>	paramtypelistopt
 %type<ident> 	IDENT
 %type<string>	STRING
 %type<charlit>	CHARLIT
@@ -75,6 +79,7 @@
 %%
 exprstmt:	expr ';'		{print_astnode($1);}
 		| exprstmt expr ';'	{print_astnode($2);}
+		| decl			{/*TODO*/}
 		;
 
 /* 6.4.4.3 */
@@ -239,11 +244,11 @@ decl:	declspec ';'				{/*nothing to do here*/}
 	;
 
 /* declaration specifier */
-declspec:	scspec 				{ALLOC_DECLSPEC($$);$$->declspec->ss=$1;}
-		| typespec 			{ALLOC_DECLSPEC($$);$$->declspec->ts=$1;}
-		| typequal 			{ALLOC_DECLSPEC($$);$$->declspec->tq=$1;}
+declspec:	scspec 				{ALLOC_DECLSPEC($$);$$->declspec.sc=$1;}
+		| typespec 			{ALLOC_DECLSPEC($$);$$->declspec.ts=$1;}
+		| typequal 			{ALLOC_DECLSPEC($$);$$->declspec.tq=$1;}
 		| funcspec 			{/*the only funcspec is INLINE; ignore*/}
-		| declspec declspec		{$$=MERGE_DECSPEC($1,$2);}
+		| declspec declspec		{$$=merge_declspec($1,$2);}
 		;
 
 initdecllist:	initdecl			{$$=$1;}
@@ -297,12 +302,16 @@ structdecllist:	structdecl			{/*TODO*/}
 structdecl:	specquallist structdecllist ';'	{/*TODO*/}
 		;
 
-/*dummy rules*/
+/*dummy rules: TODO*/
 enumspec:;
 funcspec:;
 initializer:;
 structunionspec:;
-specquallist:;
+
+specquallist:	typespec			{ALLOC_DECLSPEC($$);$$->declspec->ts=$1;}
+		| typequal			{ALLOC_DECLSPEC($$);$$->declspec->tq=$1;}
+		| specquallist specquallist	{$$=merge_declspec($1,$2);}
+		;
 
 /* 6.7.3 type qualifiers */
 typequal:	CONST				{ALLOC_SET_TQSPEC($$,TQ_CONST);}
@@ -316,11 +325,13 @@ funcspec:	INLINE				{/*NOT DEALING WITH THIS*/}
 
 
 /* 6.7.5 Declarators */
-declarator:	pointer dirdeclarator		{ALLOC_DECLARATOR($$,$2,$1,0);}
+declarator:	pointer dirdeclarator		{ALLOC_DECLARATOR($$,$2,$1,0);$$=$1;}
 		| dirdeclarator			{ALLOC_DECLARATOR($$,$1,NULL,0);}
 		;
 
-dirdeclarator:	IDENT							{ALLOC_REGULAR_DIRDECLARATOR($$,$1);}
+dirdeclarator:	IDENT							{union astnode *ident;
+									 ALLOC_SET_IDENT(ident,$1);
+									 ALLOC_REGULAR_DIRDECLARATOR($$,ident);}
 		| '(' declarator ')'					{$$=$2;}
 		| dirdeclarator '[' typequallistopt asnmtexpropt ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,0);}
 		| dirdeclarator '[' typequallistopt ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,0);}
@@ -337,7 +348,11 @@ dirdeclarator:	IDENT							{ALLOC_REGULAR_DIRDECLARATOR($$,$1);}
 		;
 
 pointer:	'*' typequallistopt		{ALLOC_POINTER($$,$2,NULL);}
-		| '*' typequallistopt pointer	{ALLOC_POINTER($$,$2,$3);}
+		| '*' typequallistopt pointer	{ALLOC_POINTER($$,$2,$3);$$=$3;}
+		;
+
+typequallist:	typequal			{$$=$1;}
+		| typequallist typequal		{$$=$1;LL_APPEND($1,$2);}
 		;
 
 typequallistopt:typequallist			{$$=$1;}
@@ -371,7 +386,7 @@ absdeclarator:	pointer				{ALLOC_DECLARATOR($$,NULL,$1,1);}
 		| dirabsdeclarator		{ALLOC_DECLARATOR($$,$1,NULL,1);}
 		;
 
-dirabsdeclarator: '(' absdeclarator ')'						{$$=$1;}
+dirabsdeclarator: '(' absdeclarator ')'						{$$=$2;}
 		| dirabsdeclaratoropt '[' typequallistopt asnmtexpropt ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,1);}
 		| dirabsdeclaratoropt '[' STATIC typequallistopt asnmtexpropt ']'{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,$5,1);}
 		| dirabsdeclaratoropt '[' typequallist STATIC asnmtexpr ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$5,1);}

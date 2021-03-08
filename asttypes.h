@@ -165,58 +165,23 @@ struct astnode_dirdeclarator {
 	// NOTE: we are not doing anything with the STATIC keyword
 };
 
-extern const struct astnode_dirdeclarator ELLIPSIS_DECLARATOR;
+struct astnode_paramdecl {
+	_ASTNODE
 
-// helpers to alloc att
-#define AST_ALLOC(var)\
-	var = malloc(sizeof(union astnode));
+	union astnode *declspec, *declarator;
+};
 
-#define ALLOC_DECLSPEC(var)\
-	var = malloc(sizeof(struct astnode_declspec));
+struct astnode_typename {
+	_ASTNODE
 
-#define ALLOC_SET_SCSPEC(var, sc)\
-	var = malloc(sizeof(struct astnode_storageclass));\
-	(var)->type = NT_SC;\
-	(var)->scspec = sc;
+	union astnode *specquallist, *absdeclarator;
+};
 
-#define ALLOC_SET_TQSPEC(var, tq)\
-	var = malloc(sizeof(struct astnode_typequal));\
-	(var)->type = NT_TQ;\
-	(var)->qual |= tq;
+// defined in asttypes.c
+extern union astnode ELLIPSIS_DECLARATOR;
 
-#define ALLOC_SET_SCALAR(var, scalartype, lls, sign)\
-	var = malloc(sizeof(struct astnode_typespec_scalar));\
-	(var)->type = NT_TS_SCALR;\
-	(var)->spectype = ST_SCALAR;\
-	(var)->basetype = scalartype;\
-	(var)->modifiers->lls = lls;
-
-#define ALLOC_DECLARATOR(var, dirdeclarator, ptr, abs)\
-	var = malloc(sizeof(strct astnode_declarator));\
-	(var)->type = NT_DECLARATOR;\
-	(var)->ptr = ptr;\
-	(var)->dirdeclarator = dirdeclarator;\
-	(var)->is_abstract = abs;
-
-#define ALLOC_REGULAR_DIRDECLARATOR(var, ident)\
-	var = malloc(sizeof(struct astnode_dirdeclarator));\
-	(var)->type = NT_DIRDECLARATOR;\
-	(var)->ident = ident;\
-	(var)->is_abstract = 0;
-
-#define ALLOC_ARRAY_DIRDECLARATOR(var, dirdeclarator, typequalist, asnmntexpr, abs)\
-	var = malloc(sizeof(struct astnode_dirdeclarator));\
-	(var)->type = NT_DIRDECLARATOR;\
-	(var)->ident = dirdeclarator;\
-	(var)->typequallist = typequallist;\
-	(var)->size = asnmntexpr;\
-	(var)->is_abstract = abs;
-
-#define ALLOC_FN_DIRDECLARATOR(var, dirdeclarator, paramtypelist, abs)\
-	var = malloc(sizeof(struct astnode_dirdeclarator));\
-	(var)->type = NT_DIRDECLARATOR;\
-	(var)->ident = dirdeclarator;\
-	(var)->paramtypelist = paramtypelist;\
-	(var)->is_abstract = abs;
+// merge two declaration specifiers with all the rules; returns the merged
+// declspec and frees the other
+union astnode *merge_declspec(union astnode *, union astnode *);
 
 #endif // ATTNODEH
