@@ -24,8 +24,8 @@ type qualifier:
 storage spec:
 	- enum storage_spec
 */
-enum spec_type { ST_SCALAR, ST_FN, ST_TAG, ST_POINTER, ST_ARRAY,
-	ST_TYPEDEF } st;
+enum spec_type { ST_SCALAR, ST_FLOAT, ST_FN, ST_TAG, ST_POINTER, ST_ARRAY,
+	ST_TYPEDEF, ST_VOID } st;
 
 #define TS_SCALAR_SIGNED	0x4
 #define TS_SCALAR_LL		0x2
@@ -114,3 +114,25 @@ union attnode {
 	struct attnode_varfn vf;
 	struct attnode_label label;
 };
+
+// helpers to alloc att
+#define ATT_ALLOC(var)\
+	var = malloc(sizeof(union attnode));
+
+#define ATT_ALLOC_SET_SC(var, ss)\
+	var = malloc(sizeof(union attnode));\
+	(var)->vf->&ss = struct attnode_storagespec
+
+#define ATT_ALLOC_SET_SCALAR(var, scalartype, ll, sign)\
+	ATT_ALLOC(var);\
+	(var)->vf->ts->scalar.type= ST_SCALAR;\
+	(var)->vf->ts->scalar.scalartype = scalartype;\
+	(var)->vf->ts->scalar.modifiers.ll = ll;\
+	(var)->vf->ts->scalar.modifiers.sign = sign;
+
+#define ATT_ALLOC_SET_FLOAT(var, scalartype, ll, sign)\
+	ATT_ALLOC(var);\
+	(var)->vf->ts->scalar.type= ST_FLOAT;\
+	(var)->vf->ts->scalar.scalartype = scalartype;\
+	(var)->vf->ts->scalar.modifiers.ll = ll;\
+	(var)->vf->ts->scalar.modifiers.sign = sign;

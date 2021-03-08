@@ -247,7 +247,7 @@ decl:	declspec ';'			{/*nothing to do here*/}
 
 /* declaration specifier */
 declspec:	scspec 			{/*create storage class spec (unless typedef, then create typdef)*/}
-		| typespec 		{/*create typespec*/}
+		| typespec 		{/*create typespec*/ $$=$1;}
 		| typequal 		{/*create typequal*/}
 		| funcspec 		{/*the only funcspec is INLINE; ignore*/}
 		| declspec declspec	{/*combine declaration specs*/}
@@ -270,20 +270,86 @@ scspec:		TYPEDEF		{/*TODO*/}
 		;
 
 /* 6.7.2 type specifiers */
-typespec:	VOID		{}
-		| CHAR		{/*TODO*/}	
-		| SHORT		{/*TODO*/}
-		| INT		{/*TODO*/}	
-		| LONG		{/*TODO*/}	
-		| FLOAT		{/*TODO*/}
-		| DOUBLE	{/*TODO*/}	
-		| SIGNED	{/*TODO*/}	
-		| UNSIGNED	{/*TODO*/}	
-		| _BOOL		{/*TODO*/}
-		| _COMPLEX	{/*TODO*/}	
+typespec:	voidtypespec		{}
+		| chartypespec		{/*TODO*/}	
+		| inttypespec		{/*Create Symbol Table*/}	
+		| floattypespec		{/*TODO*/}
+		| complextypespec	{/*TODO*/}	
 		| structunionspec	{/*TODO*/}
 		| enumspec	{/*TODO*/}	
 		| typedefname	{/*TODO*/}
+		;
+
+voidtypespec:	VOID 	{}
+			;
+
+floattypespec:	FLOAT 		{ATT_ALLOC_SET_FLOAT($$, FLOAT_T, 0, 1);}
+			|	DOUBLE		{ATT_ALLOC_SET_FLOAT($$, DOUBLE_T, 0, 1);}
+			|	LONG DOUBLE	{ATT_ALLOC_SET_SCALAR($$, LONGDOUBLE_T, 1, 1);}
+			;
+
+complextypespec:	FLOAT _COMPLEX	{}
+			|	DOUBLE _COMPLEX	{}
+			|	LONG DOUBLE _COMPLEX {}
+			;
+
+inttypespec:	signedtypespec		{$$=$1;}
+			|	unsignedtypespec	{$$=$1;}
+			|	chartypespec		{$$=$1;}
+			|	booltypespec		{$$=$1;}
+			;
+
+
+signedtypespec:	SHORT					{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 1);}
+			|	SHORT INT 				{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 1);}
+			|	SIGNED SHORT 			{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 1);}
+			|	SIGNED SHORT INT 		{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 1);}
+			|	INT 					{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 1);}
+			|	SIGNED INT 				{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 1);}
+			|	SIGNED 					{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 1);}
+			|	LONG 					{ATT_ALLOC_SET_SCALAR($$, LONG_T, 1, 1);}
+			|	LONG INT 				{ATT_ALLOC_SET_SCALAR($$, LONG_T, 1, 1);}
+			|	SIGNED LONG 			{ATT_ALLOC_SET_SCALAR($$, LONG_T, 1, 1);}
+			|	SIGNED LONG INT 		{ATT_ALLOC_SET_SCALAR($$, LONG_T, 1, 1);}
+			|	LONG LONG 				{ATT_ALLOC_SET_SCALAR($$, LONGLONG_T, 2, 1);}
+			|	LONG LONG INT 			{ATT_ALLOC_SET_SCALAR($$, LONGLONG_T, 2, 1);}
+			|	SIGNED LONG LONG 		{ATT_ALLOC_SET_SCALAR($$, LONGLONG_T, 2, 1);}
+			|	SIGNED LONG LONG INT 	{ATT_ALLOC_SET_SCALAR($$, LONGLONG_T, 2, 1);}
+			;
+
+unsignedtypespec:	UNSIGNED SHORT			{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 0);}
+				|	UNSIGNED SHORT INT 		{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 0);}
+				|	UNSIGNED 				{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 0);}
+				|	UNSIGNED INT 			{ATT_ALLOC_SET_SCALAR($$, INT_T, 0, 0);}
+				|	UNSIGNED LONG 			{ATT_ALLOC_SET_SCALAR($$, LONG_T, 1, 0);}
+				|	UNSIGNED LONG INT 		{ATT_ALLOC_SET_SCALAR($$, LONG_T, 1, 0);}
+				|	UNSIGNED LONG LONG 		{ATT_ALLOC_SET_SCALAR($$, LONGLONG_T, 2, 0);}
+				|	UNSIGNED LONG LONG INT 	{ATT_ALLOC_SET_SCALAR($$, LONGLONG_T, 2, 0);}
+				;
+
+chartypespec:	CHAR 			{}
+			|	SIGNED CHAR 	{}
+			|	UNSIGNED CHAR 	{}
+			;
+
+booltypespec:	_BOOL		{}
+			;
+
+/* 6.7.2.1 structure and union specifiers */
+structunionspec:structunion '{' structdecllist '}'		{/*TODO*/}
+		| structunion IDENT '{' structdecllist '}'	{/*TODO*/}
+		| structunion IDENT				{/*TODO*/}
+		;
+
+structunion:	STRUCT		{/*TODO*/}
+		| UNION		{/*TODO*/}
+		;
+
+structdecllist:	structdecl	{/*TODO*/}
+		| structdecllist structdecl	{/*TODO*/}
+		;
+
+structdecl:	specquallist structdecllist ';'	{/*TODO*/}
 		;
 
 /*dummy rules*/
