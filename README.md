@@ -43,3 +43,13 @@ $ ./parser <ptests/exprtests.c | diff - ptests/exprtests.out
 Note that some of the test cases were fixed to make them more consistent.
 The output for numeric and character constants is also a little different
 but the content is the same.
+
+### Declaration Parser (Assignment 3)
+TODO:
+- Finish basic declaration handling
+- Finish basic insertion into the symbol table
+- Finish this writeup about the declaration parser
+- Implement error handling/warning
+- Typedef handling (kludges!)
+- Cleanup and better documentation: comments at the
+  beginning of each file describing them

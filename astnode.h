@@ -9,58 +9,58 @@
 #include "astnodegeneric.h"
 
 struct astnode_binop {
-	enum astnode_type type;
-	union astnode *prev, *next;
+	_ASTNODE
+
 	int op;
 	union astnode *left, *right;
 };
 
 struct astnode_unop {
-	enum astnode_type type;
-	union astnode *prev, *next;
+	_ASTNODE
+
 	int op;
 	union astnode *arg;
 };
 
 struct astnode_ternop {
-	enum astnode_type type;
-	union astnode *prev, *next;
+	_ASTNODE
+
 	union astnode *first, *second, *third;
 };
 
 struct astnode_number {
-	enum astnode_type type;
-	union astnode *prev, *next;
+	_ASTNODE
+
 	struct number num;
 };
 
 struct astnode_ident {
-	enum astnode_type type;
-	union astnode *prev, *next;
+	_ASTNODE
+
 	char *ident;
 };
 
 struct astnode_charlit {
-	enum astnode_type type;
-	union astnode *prev, *next;
+	_ASTNODE
+
 	struct charlit charlit;
 };
 
 struct astnode_string {
-	enum astnode_type type;
-	union astnode *prev, *next;
+	_ASTNODE
+
 	struct string string;
 };
 
 struct astnode_fncall {		// function invocation
-	enum astnode_type type;
-	union astnode *prev, *next;
+	_ASTNODE
+
 	union astnode *fnname, *arglist;
 };
 
 struct astnode_comlit {		// compound literal
-	enum astnode_type type;
-	union astnode *prev, *next;
+	_ASTNODE
+
 	// typename is keyword in C++ but not C so this is ok
 	union astnode *typename, *initlist;
 };
@@ -86,18 +86,20 @@ union astnode {
 	struct astnode_typespec_array ts_array;
 	struct astnode_typespec_struct_union ts_struct_union;
 	struct astnode_typequal tq;
-	struct astnode_storagespec sc;
+	struct astnode_storageclass sc;
 	struct astnode_declspec declspec;
 	struct astnode_varfn varfn;
 	struct astnode_label label;
+
+	// declarator types
+	struct astnode_pointer ptr;
+	struct astnode_declarator declarator;
+	struct astnode_dirdeclarator dirdeclarator;
+
 };
 
 // helper to print an astnode
 void print_astnode(union astnode *);
-
-// helpers to allocating and initialize new AST nodes
-#define ALLOC(var)\
-	var = malloc(sizeof(union astnode));
 
 #define ALLOC_SET_IDENT(var, idt)\
 	ALLOC(var);\

@@ -37,11 +37,14 @@ enum spec_type { ST_SCALAR, ST_FN, ST_TAG, ST_POINTER, ST_ARRAY,
 struct astnode_typespec_scalar {
 	_ASTNODE
 
+	// TODO: implement _Complex (maybe as modifier?)
 	enum spec_type spectype;
-	int scalartype;	// using lexer/parser enum constants
+	enum scalar_basetype {BT_UNSPEC, BT_CHAR, BT_VOID, BT_INT,
+		BT_DOUBLE, BT_FLOAT, BT_BOOL}
+		basetype;	// using lexer/parser enum constants
 	struct modifiers {
-		char ll: 2;
-		char sign: 1;
+		enum {LLS_UNSPEC, LLS_LONG, LLS_LONG_LONG, LLS_SHORT} lls;
+		enum {SIGN_UNSPEC, SIGN_SIGNED, SIGN_UNSIGNED} sign;
 	} modifiers;
 };
 
@@ -91,14 +94,10 @@ struct astnode_typespec_struct_union {
 struct astnode_typequal {
 	_ASTNODE
 
-	struct {
-		char qual_const: 1;
-		char qual_restrict: 1;
-		char qual_volatile: 1;
-	} qual;
+	unsigned char qual;
 };
 
-struct astnode_storagespec {	
+struct astnode_storageclass {	
 	_ASTNODE
 
 	enum sc_spec { SC_EXTERN, SC_STATIC, SC_AUTO, SC_REGISTER } scspec;
@@ -107,7 +106,7 @@ struct astnode_storagespec {
 struct astnode_declspec {
 	_ASTNODE
 	
-	union astnode *ts, *tq, *ss;
+	union astnode *ts, *tq, *sc;
 };
 
 struct astnode_varfn {
@@ -116,7 +115,7 @@ struct astnode_varfn {
 	char *ident;
 	union astnode *declspec;
 
-	// TODO: ignore
+	// TODO: remove; replaced with declspec
 	// union astnode_typespec *ts;
 	// struct astnode_typequal *tq;
 	// struct astnode_storagespec *ss;
@@ -130,6 +129,43 @@ struct astnode_label {
 	char *ident;
 };
 
+// declarators
+struct astnode_pointer {
+	_ASTNODE
+
+	union astnode *typequallist, *to;
+};
+
+struct astnode_declarator {
+	_ASTNODE
+
+	union astnode *pointer, *dirdeclarator;
+};
+
+struct astnode_dirdeclarator {
+	_ASTNODE
+
+	enum declarator_type {DT_REGULAR, DT_ARRAY, DT_FN} declarator_type;
+	int is_abstract;
+
+	// this can be either an NT_IDENT or NT_DIRDECLARATOR -- check type
+	// before using it
+	union astnode *ident;
+
+	// if function
+	union astnode *paramtypelist;
+
+	// if array (assume size is an integer literal for now)
+	union astnode *size;
+
+	// when in function declarator; these will be moved to the pointer
+	union astnode *typequallist;
+
+	// NOTE: we are not doing anything with the STATIC keyword
+};
+
+extern const struct astnode_dirdeclarator ELLIPSIS_DECLARATOR;
+
 // helpers to alloc att
 #define AST_ALLOC(var)\
 	var = malloc(sizeof(union astnode));
@@ -138,19 +174,37 @@ struct astnode_label {
 	var = malloc(sizeof(struct astnode_declspec));
 
 #define ALLOC_SET_SCSPEC(var, sc)\
-	var = malloc(sizeof(struct astnode_storagespec));\
+	var = malloc(sizeof(struct astnode_storageclass));\
 	(var)->type = NT_SC;\
 	(var)->scspec = sc;
 
-#define AST_ALLOC_SET_SCALAR(var, scalartype, ll, sign)\
-	var = malloc(sizeof(struct astnode_typespec_scalar));\
-	(var)->spectype
+#define ALLOC_SET_TQSPEC(var, tq)\
+	var = malloc(sizeof(struct astnode_typequal));\
+	(var)->type = NT_TQ;\
+	(var)->qual |= tq;
 
-#define AST_ALLOC_SET_FLOAT(var, scalartype, ll, sign)\
-	ALLOC(var);\
-	(var)->vf->ts->scalar.type= ST_FLOAT;\
-	(var)->vf->ts->scalar.scalartype = scalartype;\
-	(var)->vf->ts->scalar.modifiers.ll = ll;\
-	(var)->vf->ts->scalar.modifiers.sign = sign;
+#define ALLOC_SET_SCALAR(var, scalartype, lls, sign)\
+	var = malloc(sizeof(struct astnode_typespec_scalar));\
+	(var)->type = NT_TS_SCALR;\
+	(var)->spectype = ST_SCALAR;\
+	(var)->basetype = scalartype;\
+	(var)->modifiers->lls = lls;
+
+#define ALLOC_DECLARATOR(var, dirdeclarator, ptr)
+
+
+#define ALLOC_REGULAR_DIRDECLARATOR(var, ident)\
+	var = malloc(sizeof(struct astnode_dirdeclarator));\
+	(var)->type = NT_DIRDECLARATOR;\
+	(var)->ident = ident;
+
+
+#define ALLOC_ARRAY_DIRDECLARATOR(var, dirdeclarator, typequalist, asnmntexpr)\
+	var = malloc(sizeof(struct astnode_dirdeclarator));\
+	(var)->type = NT_DIRDECLARATOR;\
+
+#define ALLOC_FN_DIRDECLARATOR(var, dirdeclarator, paramtypelist)\
+	var = malloc(sizeof(struct astnode_dirdeclarator));\
+	(var)->type = NT_DIRDECLARATOR;\
 
 #endif // ATTNODEH

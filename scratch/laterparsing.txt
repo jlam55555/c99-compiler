@@ -58,7 +58,7 @@ typequal:	CONST			{/*TODO*/}
 		;
 
 /* 6.7.4 Function Declaration */
-funcspec:	INLINE			{/*TODO*/}
+funcspec:	INLINE			{/*TNOT DEALING WITH THISODO*/}
 		;
 
 /* 6.7.5 Declarators */
