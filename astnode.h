@@ -5,26 +5,8 @@
 #include <string.h>	// for strdup in macro
 #include "lexerutils/numutils.h"
 #include "lexerutils/stringutils.h"
-
-enum astnode_type {
-	// terminals
-	NT_NUMBER,
-	NT_STRING,
-	NT_CHARLIT,
-	NT_IDENT,
-
-	// nonterminals
-	NT_BINOP,
-	NT_UNOP,
-	NT_TERNOP,
-	NT_FNCALL,	// function invocation
-	NT_COMLIT,	// compound literal
-};
-
-struct astnode_generic {
-	int type;
-	union astnode *prev, *next;
-};
+#include "asttypes.h"
+#include "astnodegeneric.h"
 
 struct astnode_binop {
 	enum astnode_type type;
@@ -87,6 +69,7 @@ union astnode {
 	// generic acts as interface assuming proper alignment
 	struct astnode_generic generic;
 	
+	// expr types
 	struct astnode_number num;
 	struct astnode_binop binop;
 	struct astnode_unop unop;
@@ -96,6 +79,17 @@ union astnode {
 	struct astnode_string string;
 	struct astnode_fncall fncall;
 	struct astnode_comlit comlit;
+
+	// decl types
+	struct astnode_typespec_scalar ts_scalar;
+	struct astnode_typespec_fn ts_fn;
+	struct astnode_typespec_array ts_array;
+	struct astnode_typespec_struct_union ts_struct_union;
+	struct astnode_typequal tq;
+	struct astnode_storagespec sc;
+	struct astnode_declspec declspec;
+	struct astnode_varfn varfn;
+	struct astnode_label label;
 };
 
 // helper to print an astnode
