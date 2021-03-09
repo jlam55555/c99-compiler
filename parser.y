@@ -9,6 +9,7 @@
 #include "asttypes.h"
 #include "symtab.h"
 #include <stdio.h>
+#include <unistd.h>
 %}
 %locations
 
@@ -462,6 +463,7 @@ int main()
 	yyparse();
 }
 
+static int is_fatal_error = 0;
 int yyerror(char *err)
 {
 	char buf[1024];
@@ -470,12 +472,23 @@ int yyerror(char *err)
 
 	// replace default syntax error message
 	if (!strcmp(err, "syntax error")) {
+		is_fatal_error = 1;
 		snprintf(buf, sizeof(buf), "unexpected token \"%s\"\n", yytext);
 		err = buf;
 	}
 
-	fprintf(stderr, "%s:%d: Syntax error: %s\n",
-		filename, yylineno, err);
+	fprintf(stderr, "%s:%d: %s: %s\n", filename, yylineno,
+		is_fatal_error ? "error" : "warning", err);
+
+	if (is_fatal_error) {
+		_exit(-1);
+	}
+}
+
+int yyerror_fatal(char *err)
+{
+	is_fatal_error = 1;
+	yyerror(err);
 }
 
 // for indenting

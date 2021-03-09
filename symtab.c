@@ -67,6 +67,8 @@ static int symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 		i = (i+1) % st->capacity);
 
 	// error: identifier already exists in this symbol table
+	// TODO: this should not be an error if current one is an extern and
+	// matches previous declaration
 	if (st->bs[i] && !strcmp(ident, st->bs[i]->symbol.ident)) {
 		char buf[1024];
 		snprintf(buf, sizeof(buf), "symbol %s already exists in symtab",
