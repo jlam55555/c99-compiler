@@ -10,6 +10,8 @@
 #include "symtab.h"
 #include <stdio.h>
 %}
+%locations
+
 %union {
 	// from lexer
 	int sc;	// single-character tokens
@@ -20,7 +22,6 @@
 	
 	// from syntax parsing
 	union astnode *astnode;		// abstract syntax tree
-
 }
 
 %token		IDENT NUMBER CHARLIT STRING
@@ -82,6 +83,7 @@ exprstmt:	expr ';'		{print_astnode($1);}
 		| decl			{/*TODO*/}
 		| exprstmt expr ';'	{print_astnode($2);}
 		| exprstmt decl		{/*TODO*/}
+		| error ';'		{/*use yyerror() to recover; not fatal*/}
 		;
 
 /* 6.4.4.3 */
@@ -462,7 +464,18 @@ int main()
 
 int yyerror(char *err)
 {
-	fprintf(stderr, "Syntax err: %s\n", err);
+	char buf[1024];
+
+	// TODO: also get column number
+
+	// replace default syntax error message
+	if (!strcmp(err, "syntax error")) {
+		snprintf(buf, sizeof(buf), "unexpected token \"%s\"\n", yytext);
+		err = buf;
+	}
+
+	fprintf(stderr, "%s:%d: Syntax error: %s\n",
+		filename, yylineno, err);
 }
 
 // for indenting

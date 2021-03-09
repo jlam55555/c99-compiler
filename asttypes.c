@@ -15,6 +15,75 @@ union astnode ELLIPSIS_DECLARATOR;
 // for LL_APPEND to work
 union astnode *ll_append_iter;
 
+void print_symtab(union astnode *node, int depth)
+{
+	FILE *outfile = stdout;
+	switch(node->generic.type)
+	{
+		case NT_TS_SCALAR:
+			if(node->ts_scalar.modifiers.sign==SIGN_UNSIGNED)
+				fprintf(outfile, "unsigned");
+			switch(node->ts_scalar.modifiers.lls)
+			{
+				case LLS_UNSPEC:
+					break;
+				case LLS_SHORT:
+					fprintf(outfile, "short ");
+					break;
+				case LLS_LONG:
+					fprintf(outfile, "long ");
+					break;
+				case LLS_LONG_LONG:
+					fprintf(outfile, "long long ");
+					break;
+			}
+			switch(node->ts_scalar.basetype)
+			{
+				case BT_UNSPEC:
+					fprintf(outfile, "\n");
+					break;
+				case BT_INT:
+					fprintf(outfile, "int\n");
+					break;
+				case BT_FLOAT:
+					fprintf(outfile, "float\n");
+					break;
+				case BT_DOUBLE:
+					fprintf(outfile, "double\n");
+					break;
+				case BT_CHAR:
+					fprintf(outfile, "char\n");
+				case BT_BOOL:
+					fprintf(outfile, "bool\n");
+
+			}
+			break;
+		
+		case NT_POINTER:
+			if(node->ptr.typequallist)
+				fprintf(outfile, "%s pointer to\n", print_typequallist(node->ptr.typequallist->tq.qual));
+			else
+				fprintf(outfile, "pointer to\n");
+			print_symtab(node->ptr.to, depth+2);
+			break;
+
+		case NT_SYMBOL:
+			/*fprintf(outfile, "%s is defined in %s:%d [in %s scope starting at %s:%d] as a ",
+			 	node->symbol.ident);*/
+			break;
+
+		
+
+	}
+
+
+}
+
+char *print_typequallist(unsigned char tq){
+	return 0;
+
+}
+
 // insert value into symbol table
 void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 	enum name_space ns)

@@ -5,6 +5,8 @@
 
 extern int yylex();
 int yyerror(char *err);
+extern int yylineno;
+extern char *yytext;
 
 // helper to indent to a specific depth
 extern int indi;

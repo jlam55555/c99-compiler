@@ -29,6 +29,12 @@ type qualifier:
 storage spec:
 	- enum storage_spec
 */
+
+
+void print_symtab(union astnode *node, int depth);
+
+char *print_typequallist(unsigned char typeq);
+
 enum spec_type { ST_SCALAR, ST_FN, ST_TAG, ST_POINTER, ST_ARRAY,
 	ST_TYPEDEF} st;
 

@@ -203,12 +203,14 @@ struct directdeclarator
 #define ALLOC_REGULAR_DIRDECLARATOR(var, idt)\
 	ALLOC(var);\
 	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
+	(var)->dirdeclarator.declarator_type = DT_REGULAR;\
 	(var)->dirdeclarator.ident = idt;\
 	(var)->dirdeclarator.is_abstract = 0;
 
 #define ALLOC_ARRAY_DIRDECLARATOR(var, dd, tql, sizeexpr, abs)\
 	ALLOC(var);\
 	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
+	(var)->dirdeclarator.declarator_type = DT_ARRAY;\
 	(var)->dirdeclarator.ident = dd;\
 	(var)->dirdeclarator.typequallist = tql;\
 	(var)->dirdeclarator.size = sizeexpr;\
@@ -217,6 +219,7 @@ struct directdeclarator
 #define ALLOC_FN_DIRDECLARATOR(var, dd, ptl, abs)\
 	ALLOC(var);\
 	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
+	(var)->dirdeclarator.declarator_type = DT_FN;\
 	(var)->dirdeclarator.ident = dd;\
 	(var)->dirdeclarator.paramtypelist = ptl;\
 	(var)->dirdeclarator.is_abstract = abs;

@@ -18,5 +18,6 @@ void scope_push(enum scope_type type);
 void scope_pop(void);
 void scope_insert(char *ident, enum name_space ns, union astnode *node);
 union astnode *scope_lookup(char *ident, enum name_space ns);
+struct scope *get_scope(char *ident, enum name_space ns);
 
 #endif

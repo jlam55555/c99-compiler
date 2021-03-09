@@ -22,6 +22,7 @@ YYSTYPE yylval;
 	yylval.sc = x;\
 	return x
 %}
+%option yylineno
 
 DEC	[1-9]+[0-9]*
 EXP 	[eE][+-]?{DEC}+

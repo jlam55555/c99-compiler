@@ -1,5 +1,6 @@
 #include "astnode.h"
 #include "symtab.h"
+#include "parser.h"
 #include <stdio.h>
 #include <malloc.h>
 
@@ -67,8 +68,10 @@ static int symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 
 	// error: identifier already exists in this symbol table
 	if (st->bs[i] && !strcmp(ident, st->bs[i]->symbol.ident)) {
-		fprintf(stderr, "error: symbol %s already exists in symtab\n",
+		char buf[1024];
+		snprintf(buf, sizeof(buf), "symbol %s already exists in symtab",
 			ident);
+		yyerror(buf);
 		return -1;
 	}
 
@@ -146,4 +149,17 @@ union astnode *scope_lookup(char *ident, enum name_space ns) {
 		--current_scope) {}
 
 	return search;
+}
+
+// do same as above but return scope object
+struct scope *get_scope(char *ident, enum name_space ns) {
+	int current_scope;
+	union astnode *search = NULL;
+
+	for (current_scope = scope_pos;
+		current_scope >= 0 && !(search =
+		symtab_lookup(&scope_stack[current_scope].ns[ns], ident));
+		--current_scope) {}
+
+	return current_scope >= 0 ? &scope_stack[current_scope] : NULL;
 }
