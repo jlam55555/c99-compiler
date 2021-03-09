@@ -182,6 +182,7 @@ struct astnode_symbol {
 	_ASTNODE
 
 	union astnode *declspec, *declarator;
+	char *ident;
 };
 
 // defined in asttypes.c

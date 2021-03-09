@@ -53,6 +53,8 @@ static int symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 				" capacity exceeded");
 			return -1;
 		}
+
+		// TODO: have to rehash each value; this won't work
 		st->capacity = ghp[i+1];
 		st->bs = reallocarray(st->bs, st->capacity,
 			sizeof(union astnode *));
@@ -60,7 +62,7 @@ static int symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 
 	// hash and linear probe; if name already exists then error
 	for (i = symtab_hash(ident) % st->capacity;
-		!st->bs[i] || 0 /* TODO: check if identifier matches name */;
+		st->bs[i] || 0 /* TODO: check if identifier matches name */;
 		i = (i+1) % st->capacity);
 
 	// error: identifier already exists in this symbol table
@@ -79,7 +81,7 @@ static union astnode *symtab_lookup(struct symtab *st, char *ident) {
 	int i;
 
 	for (i = symtab_hash(ident) % st->capacity;
-		!st->bs[i] || 0 /* TODO: check if identifier matches name */;
+		st->bs[i] && 0 /* TODO: check if identifier matches name */;
 		i = (i+1) % st->capacity);
 
 	if (st->bs[i] && 1 /* TODO: check if identifier matches name */) {
@@ -108,7 +110,7 @@ void scope_push(enum scope_type type) {
 	// create scope
 	struct scope *scope = &scope_stack[++scope_pos];
 	for (i = 0; i < 4; i++) {
-		symtab_init(&scope_stack->ns[i]);
+		symtab_init(&scope->ns[i]);
 	}
 	scope->type = type;
 }
@@ -136,7 +138,7 @@ void scope_insert(char *ident, enum name_space ns, union astnode *node) {
 // traverses up the stack to lookup a symbol
 union astnode *scope_lookup(char *ident, enum name_space ns) {
 	int current_scope;
-	union astnode *search;
+	union astnode *search = NULL;
 
 	for (current_scope = scope_pos;
 		current_scope >= 0 && !(search =

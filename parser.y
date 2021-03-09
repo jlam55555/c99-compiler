@@ -452,6 +452,11 @@ int main()
 	#if YYDEBUG
 	yydebug = 1;
 	#endif
+
+	// create default global scope
+	scope_push(ST_FILE);
+
+	// begin parsing
 	yyparse();
 }
 
