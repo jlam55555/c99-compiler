@@ -62,11 +62,11 @@ static int symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 
 	// hash and linear probe; if name already exists then error
 	for (i = symtab_hash(ident) % st->capacity;
-		st->bs[i] || 0 /* TODO: check if identifier matches name */;
+		st->bs[i] && strcmp(ident, st->bs[i]->symbol.ident);
 		i = (i+1) % st->capacity);
 
 	// error: identifier already exists in this symbol table
-	if (st->bs[i] && 1 /* TODO: check if identifier matches name */) {
+	if (st->bs[i] && !strcmp(ident, st->bs[i]->symbol.ident)) {
 		fprintf(stderr, "error: symbol %s already exists in symtab\n",
 			ident);
 		return -1;
@@ -81,7 +81,7 @@ static union astnode *symtab_lookup(struct symtab *st, char *ident) {
 	int i;
 
 	for (i = symtab_hash(ident) % st->capacity;
-		st->bs[i] && 0 /* TODO: check if identifier matches name */;
+		st->bs[i] && strcmp(ident, st->bs[i]->symbol.ident);
 		i = (i+1) % st->capacity);
 
 	if (st->bs[i] && 1 /* TODO: check if identifier matches name */) {

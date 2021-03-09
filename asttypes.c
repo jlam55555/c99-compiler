@@ -45,17 +45,12 @@ void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 	symbol->symbol.declarator = declarator;
 	symbol->symbol.ident = ident;
 
-	union astnode *search = scope_lookup(ident, ns);
-	printf("found? %d\n", search != NULL);
-
 	#if DEBUG
 	printf("Declaring symbol %s with type %d\n", ident,
 		declspec->declspec.ts->ts_scalar.basetype);
 	#endif
-	scope_insert(ident, ns, symbol);
 
-	search = scope_lookup(ident, ns);
-	printf("found? %d\n", search != NULL);
+	scope_insert(ident, ns, symbol);
 }
 
 // combine declaration specifiers in the intended manner
