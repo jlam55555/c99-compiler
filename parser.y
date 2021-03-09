@@ -68,10 +68,9 @@
 %type<astnode>	castexpr multexpr addexpr shftexpr relexpr eqexpr andexpr
 %type<astnode>	xorexpr orexpr logandexpr logorexpr condexpr asnmtexpr expr
 %type<astnode>	decl initdecllist initdecl typespec scspec declspec typequal
-%type<astnode>	pointer dirdeclarator typequallist typequallistopt declarator
-%type<astnode>	asnmtexpropt paramlist paramtypelist paramdecl absdeclarator
-%type<astnode>	specquallist typename dirabsdeclarator dirabsdeclaratoropt
-%type<astnode>	paramtypelistopt
+%type<astnode>	pointer dirdeclarator typequallist declarator
+%type<astnode>	paramlist paramtypelist paramdecl absdeclarator declspeclist
+%type<astnode>	specquallist typename dirabsdeclarator paramtypelistopt
 %type<ident> 	IDENT
 %type<string>	STRING
 %type<charlit>	CHARLIT
@@ -239,16 +238,18 @@ expr:	asnmtexpr				{$$=$1;}
 		;
 
 /* 6.7 DECLARATIONS */
-decl:	declspec ';'				{/*nothing to do here*/}
-	| declspec initdecllist	';'		{/*nothing to do here*/}
+decl:	declspeclist ';'			{/*nothing to do here*/}
+	| declspeclist initdecllist ';'		{/*nothing to do here*/}
 	;
 
 /* declaration specifier */
+declspeclist:	declspec			{$$=$1;}
+		| declspeclist declspec		{$$=merge_declspec($1,$2);}
+
 declspec:	scspec 				{ALLOC_DECLSPEC($$);$$->declspec.sc=$1;}
 		| typespec 			{ALLOC_DECLSPEC($$);$$->declspec.ts=$1;}
 		| typequal 			{ALLOC_DECLSPEC($$);$$->declspec.tq=$1;}
 		| funcspec 			{/*the only funcspec is INLINE; ignore*/}
-		| declspec declspec		{$$=merge_declspec($1,$2);}
 		;
 
 initdecllist:	initdecl			{$$=$1;}
@@ -256,7 +257,7 @@ initdecllist:	initdecl			{$$=$1;}
 		;
 
 initdecl:	declarator			{/*insert into symtab*/}
-		| declarator '=' initializer	{/*add initializer to variable,insert declarator into symtab*/}
+		/*| declarator '=' initializer	{/*add initializer to variable,insert declarator into symtab}*/
 		;
 
 /* 6.7.1 storage class specifier */
@@ -279,9 +280,9 @@ typespec:	VOID				{ALLOC_SET_SCALAR($$,BT_VOID,LLS_UNSPEC,SIGN_UNSPEC);}
 		| UNSIGNED			{ALLOC_SET_SCALAR($$, BT_UNSPEC, LLS_UNSPEC, SIGN_UNSIGNED);}
 		| _BOOL 			{ALLOC_SET_SCALAR($$,BT_BOOL,LLS_UNSPEC,SIGN_UNSPEC);}
 		| _COMPLEX 			{/*TODO: might not implement this*/}
-		| structunionspec		{/*TODO*/}
-		| enumspec			{/*TODO*/}	
-		| typedefname			{/*TODO*/}
+		/*| structunionspec		{/*TODO}*/
+		/*| enumspec			{/*TODO}*/
+		/*| typedefname			{/*TODO}*/
 		;
 
 
@@ -303,10 +304,10 @@ structdecl:	specquallist structdecllist ';'	{/*TODO*/}
 		;
 
 /*dummy rules: TODO*/
-enumspec:;
-funcspec:;
-initializer:;
-structunionspec:;
+	/*enumspec:;
+	funcspec:;
+	initializer:;
+	structunionspec:;*/
 
 specquallist:	typespec			{ALLOC_DECLSPEC($$);$$->declspec->ts=$1;}
 		| typequal			{ALLOC_DECLSPEC($$);$$->declspec->tq=$1;}
@@ -333,30 +334,34 @@ dirdeclarator:	IDENT							{union astnode *ident;
 									 ALLOC_SET_IDENT(ident,$1);
 									 ALLOC_REGULAR_DIRDECLARATOR($$,ident);}
 		| '(' declarator ')'					{$$=$2;}
-		| dirdeclarator '[' typequallistopt asnmtexpropt ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,0);}
-		| dirdeclarator '[' typequallistopt ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,0);}
-		| dirdeclarator '[' STATIC typequallistopt asnmtexpr ']'{/*ignore static keyword*/
+		| dirdeclarator '[' typequallist asnmtexpr ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,0);}
+		| dirdeclarator '[' asnmtexpr ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$3,0);}
+		| dirdeclarator '[' typequallist ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,0);}
+		| dirdeclarator '[' ']'					{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,0);}
+		| dirdeclarator '[' STATIC typequallist asnmtexpr ']'	{/*ignore static keyword*/
 									 ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,$5,0);}
-		| dirdeclarator '[' STATIC typequallistopt ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,NULL,0);}
+		| dirdeclarator '[' STATIC asnmtexpr ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$4,0);}
+		| dirdeclarator '[' STATIC typequallist ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,NULL,0);}
+		| dirdeclarator '[' STATIC ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,0);}
 		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$5,0);}
-		| dirdeclarator '[' typequallistopt '*' ']'		{/*ignore variable length array*/
+		| dirdeclarator '[' typequallist '*' ']'		{/*ignore variable length array*/
 									 ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,0);}
+		| dirdeclarator '['  '*' ']'				{/*ignore variable length array*/
+									 ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,0);}
 		| dirdeclarator '(' paramtypelist ')'			{ALLOC_FN_DIRDECLARATOR($$,$1,$3,0);}
 		| dirdeclarator '(' identlist ')'			{/*ignore old C function syntax*/
 									 /*TODO: throw an error because this may cause other problems*/}
 		| dirdeclarator '(' ')'					{ALLOC_FN_DIRDECLARATOR($$,$1,NULL,0);}
 		;
 
-pointer:	'*' typequallistopt		{ALLOC_POINTER($$,$2,NULL);}
-		| '*' typequallistopt pointer	{ALLOC_POINTER($$,$2,$3);$$=$3;}
+pointer:	'*' typequallist		{ALLOC_POINTER($$,$2,NULL);}
+		| '*'				{ALLOC_POINTER($$,NULL,NULL);}
+		| '*' typequallist pointer	{ALLOC_POINTER($$,$2,$3);$$=$3;}
+		| '*' pointer			{ALLOC_POINTER($$,NULL,$2);$$=$2;}
 		;
 
 typequallist:	typequal			{$$=$1;}
 		| typequallist typequal		{$$=$1;LL_APPEND($1,$2);}
-		;
-
-typequallistopt:typequallist			{$$=$1;}
-		|				{$$=NULL;}
 		;
 
 paramtypelist:	paramlist			{$$=$1;}
@@ -367,9 +372,9 @@ paramlist:	paramdecl			{$$=$1;}
 		| paramlist ',' paramdecl	{$$=$1;LL_APPEND($1,$3);}
 		;
 
-paramdecl:	declspec declarator		{ALLOC_PARAMDECL($$,$1,$2);}
-		| declspec absdeclarator	{ALLOC_PARAMDECL($$,$1,$2);}
-		| declspec 			{ALLOC_PARAMDECL($$,$1,NULL);}
+paramdecl:	declspeclist declarator		{ALLOC_PARAMDECL($$,$1,$2);}
+		| declspeclist absdeclarator	{ALLOC_PARAMDECL($$,$1,$2);}
+		| declspeclist 			{ALLOC_PARAMDECL($$,$1,NULL);}
 		;
 
 identlist:	IDENT				{/*NOT DEALING WITH THIS*/}
@@ -387,19 +392,28 @@ absdeclarator:	pointer				{ALLOC_DECLARATOR($$,NULL,$1,1);}
 		;
 
 dirabsdeclarator: '(' absdeclarator ')'						{$$=$2;}
-		| dirabsdeclaratoropt '[' typequallistopt asnmtexpropt ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,1);}
-		| dirabsdeclaratoropt '[' STATIC typequallistopt asnmtexpropt ']'{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,$5,1);}
-		| dirabsdeclaratoropt '[' typequallist STATIC asnmtexpr ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$5,1);}
-		| dirabsdeclaratoropt '[' '*' ']'				{/*ignore/throw error on VLA*/}
-		| dirabsdeclaratoropt '(' paramtypelistopt ')'			{ALLOC_FN_DIRDECLARATOR($$,$1,$3,1);}
-		;
-
-dirabsdeclaratoropt:	dirabsdeclarator	{$$=$1;}
-		| 				{$$=NULL;}
-		;
-
-asnmtexpropt:	asnmtexpr			{$$=$1;}
-		| 				{$$=NULL;}
+		| dirabsdeclarator '[' typequallist asnmtexpr ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,1);}
+		| dirabsdeclarator '[' asnmtexpr ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$3,1);}
+		| dirabsdeclarator '[' typequallist ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,1);}
+		| dirabsdeclarator '[' ']'					{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,1);}
+		| '[' typequallist asnmtexpr ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,$3,1);}
+		| '[' asnmtexpr ']'						{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,$2,1);}
+		| '[' typequallist ']'						{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,NULL,1);}
+		| '[' ']'							{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,NULL,1);}
+		| dirabsdeclarator '[' STATIC typequallist asnmtexpr ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,$5,1);}
+		| dirabsdeclarator '[' STATIC asnmtexpr ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$4,1);}
+		| dirabsdeclarator '[' STATIC typequallist ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,NULL,1);}
+		| dirabsdeclarator '[' STATIC ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,1);}
+		| '[' STATIC typequallist asnmtexpr ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,$4,1);}
+		| '[' STATIC asnmtexpr ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,$3,1);}
+		| '[' STATIC typequallist ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,NULL,1);}
+		| '[' STATIC ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,NULL,1);}
+		| dirabsdeclarator '[' typequallist STATIC asnmtexpr ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$5,1);}
+		| '[' typequallist STATIC asnmtexpr ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,$4,1);}
+		| dirabsdeclarator '[' '*' ']'					{/*ignore/throw error on VLA*/}
+		| '[' '*' ']'							{/*ignore/throw error on VLA*/}
+		| dirabsdeclarator '(' paramtypelistopt ')'			{ALLOC_FN_DIRDECLARATOR($$,$1,$3,1);}
+		| '(' paramtypelistopt ')'					{ALLOC_FN_DIRDECLARATOR($$,NULL,$2,1);}
 		;
 
 paramtypelistopt:	paramtypelist		{$$=$1;}
@@ -407,7 +421,7 @@ paramtypelistopt:	paramtypelist		{$$=$1;}
 		;
 
 /* 6.7.7 type definitions */
-typedefname:	IDENT				{/*TODO: kludges*/}
+ /*typedefname:	IDENT				{/*TODO: kludges}*/
 		;
 
 %%
