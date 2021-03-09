@@ -5,6 +5,8 @@
 
 #include "astnode.h"
 #include "asttypes.h"
+#include "symtab.h"
+#include "parser.h"
 #include <stdio.h>
 
 // declare constant ellipsis for use; this is declared in asttypes.c
@@ -12,6 +14,43 @@ union astnode ELLIPSIS_DECLARATOR;
 
 // for LL_APPEND to work
 union astnode *ll_append_iter;
+
+// insert value into symbol table
+void insert_into_symtab(union astnode *declarator, union astnode *declspec,
+	enum name_space ns)
+{
+	char *ident;
+	union astnode *symbol, *iter;
+
+	// get declarator name/identifier
+	iter = declarator->declarator.dirdeclarator;
+	while (iter->generic.type != NT_IDENT) {
+		iter = iter->dirdeclarator.ident;
+	}
+	ident = iter->ident.ident;
+
+	// if declarator has a pointer, then make it point to the correct type
+	if (declarator->declarator.pointer) {
+		iter = declarator->declarator.pointer;
+		while (iter->ptr.to) {
+			iter = iter->ptr.to;
+		}
+		iter->ptr.to = declspec;
+	}
+
+	// create symbol and insert
+	ALLOC(symbol);
+	symbol->symbol.type = NT_SYMBOL;
+	symbol->symbol.declspec = declspec;
+	symbol->symbol.declarator = declarator;
+
+	#if DEBUG
+	printf("Declaring symbol %s with type %d\n", ident,
+		declspec->declspec.ts->ts_scalar.basetype);
+	#endif
+
+	// scope_insert(ident, ns, symbol);
+}
 
 // combine declaration specifiers in the intended manner
 union astnode *merge_declspec(union astnode *spec1, union astnode *spec2) {

@@ -10,7 +10,8 @@ parser
 # object files
 *.o
 
-# vscode tmp files
+# vscode files
+.vscode
 *~
 
 # Mac OS

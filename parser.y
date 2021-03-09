@@ -1,12 +1,14 @@
 %debug
 %{
-#define YYDEBUG	1
+#define YYDEBUG 0
 #define parse.error verbose
 
 #include "parser.h"
 #include "lexerutils/errorutils.h"
 #include "astnode.h"
 #include "asttypes.h"
+#include "symtab.h"
+#include <stdio.h>
 %}
 %union {
 	// from lexer
@@ -77,8 +79,9 @@
 %type<num>	NUMBER
 %%
 exprstmt:	expr ';'		{print_astnode($1);}
-		| exprstmt expr ';'	{print_astnode($2);}
 		| decl			{/*TODO*/}
+		| exprstmt expr ';'	{print_astnode($2);}
+		| exprstmt decl		{/*TODO*/}
 		;
 
 /* 6.4.4.3 */
@@ -252,11 +255,29 @@ declspec:	scspec 				{ALLOC_DECLSPEC($$);$$->declspec.sc=$1;}
 		| funcspec 			{/*the only funcspec is INLINE; ignore*/}
 		;
 
-initdecllist:	initdecl			{$$=$1;}
-		| initdecllist ',' initdecl	{$$=$1;LL_APPEND($1,$3);}
+initdecllist:	initdecl			{/*doesn't have to return anything*/
+						 insert_into_symtab($1,$<astnode>0,NS_IDENT);}
+		| initdecllist ',' initdecl	{insert_into_symtab($3,$<astnode>0,NS_IDENT);}
 		;
 
-initdecl:	declarator			{/*insert into symtab*/}
+	/*
+	int x, y, z;
+
+	int
+	declspec x
+	declspec declarator
+	declspec initdecl
+	declspec initdecllist , y
+	declspec initdecllist , declarator
+	declspec initdecllist , initdecl
+	declspec initdecllist
+	declspec initdecllist , z
+	declspec initdecllist , declarator
+	declspec initdecllist ;
+	decl
+	*/
+
+initdecl:	declarator			{$$=$1;}
 		/*| declarator '=' initializer	{/*add initializer to variable,insert declarator into symtab}*/
 		;
 
@@ -401,13 +422,13 @@ dirabsdeclarator: '(' absdeclarator ')'						{$$=$2;}
 		| '[' typequallist ']'						{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,NULL,1);}
 		| '[' ']'							{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,NULL,1);}
 		| dirabsdeclarator '[' STATIC typequallist asnmtexpr ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,$5,1);}
-		| dirabsdeclarator '[' STATIC asnmtexpr ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$4,1);}
-		| dirabsdeclarator '[' STATIC typequallist ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,NULL,1);}
-		| dirabsdeclarator '[' STATIC ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,1);}
-		| '[' STATIC typequallist asnmtexpr ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,$4,1);}
-		| '[' STATIC asnmtexpr ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,$3,1);}
-		| '[' STATIC typequallist ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,NULL,1);}
-		| '[' STATIC ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,NULL,1);}
+		| dirabsdeclarator '[' STATIC asnmtexpr ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$4,1);}
+		| dirabsdeclarator '[' STATIC typequallist ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,NULL,1);}
+		| dirabsdeclarator '[' STATIC ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,1);}
+		| '[' STATIC typequallist asnmtexpr ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,$4,1);}
+		| '[' STATIC asnmtexpr ']'					{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,$3,1);}
+		| '[' STATIC typequallist ']'					{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,NULL,1);}
+		| '[' STATIC ']'						{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,NULL,1);}
 		| dirabsdeclarator '[' typequallist STATIC asnmtexpr ']'	{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$5,1);}
 		| '[' typequallist STATIC asnmtexpr ']'				{ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,$4,1);}
 		| dirabsdeclarator '[' '*' ']'					{/*ignore/throw error on VLA*/}
@@ -428,7 +449,9 @@ paramtypelistopt:	paramtypelist		{$$=$1;}
 
 int main()
 {
-	yydebug = 0;
+	#if YYDEBUG
+	yydebug = 1;
+	#endif
 	yyparse();
 }
 

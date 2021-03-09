@@ -4,6 +4,8 @@ SOURCEDIR=. lexerutils
 BUILDDIR=build
 BINARY=parser
 
+COMPILEFLAGS=-g
+
 # C files that are built by flex/bison and cannot be found automatically
 EXTRASOURCES=lex.yy.c parser.tab.c
 
@@ -27,7 +29,7 @@ parser.tab.c parser.tab.h: parser.y
 # generic targets
 $(BUILDDIR)/%.o: %.c
 	mkdir -p $(dir $@)
-	$(CC) -c -o $@ $<
+	$(CC) $(COMPILEFLAGS) -c -o $@ $<
 
 .PHONY:
 clean:

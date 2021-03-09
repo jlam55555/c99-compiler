@@ -1,6 +1,8 @@
 #ifndef PARSERH
 #define PARSERH
 
+#define DEBUG 1		// our custom debugging
+
 extern int yylex();
 int yyerror(char *err);
 

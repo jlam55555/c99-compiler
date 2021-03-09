@@ -3,6 +3,7 @@
 
 #include "astnode.h"
 #include "astnodegeneric.h"
+#include "symtab.h"
 
 /*
 each entry in symbol table (for each declaration or label):
@@ -177,8 +178,17 @@ struct astnode_typename {
 	union astnode *specquallist, *absdeclarator;
 };
 
+struct astnode_symbol {
+	_ASTNODE
+
+	union astnode *declspec, *declarator;
+};
+
 // defined in asttypes.c
 extern union astnode ELLIPSIS_DECLARATOR;
+
+// insert astnode into symbol table
+void insert_into_symtab(union astnode *declarator, union astnode *declspec, enum name_space ns);
 
 // merge two declaration specifiers with all the rules; returns the merged
 // declspec and frees the other

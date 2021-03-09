@@ -97,13 +97,16 @@ union astnode {
 	struct astnode_dirdeclarator dirdeclarator;
 	struct astnode_paramdecl paramdecl;
 	struct astnode_typename typename;
+
+	// symbol table
+	struct astnode_symbol symbol;
 };
 
 // helper to print an astnode
 void print_astnode(union astnode *);
 
 #define ALLOC(var)\
-	(var)=(union astnode *)malloc(sizeof(union astnode *));
+	(var)=(union astnode *)malloc(sizeof(union astnode));
 
 #define ALLOC_SET_IDENT(var, idt)\
 	ALLOC(var);\

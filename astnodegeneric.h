@@ -31,7 +31,10 @@ enum astnode_type {
 	NT_DIRDECLARATOR,
 	NT_POINTER,
 	NT_PARAMDECLARATOR,
-	NT_TYPENAME
+	NT_TYPENAME,
+
+	// symbol table types
+	NT_SYMBOL
 };
 
 #define _ASTNODE\
