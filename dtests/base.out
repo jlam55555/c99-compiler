@@ -1,0 +1,57 @@
+i1 is defined at base.c:1 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  int
+ui1 is defined at base.c:2 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  unsigned int
+ui2 is defined at base.c:3 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  unsigned int
+ul1 is defined at base.c:4 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  unsigned long
+i2 is defined at base.c:5 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  const int
+i3 is defined at base.c:6 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  signed int
+ui3 is defined at base.c:7 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  volatile unsigned int
+c1 is defined at base.c:8 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  char
+c2 is defined at base.c:9 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  unsigned char
+c3 is defined at base.c:10 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  signed char
+ll1 is defined at base.c:11 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  long long
+ull1 is defined at base.c:12 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  unsigned long long
+s1 is defined at base.c:13 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  short
+us1 is defined at base.c:14 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  unsigned short
+s3 is defined at base.c:15 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  volatile signed short
+d is defined at base.c:16 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  double
+ld is defined at base.c:17 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  long double
+f is defined at base.c:18 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  float
+f2 is defined at base.c:19 [in global scope starting at base.c:1] as a 
+variable with stgclass extern  of type:
+  const float

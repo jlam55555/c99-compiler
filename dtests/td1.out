@@ -1,0 +1,42 @@
+itd is defined at td1.c:1 [in global scope starting at td1.c:1] as a 
+typedef equivalent to:
+  int
+f is defined at td1.c:4 [in global scope starting at td1.c:1] as a 
+extern   function returning
+   int
+  and taking unknown arguments
+itd is defined at td1.c:5 [in function scope starting at td1.c:4] as a 
+extern   function returning
+   int
+  and taking the following arguments
+   int
+g is defined at td1.c:9 [in global scope starting at td1.c:1] as a 
+extern   function returning
+   int
+  and taking unknown arguments
+itd is defined at td1.c:10 [in function scope starting at td1.c:9] as a 
+variable with stgclass auto  of type:
+  pointer to 
+   int
+h is defined at td1.c:14 [in global scope starting at td1.c:1] as a 
+extern   function returning
+   int
+  and taking unknown arguments
+itd is defined at td1.c:15 [in function scope starting at td1.c:14] as a 
+extern   function returning
+   int
+  and taking the following arguments
+   pointer to 
+    function returning
+     int
+    and taking the following arguments
+     int
+i is defined at td1.c:19 [in global scope starting at td1.c:1] as a 
+extern   function returning
+   int
+  and taking unknown arguments
+ff is defined at td1.c:20 [in function scope starting at td1.c:19] as a 
+extern   function returning
+   int
+  and taking the following arguments
+   int
