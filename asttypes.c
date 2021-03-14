@@ -98,9 +98,24 @@ void print_symtab(union astnode *node, int depth)
 			fprintf(outfile, "%s is defined in %s:%d [in %s scope starting at %s:%d] as a ",
 			 	node->symbol.ident, filename, lineno, print_scope(curscope->type), "", 1);
 			INDENT(depth);
-			fprintf(outfile, "variable with stgclass %s of type:\n", print_sc(node->symbol.value->declspec.sc));
-			INDENT(depth+1);			
-			fprintf(outfile, "%s", "");
+			switch(node->symbol.value->generic.type) {
+				case NT_VARIABLE:
+					fprintf(outfile, "variable with stgclass %s of type:\n", print_sc(node->symbol.value->declspec.sc));
+					if(node->symbol.value->variable.declarator->declarator.pointer)
+						print_symtab(node->symbol.value->variable.declarator->declarator.pointer, depth);
+					else
+					{
+					
+					INDENT(depth+1);			
+					fprintf(outfile, "%s", "");
+					}
+					break;
+				case NT_TS_STRUCT_UNION:
+					// TODO: jon
+					break;
+				// case NT_LABEL:
+			}
+			
 			break;
 
 	}
@@ -218,8 +233,8 @@ union astnode *merge_declspec(union astnode *spec1, union astnode *spec2) {
 	int lls1, lls2, lls_res;
 
 	/* merge typespecs: combine all of them */
-	if (ds1.ts) {
-		if (ds2.ts) {
+	if (ds1.ts && ds1.ts->generic.type == NT_TS_SCALAR) {
+		if (ds2.ts && ds1.ts->generic.type == NT_TS_SCALAR) {
 			ats1 = &ds1.ts->ts_scalar, ats2 = &ds2.ts->ts_scalar;
 
 			// COMBINING BASE TYPE
@@ -304,8 +319,18 @@ union astnode *merge_declspec(union astnode *spec1, union astnode *spec2) {
 					yyerror_fatal("non-integral type cannot be signed/unsigned");
 				}
 			}
+		} else if (ds2.ts) {
+			// ds1 is scalar, ds2 is also specified => multiple typespecs
+			yyerror_fatal("multiple type specifiers in declaration");
 		}
-	} else {
+	} else if (ds1.ts) {
+		// ds2 is scalar, ds1 is also specified => multiple typespecs
+		if (ds2.ts) {
+			yyerror_fatal("multiple type specifiers in declaration");
+		}
+	}
+	// ds1 has no typespec just choose ds2's typespec
+	else {
 		ds1.ts = ds2.ts;
 	}
 

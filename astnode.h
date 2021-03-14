@@ -196,8 +196,8 @@ struct directdeclarator
 
 #define ALLOC_TYPENAME(var, sql, declr)\
 	ALLOC(var);\
-	(var)->typename.sql = specquallist;\
-	(var)->typename.declarator = declr;
+	(var)->typename.specquallist = sql;\
+	(var)->typename.absdeclarator = declr;
 
 #define ALLOC_REGULAR_DIRDECLARATOR(var, idt)\
 	ALLOC(var);\

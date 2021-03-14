@@ -128,8 +128,8 @@ pofexpr:	pexpr				{$$=$1;}
 						 ALLOC_SET_BINOP($$,'.',deref,ident);}
 		| pofexpr PLUSPLUS		{/*a++ <=> */ALLOC_SET_UNOP($$,$2,$1);}
 		| pofexpr MINUSMINUS		{ALLOC_SET_UNOP($$,$2,$1);}
-		/*| '(' typename ')' '{' initlist '}'	{TODO}
-		| '(' typename ')' '{' initlist ',' '}'	{TODO}*/
+		/*| '(' typename ')' '{' initlist '}'	{not implementing compound literals}
+		| '(' typename ')' '{' initlist ',' '}'	{not implementing compound literals}*/
 		;
 
 arglist:	asnmtexpr			{$$=$1;}
@@ -160,7 +160,7 @@ uexpr:		pofexpr			{$$=$1;}
 					 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| uop castexpr		{ALLOC_SET_UNOP($$,$1,$2);}
 		| SIZEOF uexpr		{ALLOC_SET_UNOP($$,$1,$2);}
-		/*| SIZEOF '(' typename ')'	{TODO}*/
+		| SIZEOF '(' typename ')'	{/*TODO*/}
 		;
 
 uop:		'&'		{$$=$1;}
@@ -172,7 +172,7 @@ uop:		'&'		{$$=$1;}
 		;
 
 castexpr:	uexpr					{$$=$1;}
-		/*| '(' typename ')' castexpr {TODO}*/
+		| '(' typename ')' castexpr {/*TODO*/}
 		;
 
 multexpr:	castexpr		{$$=$1;}
