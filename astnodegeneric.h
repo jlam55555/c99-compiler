@@ -22,8 +22,6 @@ enum astnode_type {
 	NT_TS_STRUCT_UNION,
 	NT_TQ,
 	NT_SC,
-	NT_VARFN,
-	NT_LABEL,
 	
 	// declarator types
 	NT_DECLSPEC,
@@ -34,6 +32,7 @@ enum astnode_type {
 	NT_TYPENAME,
 
 	// symbol table types
+	NT_VARIABLE,
 	NT_SYMBOL
 };
 

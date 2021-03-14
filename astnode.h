@@ -84,12 +84,10 @@ union astnode {
 	struct astnode_typespec_scalar ts_scalar;
 	struct astnode_typespec_fn ts_fn;
 	struct astnode_typespec_array ts_array;
-	struct astnode_typespec_struct_union ts_struct_union;
+	struct astnode_typespec_structunion ts_structunion;
 	struct astnode_typequal tq;
 	struct astnode_storageclass sc;
 	struct astnode_declspec declspec;
-	struct astnode_varfn varfn;
-	struct astnode_label label;
 
 	// declarator types
 	struct astnode_pointer ptr;
@@ -99,6 +97,7 @@ union astnode {
 	struct astnode_typename typename;
 
 	// symbol table
+	struct astnode_variable variable;
 	struct astnode_symbol symbol;
 };
 

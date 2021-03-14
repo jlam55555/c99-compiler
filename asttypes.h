@@ -1,9 +1,7 @@
 #ifndef ASTTYPESH
 #define ASTTYPESH
 
-#include "astnode.h"
 #include "astnodegeneric.h"
-#include "scope.h"
 
 /*
 each entry in symbol table (for each declaration or label):
@@ -74,26 +72,22 @@ struct astnode_typespec_array {
 	union astnode_typespec *arrtype;
 };
 
-// TODO: structs and unions
-
-struct astnode_typespec_struct_union {
+// see: structunion.h
+enum structunion_type { SU_STRUCT, SU_UNION };
+struct astnode_typespec_structunion {
 	_ASTNODE
 
-	enum spec_type spectype;
-	union astnode *member;
-	int tag_define;
-};
+	char *ident;
+	enum spec_type spectype;	// = ST_TAG
+	enum structunion_type su_type;
 
-// TODO: remove
-// union astnode_typespec {
-// 	struct astnode_typespec_generic {
-// 		_ASTNODE
-// 		enum spec_type spectype;
-// 	} generic;
-// 	struct astnode_typespec_scalar scalar;
-// 	struct astnode_typespec_fn fn;
-// 	struct astnode_typespec_array array;
-// };
+	// linked-list and hashtable of members
+	union astnode *members;
+	struct symtab *members_ht;
+
+	// to prevent multiple (nested) redefinition: see structunion.h
+	int is_complete, is_being_defined;
+};
 
 #define TQ_CONST	0x1
 #define TQ_RESTRICT	0x2
@@ -114,26 +108,6 @@ struct astnode_declspec {
 	_ASTNODE
 	
 	union astnode *ts, *tq, *sc;
-};
-
-struct astnode_varfn {
-	_ASTNODE
-
-	char *ident;
-	union astnode *declspec;
-
-	// TODO: remove; replaced with declspec
-	// union astnode_typespec *ts;
-	// struct astnode_typequal *tq;
-	// struct astnode_storagespec *ss;
-	// struct astnode_varfn *next;
-	// union astnode *initializer;
-};
-
-struct astnode_label {
-	_ASTNODE
-
-	char *ident;
 };
 
 // declarators
@@ -184,18 +158,27 @@ struct astnode_typename {
 	union astnode *specquallist, *absdeclarator;
 };
 
-struct astnode_symbol {
+struct astnode_variable {
 	_ASTNODE
 
 	union astnode *declspec, *declarator;
+};
+
+enum name_space { NS_TAG, NS_LABEL, NS_IDENT }; 
+struct astnode_symbol {
+	_ASTNODE
+
 	char *ident;
+	union astnode *value;
+	enum name_space ns;
 };
 
 // defined in asttypes.c
 extern union astnode ELLIPSIS_DECLARATOR;
 
 // insert astnode into symbol table
-void insert_into_symtab(union astnode *declarator, union astnode *declspec, enum name_space ns);
+void insert_into_symtab(union astnode *declarator, union astnode *declspec,
+	enum name_space ns);
 
 // merge two declaration specifiers with all the rules; returns the merged
 // declspec and frees the other

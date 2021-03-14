@@ -1,10 +1,11 @@
+#include "asttypes.h"
 #include "astnode.h"
 #include "scope.h"
 #include "parser.h"
 #include <stdio.h>
 #include <malloc.h>
 
-static struct scope *scope_stack;
+static struct scope *scope_stack = NULL;
 static int scope_pos = -1, scope_stack_capacity = 0;
 
 // scope begun, create namespaces/symbol tables for it
@@ -13,8 +14,7 @@ void scope_push(enum scope_type type) {
 
 	// grow scope_stack if necessary
 	if (scope_stack_capacity <= scope_pos + 1) {
-		// scope stack has never been initialized, give it a good
-		// initial value
+		// stack has never been initialized, give it an initial value
 		if (!scope_stack_capacity) {
 			scope_stack_capacity = 16;		
 		} else {

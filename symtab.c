@@ -3,7 +3,7 @@
 
 // good hash primes: https://planetmath.org/goodhashtableprimes
 static int ghp[] = {53, 97, 193, 389, 769, 1533, 3079, 6151, 12289, 24593};
-struct symtab *symtab_init(struct symtab *st) {
+void *symtab_init(struct symtab *st) {
 	st->size = 0;
 	st->capacity = ghp[0];
 	st->bs = (union astnode **) calloc(st->capacity, sizeof(union astnode));

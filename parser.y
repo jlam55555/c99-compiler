@@ -10,6 +10,7 @@
 #include "astnode.h"
 #include "asttypes.h"
 #include "symtab.h"
+#include "scope.h"
 #include "structunion.h"
 %}
 %locations
@@ -296,11 +297,11 @@ typespec:	VOID				{ALLOC_SET_SCALAR($$,BT_VOID,LLS_UNSPEC,SIGN_UNSPEC);}
 		;
 
 /* 6.7.2.1 structure and union specifiers */
-structunionspec:structunion '{' structdecllist '}'		{$$=structunion_done(SU_COMPLETE);}
-		| structunion IDENT {structunion_set_name($2);} '{' structdecllist '}'
-								{$$=structunion_done(SU_COMPLETE);}
-		| structunion IDENT				{structunion_set_name($2);
-								$$=structunion_done(SU_INCOMPLETE);}
+structunionspec:structunion '{' structdecllist '}'		{$$=structunion_done(1);}
+		| structunion IDENT {structunion_set_name($2,1);} '{' structdecllist '}'
+								{$$=structunion_done(1);}
+		| structunion IDENT				{structunion_set_name($2,0);
+								$$=structunion_done(0);}
 		;
 
 structunion:	STRUCT						{$$=structunion_new(SU_STRUCT);}

@@ -15,6 +15,9 @@ union astnode ELLIPSIS_DECLARATOR;
 // for LL_APPEND to work
 union astnode *ll_append_iter;
 
+char *print_scope(enum scope_type st);
+char *print_typequallist(unsigned char tq);
+char *print_sc(enum sc_spec scspec);
 void print_symtab(union astnode *node, int depth)
 {
 	FILE *outfile = stdout;
@@ -89,10 +92,18 @@ void print_symtab(union astnode *node, int depth)
 			print_symtab(node->ptr.to, depth+2);
 			break;
 
-		case NT_SYMBOL:
-			/*fprintf(outfile, "%s is defined in %s:%d [in %s scope starting at %s:%d] as a ",
-			 	node->symbol.ident);*/
+		case NT_SYMBOL:;
+			struct scope *curscope = get_scope(node->symbol.ident, node->symbol.ns);
+			fprintf(outfile, "%s is defined in %s:%d [in %s scope starting at %s:%d] as a ",
+			 	node->symbol.ident, 1, 1, print_scope(curscope->type), 1, 1);
+			INDENT(depth);
+			fprintf(outfile, "variable with stgclass %s of type:\n", 
+					print_sc(node->symbol.value->declspec.sc->sc.scspec));
+			INDENT(depth+1);
+			fprintf(outfile, "%s", 1);
 			break;
+
+		
 
 
 	}
@@ -100,18 +111,55 @@ void print_symtab(union astnode *node, int depth)
 
 }
 
-char *print_typequallist(unsigned char tq){
+char *print_typequallist(unsigned char tq)
+{
 	
 	
 
 }
 
-// insert value into symbol table
+
+//Function to help print storage class
+char *print_sc(enum sc_spec scspec)
+{
+	switch(scspec)
+	{
+		case SC_EXTERN:
+			return "extern";
+			break; 
+		case SC_STATIC:
+			return "static";
+			break; 
+		case SC_AUTO:
+			return "auto";
+			break;
+		case SC_REGISTER:
+			return "register";
+			break;
+	}
+}
+
+//function to help print scope
+char *print_scope(enum scope_type st)
+{
+	switch(st)
+	{
+		case ST_FILE:
+			return "global";
+			break;
+
+		
+		//ST_FUNC, ST_BLOCK, ST_PROTO
+	}
+
+}
+
+// insert variable into symbol table
 void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 	enum name_space ns)
 {
 	char *ident;
-	union astnode *symbol, *iter;
+	union astnode *symbol, *iter, *var;
 
 	// get declarator name/identifier
 	iter = declarator->declarator.dirdeclarator;
@@ -129,12 +177,17 @@ void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 		iter->ptr.to = declspec;
 	}
 
+	ALLOC(var);
+	var->variable.type = NT_VARIABLE;
+	var->variable.declspec = declspec;
+	var->variable.declarator = declarator;
+
 	// create symbol and insert
 	ALLOC(symbol);
 	symbol->symbol.type = NT_SYMBOL;
-	symbol->symbol.declspec = declspec;
-	symbol->symbol.declarator = declarator;
 	symbol->symbol.ident = ident;
+	symbol->symbol.ns = ns;
+	symbol->symbol.value = var;
 
 	// TODO: if declspec has unspecified parts, fill them in with their
 	// context-specific defaults
