@@ -76,3 +76,8 @@ struct scope *get_scope(char *ident, enum name_space ns) {
 
 	return current_scope >= 0 ? &scope_stack[current_scope] : NULL;
 }
+
+struct scope *get_current_scope()
+{
+	return &scope_stack[scope_pos];
+}

@@ -3,11 +3,13 @@
 
 #include "stdio.h"
 #include "parser.h"
+#include "asttypes.h"
 
+/* declared in asttypes.h
 struct symtab {
 	union astnode **bs;
 	int size, capacity;
-};
+};*/
 
 void *symtab_init(struct symtab *st);
 void symtab_destroy(struct symtab *st);

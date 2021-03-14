@@ -28,4 +28,6 @@ void scope_insert(char *ident, enum name_space ns, union astnode *node);
 union astnode *scope_lookup(char *ident, enum name_space ns);
 struct scope *get_scope(char *ident, enum name_space ns);
 
+struct scope *get_current_scope();
+
 #endif	// SCOPEH

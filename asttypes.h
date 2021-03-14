@@ -74,6 +74,10 @@ struct astnode_typespec_array {
 
 // see: structunion.h
 enum structunion_type { SU_STRUCT, SU_UNION };
+struct symtab {
+	union astnode **bs;
+	int size, capacity;
+};
 struct astnode_typespec_structunion {
 	_ASTNODE
 
@@ -83,7 +87,7 @@ struct astnode_typespec_structunion {
 
 	// linked-list and hashtable of members
 	union astnode *members;
-	struct symtab *members_ht;
+	struct symtab members_ht;
 
 	// to prevent multiple (nested) redefinition: see structunion.h
 	int is_complete, is_being_defined;

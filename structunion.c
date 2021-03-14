@@ -30,11 +30,12 @@ union astnode *structunion_new(enum structunion_type type)
 	ALLOC(node);
 	su = &node->ts_structunion;
 
+	su->type = NT_TS_STRUCT_UNION;
 	su->ident = NULL;
 	su->members = NULL;
 	su->spectype = ST_TAG;
 	su->su_type = type;
-	symtab_init(su->members_ht);
+	symtab_init(&su->members_ht);
 	su->is_complete = su->is_being_defined = 0;
 
 	// push onto stack
@@ -47,15 +48,17 @@ void structunion_set_name(char *ident, int begin_def)
 	struct astnode_typespec_structunion *su;
 
 	// if stack empty, error (shouldn't happen, indicates error w/ compiler)
-	if (!su_decl_stack_pos) {
+	if (su_decl_stack_pos < 0) {
 		yyerror_fatal("empty struct/union declaration stack");
 	}
 
 	// check if ident exists in the current tag namespace
+	// TODO: fix this
 	node = scope_lookup(ident, NS_TAG);
 
 	// already declared in symbol table
 	if (node) {
+		node = node->symbol.value;
 		su = &node->ts_structunion;
 
 		// redefinition of completed type
@@ -104,7 +107,7 @@ void structunion_install_member(union astnode *declarator,
 	char *ident;
 
 	// if stack empty, error (shouldn't happen, indicates error w/ compiler)
-	if (!su_decl_stack_pos) {
+	if (su_decl_stack_pos < 0) {
 		yyerror_fatal("empty struct/union declaration stack");
 	}
 
@@ -129,7 +132,7 @@ void structunion_install_member(union astnode *declarator,
 	ident = strdup(iter->ident.ident);
 
 	// check if field exists in member symtab
-	search = symtab_lookup(su->members_ht, ident);
+	search = symtab_lookup(&su->members_ht, ident);
 	if (search) {
 		yyerror_fatal("duplicate member");
 	}
@@ -145,7 +148,7 @@ void structunion_install_member(union astnode *declarator,
 	symbol->symbol.ident = ident;
 	symbol->symbol.ns = NT_IDENT;
 	symbol->symbol.value = var;
-	symtab_insert(su->members_ht, ident, symbol);
+	symtab_insert(&su->members_ht, ident, symbol);
 }
 
 union astnode *structunion_done(int is_complete)
@@ -154,7 +157,7 @@ union astnode *structunion_done(int is_complete)
 	struct astnode_typespec_structunion *su;
 
 	// if stack empty, error (shouldn't happen, indicates error w/ compiler)
-	if (!su_decl_stack_pos) {
+	if (su_decl_stack_pos < 0) {
 		yyerror_fatal("empty struct/union declaration stack");
 	}
 

@@ -12,7 +12,7 @@ extern char *yytext;
 // helper to indent to a specific depth
 extern int indi;
 #define INDENT(n)\
-	for (indi = 0; indi < depth; indi++) \
+	for (indi = 0; indi < n; indi++) \
 		fprintf(stdout, "  ")
 
 #endif

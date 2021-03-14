@@ -291,7 +291,7 @@ typespec:	VOID				{ALLOC_SET_SCALAR($$,BT_VOID,LLS_UNSPEC,SIGN_UNSPEC);}
 		| UNSIGNED			{ALLOC_SET_SCALAR($$,BT_UNSPEC,LLS_UNSPEC,SIGN_UNSIGNED);}
 		| _BOOL 			{ALLOC_SET_SCALAR($$,BT_BOOL,LLS_UNSPEC,SIGN_UNSPEC);}
 		| _COMPLEX 			{/*TODO: might not implement this*/}
-		| structunionspec		{$$=$1;}
+		| structunionspec		{$$=$1;fprintf(stdout,"testing:%d\n",$$->generic.type==NT_TS_STRUCT_UNION);}
 		/*| enumspec			{/*TODO}*/
 		/*| typedefname			{/*TODO}*/
 		;
@@ -341,7 +341,7 @@ funcspec:	INLINE				{/*not implementing inline functions*/}
 
 
 /* 6.7.5 Declarators */
-declarator:	pointer dirdeclarator		{ALLOC_DECLARATOR($$,$2,$1,0);$$=$1;}
+declarator:	pointer dirdeclarator		{ALLOC_DECLARATOR($$,$2,$1,0);}
 		| dirdeclarator			{ALLOC_DECLARATOR($$,$1,NULL,0);}
 		;
 

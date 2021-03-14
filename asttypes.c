@@ -7,6 +7,7 @@
 #include "asttypes.h"
 #include "scope.h"
 #include "parser.h"
+#include "lexerutils/errorutils.h"
 #include <stdio.h>
 
 // declare constant ellipsis for use; this is declared in asttypes.c
@@ -17,7 +18,7 @@ union astnode *ll_append_iter;
 
 char *print_scope(enum scope_type st);
 char *print_typequallist(unsigned char tq);
-char *print_sc(enum sc_spec scspec);
+char *print_sc(union astnode *scspec_node);
 void print_symtab(union astnode *node, int depth)
 {
 	FILE *outfile = stdout;
@@ -93,35 +94,37 @@ void print_symtab(union astnode *node, int depth)
 			break;
 
 		case NT_SYMBOL:;
-			struct scope *curscope = get_scope(node->symbol.ident, node->symbol.ns);
+			struct scope *curscope = get_current_scope();
 			fprintf(outfile, "%s is defined in %s:%d [in %s scope starting at %s:%d] as a ",
-			 	node->symbol.ident, 1, 1, print_scope(curscope->type), 1, 1);
+			 	node->symbol.ident, filename, lineno, print_scope(curscope->type), "", 1);
 			INDENT(depth);
-			fprintf(outfile, "variable with stgclass %s of type:\n", 
-					print_sc(node->symbol.value->declspec.sc->sc.scspec));
-			INDENT(depth+1);
-			fprintf(outfile, "%s", 1);
+			fprintf(outfile, "variable with stgclass %s of type:\n", print_sc(node->symbol.value->declspec.sc));
+			INDENT(depth+1);			
+			fprintf(outfile, "%s", "");
 			break;
 
-		
-
-
 	}
-
+	
 
 }
 
 char *print_typequallist(unsigned char tq)
 {
-	
-	
-
+	return "";
 }
 
 
 //Function to help print storage class
-char *print_sc(enum sc_spec scspec)
+char *print_sc(union astnode *scspec_node)
 {
+	enum sc_spec scspec;
+
+	if (!scspec_node) {
+		return "";
+	}
+
+	scspec = scspec_node->sc.scspec;
+
 	switch(scspec)
 	{
 		case SC_EXTERN:
@@ -136,6 +139,8 @@ char *print_sc(enum sc_spec scspec)
 		case SC_REGISTER:
 			return "register";
 			break;
+		default:
+			return "";
 	}
 }
 
@@ -195,7 +200,7 @@ void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 	// global scope, otherwise auto
 
 	print_symtab(symbol, 0);
-
+ 
 	#if DEBUG
 	printf("Declaring symbol %s with type %d\n", ident,
 		declspec->declspec.ts->ts_scalar.basetype);

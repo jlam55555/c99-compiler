@@ -78,7 +78,7 @@ int symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 		char buf[1024];
 		snprintf(buf, sizeof(buf), "symbol %s already exists in symtab",
 			ident);
-		yyerror(buf);
+		yyerror_fatal(buf);
 		return -1;
 	}
 
@@ -89,6 +89,10 @@ int symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 
 union astnode *symtab_lookup(struct symtab *st, char *ident) {
 	int i;
+
+	if (!st->capacity) {
+		return NULL;
+	}
 
 	for (i = symtab_hash(ident) % st->capacity;
 		st->bs[i] && strcmp(ident, st->bs[i]->symbol.ident);
