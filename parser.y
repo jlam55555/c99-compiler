@@ -3,13 +3,14 @@
 #define YYDEBUG 0
 #define parse.error verbose
 
+#include <stdio.h>
+#include <unistd.h>
 #include "parser.h"
 #include "lexerutils/errorutils.h"
 #include "astnode.h"
 #include "asttypes.h"
 #include "symtab.h"
-#include <stdio.h>
-#include <unistd.h>
+#include "structunion.h"
 %}
 %locations
 
@@ -75,6 +76,8 @@
 %type<astnode>	pointer dirdeclarator typequallist declarator
 %type<astnode>	paramlist paramtypelist paramdecl absdeclarator declspeclist
 %type<astnode>	specquallist typename dirabsdeclarator paramtypelistopt
+%type<astnode>	structunionspec structunion structdeclaratorlist
+%type<astnode>	structdeclarator
 %type<ident> 	IDENT
 %type<string>	STRING
 %type<charlit>	CHARLIT
@@ -263,23 +266,6 @@ initdecllist:	initdecl			{/*doesn't have to return anything*/
 		| initdecllist ',' initdecl	{insert_into_symtab($3,$<astnode>0,NS_IDENT);}
 		;
 
-	/*
-	int x, y, z;
-
-	int
-	declspec x
-	declspec declarator
-	declspec initdecl
-	declspec initdecllist , y
-	declspec initdecllist , declarator
-	declspec initdecllist , initdecl
-	declspec initdecllist
-	declspec initdecllist , z
-	declspec initdecllist , declarator
-	declspec initdecllist ;
-	decl
-	*/
-
 initdecl:	declarator			{$$=$1;}
 		/*| declarator '=' initializer	{/*add initializer to variable,insert declarator into symtab}*/
 		;
@@ -300,42 +286,46 @@ typespec:	VOID				{ALLOC_SET_SCALAR($$,BT_VOID,LLS_UNSPEC,SIGN_UNSPEC);}
 		| LONG				{ALLOC_SET_SCALAR($$,BT_UNSPEC,LLS_LONG,SIGN_UNSPEC);}
 		| FLOAT				{ALLOC_SET_SCALAR($$,BT_FLOAT,LLS_UNSPEC,SIGN_UNSPEC);}
 		| DOUBLE			{ALLOC_SET_SCALAR($$,BT_DOUBLE,LLS_UNSPEC,SIGN_UNSPEC);}
-		| SIGNED 			{ALLOC_SET_SCALAR($$, BT_UNSPEC, LLS_UNSPEC, SIGN_SIGNED);}
-		| UNSIGNED			{ALLOC_SET_SCALAR($$, BT_UNSPEC, LLS_UNSPEC, SIGN_UNSIGNED);}
+		| SIGNED 			{ALLOC_SET_SCALAR($$,BT_UNSPEC,LLS_UNSPEC,SIGN_SIGNED);}
+		| UNSIGNED			{ALLOC_SET_SCALAR($$,BT_UNSPEC,LLS_UNSPEC,SIGN_UNSIGNED);}
 		| _BOOL 			{ALLOC_SET_SCALAR($$,BT_BOOL,LLS_UNSPEC,SIGN_UNSPEC);}
 		| _COMPLEX 			{/*TODO: might not implement this*/}
-		/*| structunionspec		{/*TODO}*/
+		| structunionspec		{$$=$1;}
 		/*| enumspec			{/*TODO}*/
 		/*| typedefname			{/*TODO}*/
 		;
 
-
 /* 6.7.2.1 structure and union specifiers */
-structunionspec:structunion '{' structdecllist '}'		{/*TODO*/}
-		| structunion IDENT '{' structdecllist '}'	{/*TODO*/}
-		| structunion IDENT				{/*TODO*/}
+structunionspec:structunion '{' structdecllist '}'		{$$=structunion_done(SU_COMPLETE);}
+		| structunion IDENT {structunion_set_name($2);} '{' structdecllist '}'
+								{$$=structunion_done(SU_COMPLETE);}
+		| structunion IDENT				{structunion_set_name($2);
+								$$=structunion_done(SU_INCOMPLETE);}
 		;
 
-structunion:	STRUCT				{/*TODO*/}
-		| UNION				{/*TODO*/}
+structunion:	STRUCT						{$$=structunion_new(SU_STRUCT);}
+		| UNION						{$$=structunion_new(SU_UNION);}
 		;
 
-structdecllist:	structdecl			{/*TODO*/}
-		| structdecllist structdecl	{/*TODO*/}
+structdecllist:	structdecl					{/*nothing to do here*/}
+		| structdecllist structdecl			{/*nothing to do here*/}
 		;
 
-structdecl:	specquallist structdecllist ';'	{/*TODO*/}
+structdecl:	specquallist structdeclaratorlist ';'		{/*nothing to do here*/}
 		;
 
-/*dummy rules: TODO*/
-	/*enumspec:;
-	funcspec:;
-	initializer:;
-	structunionspec:;*/
+specquallist:	typespec					{ALLOC_DECLSPEC($$);$$->declspec.ts=$1;}
+		| typequal					{ALLOC_DECLSPEC($$);$$->declspec.tq=$1;}
+		| specquallist specquallist			{$$=merge_declspec($1,$2);}
+		;
 
-specquallist:	typespec			{ALLOC_DECLSPEC($$);$$->declspec->ts=$1;}
-		| typequal			{ALLOC_DECLSPEC($$);$$->declspec->tq=$1;}
-		| specquallist specquallist	{$$=merge_declspec($1,$2);}
+structdeclaratorlist:	structdeclarator			{structunion_install_member($1,$<astnode>0);}
+		| structdeclaratorlist ',' structdeclarator	{structunion_install_member($3,$<astnode>0);}
+		;
+
+structdeclarator:	declarator				{$$=$1;}
+		/*| declarator ':' constexpr			{$$=$1;/*not implementing bitfields}*/
+		/*| ':' constexpr					{/*not implementing bitfields}*/
 		;
 
 /* 6.7.3 type qualifiers */
@@ -345,7 +335,7 @@ typequal:	CONST				{ALLOC_SET_TQSPEC($$,TQ_CONST);}
 		;
 
 /* 6.7.4 Function Declaration */
-funcspec:	INLINE				{/*NOT DEALING WITH THIS*/}
+funcspec:	INLINE				{/*not implementing inline functions*/}
 		;
 
 

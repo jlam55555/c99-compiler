@@ -3,7 +3,7 @@
 
 #include "astnode.h"
 #include "astnodegeneric.h"
-#include "symtab.h"
+#include "scope.h"
 
 /*
 each entry in symbol table (for each declaration or label):

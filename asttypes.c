@@ -5,7 +5,7 @@
 
 #include "astnode.h"
 #include "asttypes.h"
-#include "symtab.h"
+#include "scope.h"
 #include "parser.h"
 #include <stdio.h>
 
@@ -63,7 +63,20 @@ void print_symtab(union astnode *node, int depth)
 			}
 			break;
 		
-		case NT_TS_FN:
+		case NT_DIRDECLARATOR:
+			switch(node->dirdeclarator.declarator_type)
+			{
+				case DT_ARRAY:
+					fprintf(outfile, "array of %d elements of type\n", node->dirdeclarator.size);
+					print_symtab(node->dirdeclarator.typequallist, depth+2);
+					break;
+
+				case DT_FN:
+					fprintf(outfile, "function returning\n");
+					break;
+
+
+			}
 			break;
 		
 		case NT_POINTER:
@@ -127,6 +140,8 @@ void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 	// context-specific defaults
 	// e.g., if storage class is unspecified, it should be set to extern if
 	// global scope, otherwise auto
+
+	print_symtab(symbol, 0);
 
 	#if DEBUG
 	printf("Declaring symbol %s with type %d\n", ident,
