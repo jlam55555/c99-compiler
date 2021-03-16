@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "scope.h"
 #include "string.h"
+#include "lexerutils/errorutils.h"
 
 // stack of union astnodes currently being declared
 static union astnode **su_decl_stack = NULL;
@@ -30,6 +31,7 @@ union astnode *structunion_new(enum structunion_type type)
 	ALLOC(node);
 	su = &node->ts_structunion;
 
+	// fill in struct fields
 	su->type = NT_TS_STRUCT_UNION;
 	su->ident = NULL;
 	su->members = NULL;
@@ -37,6 +39,10 @@ union astnode *structunion_new(enum structunion_type type)
 	su->su_type = type;
 	symtab_init(&su->members_ht);
 	su->is_complete = su->is_being_defined = 0;
+
+	// debugging info
+	su->def_filename = strdup(filename);
+	su->def_lineno = lineno;
 
 	// push onto stack
 	su_decl_stack[++su_decl_stack_pos] = node;
@@ -53,11 +59,10 @@ void structunion_set_name(char *ident, int begin_def)
 	}
 
 	// check if ident exists in the current tag namespace
-	// TODO: fix this
 	node = scope_lookup(ident, NS_TAG);
 
-	// already declared in symbol table
-	if (node) {
+	// already declared in symbol table (in the current scope)
+	if (node && (get_scope(ident, NS_TAG) == get_current_scope())) {
 		node = node->symbol.value;
 		su = &node->ts_structunion;
 
@@ -149,6 +154,9 @@ void structunion_install_member(union astnode *declarator,
 	symbol->symbol.ns = NT_IDENT;
 	symbol->symbol.value = var;
 	symtab_insert(&su->members_ht, ident, symbol);
+
+	// TODO: install into linked list
+	// TODO: working here
 }
 
 union astnode *structunion_done(int is_complete)
@@ -166,7 +174,7 @@ union astnode *structunion_done(int is_complete)
 
 	// print out definition (only if just defined)
 	if (su->is_being_defined) {
-		// TODO
+		print_structunion_def(node);
 	}
 
 	// set type to complete

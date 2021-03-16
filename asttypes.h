@@ -29,10 +29,6 @@ storage spec:
 */
 
 
-void print_symtab(union astnode *node, int depth);
-
-char *print_typequallist(unsigned char typeq);
-
 enum spec_type { ST_SCALAR, ST_FN, ST_TAG, ST_POINTER, ST_ARRAY,
 	ST_TYPEDEF} st;
 
@@ -91,6 +87,10 @@ struct astnode_typespec_structunion {
 
 	// to prevent multiple (nested) redefinition: see structunion.h
 	int is_complete, is_being_defined;
+
+	// for debugging purposes: prints out where struct is defined
+	char *def_filename;
+	int *def_lineno;
 };
 
 #define TQ_CONST	0x1
@@ -187,5 +187,8 @@ void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 // merge two declaration specifiers with all the rules; returns the merged
 // declspec and frees the other
 union astnode *merge_declspec(union astnode *, union astnode *);
+
+// print structs/unions after definition
+void print_structunion_def(union astnode *node);
 
 #endif // ATTNODEH

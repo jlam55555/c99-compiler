@@ -160,19 +160,23 @@ uexpr:		pofexpr			{$$=$1;}
 					 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| uop castexpr		{ALLOC_SET_UNOP($$,$1,$2);}
 		| SIZEOF uexpr		{ALLOC_SET_UNOP($$,$1,$2);}
-		| SIZEOF '(' typename ')'	{/*TODO*/}
+		| SIZEOF '(' typename ')'
+					{/*use '-' to indicate sizeof with a type*/
+					ALLOC_SET_UNOP($$,'-',$3);}
 		;
 
-uop:		'&'		{$$=$1;}
-		| '*'		{$$=$1;}	
-		| '+'		{$$=$1;}
-		| '-'		{$$=$1;}
-		| '~'		{$$=$1;}	
-		| '!'		{$$=$1;}
+uop:		'&'			{$$=$1;}
+		| '*'			{$$=$1;}	
+		| '+'			{$$=$1;}
+		| '-'			{$$=$1;}
+		| '~'			{$$=$1;}	
+		| '!'			{$$=$1;}
 		;
 
-castexpr:	uexpr					{$$=$1;}
-		| '(' typename ')' castexpr {/*TODO*/}
+castexpr:	uexpr			{$$=$1;}
+		| '(' typename ')' castexpr
+					{/*use '_' to indicate cast*/
+					ALLOC_SET_BINOP($$,'_',$2,$4);}
 		;
 
 multexpr:	castexpr		{$$=$1;}
@@ -436,7 +440,7 @@ paramtypelistopt:	paramtypelist		{$$=$1;}
 		;
 
 /* 6.7.7 type definitions */
- /*typedefname:	IDENT				{/*TODO: kludges}*/
+ /*typedefname:	IDENT				{/*not implementing this}*/
 		;
 
 %%

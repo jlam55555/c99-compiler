@@ -17,80 +17,106 @@ union astnode ELLIPSIS_DECLARATOR;
 union astnode *ll_append_iter;
 
 char *print_scope(enum scope_type st);
-char *print_typequallist(unsigned char tq);
+void print_typequallist(union astnode *node);
 char *print_sc(union astnode *scspec_node);
-void print_symtab(union astnode *node, int depth)
+void fill_defaults(union astnode *declspec);
+
+// for printing out struct/union when it is defined
+void print_structunion_def(union astnode *node)
+{
+	FILE *outfile = stdout;
+	struct astnode_typespec_structunion *su;
+
+	su = &node->ts_structunion;
+	
+	fprintf(outfile, "struct %s definition at %s:%d{\n",
+		su->ident, su->def_filename, su->def_lineno);
+
+	// loop through fields
+	fprintf(outfile, "TODO: print out fields\n");
+
+	fprintf(outfile, "}\n");
+}
+
+// for printing NT_TS_* types (when declaring variables)
+void print_type(union astnode *node, int depth)
+{
+	FILE *outfile = stdout;
+
+	if (!node) {
+		fprintf(outfile, "unspecified type\n");
+		return;
+	}
+
+	switch (node->generic.type) {
+
+	// scalar types
+	case NT_TS_SCALAR:
+		// signedness (for applicable types)
+		if(node->ts_scalar.modifiers.sign==SIGN_UNSIGNED)
+			fprintf(outfile, "unsigned");
+			
+		// long/long long/short (for applicable types)
+		switch(node->ts_scalar.modifiers.lls) {
+		case LLS_UNSPEC: break;
+		case LLS_SHORT: fprintf(outfile, "short "); break;
+		case LLS_LONG: fprintf(outfile, "long "); break;
+		case LLS_LONG_LONG: fprintf(outfile, "long long "); break;
+		}
+
+		// "base" scalar type
+		switch(node->ts_scalar.basetype) {
+		case BT_UNSPEC: fprintf(outfile, "\n"); break;
+		case BT_INT:
+			if(node->ts_scalar.modifiers.lls == LLS_UNSPEC)
+				fprintf(outfile, "int\n");
+			else
+				fprintf(outfile, "\n");
+			break;
+		case BT_FLOAT:
+			fprintf(outfile, "float\n"); break; case BT_DOUBLE: fprintf(outfile, "double\n"); break;
+		case BT_CHAR: fprintf(outfile, "char\n"); break;
+		case BT_BOOL: fprintf(outfile, "bool\n"); break;
+		}
+		break;
+
+	// struct types: only need to print tag and where it was defined
+	case NT_TS_STRUCT_UNION:
+		fprintf(outfile, "struct %s (defined at %s:%d)\n",
+			node->ts_structunion.ident,
+			node->ts_structunion.def_filename,
+			node->ts_structunion.def_lineno);
+		break;
+	}
+}
+
+// for printing symbols (and declarators (pointers and dirdeclarators, arrays,
+// functions)); basically everything but the abstract types
+void print_symbol(union astnode *node, int depth)
 {
 	FILE *outfile = stdout;
 	switch(node->generic.type)
 	{
-		case NT_TS_SCALAR:
-			if(node->ts_scalar.modifiers.sign==SIGN_UNSIGNED)
-				fprintf(outfile, "unsigned");
-			switch(node->ts_scalar.modifiers.lls)
-			{
-				case LLS_UNSPEC:
-					break;
-				case LLS_SHORT:
-					fprintf(outfile, "short ");
-					break;
-				case LLS_LONG:
-					fprintf(outfile, "long ");
-					break;
-				case LLS_LONG_LONG:
-					fprintf(outfile, "long long ");
-					break;
-			}
-			switch(node->ts_scalar.basetype)
-			{
-				case BT_UNSPEC:
-					fprintf(outfile, "\n");
-					break;
-				case BT_INT:
-					if(node->ts_scalar.modifiers.lls == LLS_UNSPEC)
-						fprintf(outfile, "int\n");
-					else
-						fprintf(outfile, "\n");
-					break;
-				case BT_FLOAT:
-					fprintf(outfile, "float\n");
-					break;
-				case BT_DOUBLE:
-					fprintf(outfile, "double\n");
-					break;
-				case BT_CHAR:
-					fprintf(outfile, "char\n");
-					break;
-				case BT_BOOL:
-					fprintf(outfile, "bool\n");
-					break;
-			}
-			break;
-		
+		// direct declarator: handling arrays, fns
 		case NT_DIRDECLARATOR:
 			switch(node->dirdeclarator.declarator_type)
 			{
 				case DT_ARRAY:
 					fprintf(outfile, "array of %d elements of type\n", node->dirdeclarator.size);
-					print_symtab(node->dirdeclarator.typequallist, depth+2);
+					// print_symbol(node->dirdeclarator.typequallist, depth+2);
 					break;
 
 				case DT_FN:
 					fprintf(outfile, "function returning\n");
 					break;
-
-
 			}
 			break;
-		
+
+		// pointer included in declarator
 		case NT_POINTER:
-			if(node->ptr.typequallist)
-			{
-				fprintf(outfile, "%s ", print_typequallist(node->ptr.typequallist->tq.qual));
-				
-			}
+			print_typequallist(node->ptr.typequallist);
 			fprintf(outfile, "pointer to\n");
-			print_symtab(node->ptr.to, depth+2);
+			print_symbol(node->ptr.to, depth+2);
 			break;
 
 		case NT_SYMBOL:;
@@ -101,18 +127,17 @@ void print_symtab(union astnode *node, int depth)
 			switch(node->symbol.value->generic.type) {
 				case NT_VARIABLE:
 					fprintf(outfile, "variable with stgclass %s of type:\n", print_sc(node->symbol.value->declspec.sc));
-					if(node->symbol.value->variable.declarator->declarator.pointer)
-						print_symtab(node->symbol.value->variable.declarator->declarator.pointer, depth);
-					else
-					{
-					
-					INDENT(depth+1);			
-					fprintf(outfile, "%s", "");
+					if(node->symbol.value->variable.declarator->declarator.pointer) {
+						print_symbol(node->symbol.value->variable.declarator->declarator.pointer, depth);
 					}
+					print_typequallist(node->symbol.value->variable.declspec->declspec.tq);
+					print_type(node->symbol.value->variable.declspec->declspec.ts, depth+1);
 					break;
+
 				case NT_TS_STRUCT_UNION:
-					// TODO: jon
+					print_type(node->symbol.value, depth+1);
 					break;
+
 				// case NT_LABEL:
 			}
 			
@@ -123,9 +148,22 @@ void print_symtab(union astnode *node, int depth)
 
 }
 
-char *print_typequallist(unsigned char tq)
+void print_typequallist(union astnode *node)
 {
-	return "";
+	if (!node) {
+		return;
+	}
+	unsigned char tq = node->tq.qual;
+	
+	char tmp[30] = {0};
+	if (tq & TQ_CONST)
+		strcat(tmp, "const ");
+	if (tq & TQ_RESTRICT)
+		strcat(tmp, "restrict ");
+	if (tq & TQ_VOLATILE)
+		strcat(tmp, "volatile ");
+	fprintf(stdout, "%s", tmp);
+	// return tmp;
 }
 
 
@@ -154,8 +192,12 @@ char *print_sc(union astnode *scspec_node)
 		case SC_REGISTER:
 			return "register";
 			break;
-		default:
-			return "";
+		// default:;
+		// 	// if in global scope
+		// 	struct scope *curscope = get_current_scope();
+		// 	if(curscope->type == ST_FILE)
+		// 		return "extern";
+			// TODO: automatic scope
 	}
 }
 
@@ -197,6 +239,9 @@ void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 		iter->ptr.to = declspec;
 	}
 
+	// fill in declspec missing values with their defaults
+	fill_defaults(declspec);
+
 	ALLOC(var);
 	var->variable.type = NT_VARIABLE;
 	var->variable.declspec = declspec;
@@ -214,7 +259,7 @@ void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 	// e.g., if storage class is unspecified, it should be set to extern if
 	// global scope, otherwise auto
 
-	print_symtab(symbol, 0);
+	print_symbol(symbol, 0);
  
 	#if DEBUG
 	printf("Declaring symbol %s with type %d\n", ident,
@@ -222,6 +267,25 @@ void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 	#endif
 
 	scope_insert(ident, ns, symbol);
+}
+
+void fill_defaults(union astnode *declspec)
+{
+	// TODO
+	
+	// Check if null
+	ALLOC(declspec);
+	if(!declspec->declspec.sc->sc.scspec)
+	{
+	//Check if global scope, set default to extern
+		struct scope *curscope = get_current_scope();
+		if(curscope->type == ST_FILE)
+			declspec->declspec.sc->sc.scspec = SC_EXTERN;
+	}
+	//set type qual
+	declspec->declspec.tq->tq.qual = 0x0;
+	
+	
 }
 
 // combine declaration specifiers in the intended manner
@@ -360,5 +424,6 @@ union astnode *merge_declspec(union astnode *spec1, union astnode *spec2) {
 
 	// cleanup
 	free(spec2);
+	spec1->declspec = ds1;
 	return spec1;
 }
