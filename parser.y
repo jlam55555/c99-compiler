@@ -272,11 +272,11 @@ initdecllist:	initdecl			{/*doesn't have to return anything*/
 		;
 
 initdecl:	declarator			{$$=$1;}
-		/*| declarator '=' initializer	{/*add initializer to variable,insert declarator into symtab}*/
+		/*| declarator '=' initializer	{$$=$1;/*don't handle initializer}*/
 		;
 
 /* 6.7.1 storage class specifier */
-scspec:		TYPEDEF				{/*TODO*/}
+scspec:		TYPEDEF				{/*not implementing this*/}
 		| EXTERN			{ALLOC_SET_SCSPEC($$,SC_EXTERN);}
 		| STATIC			{ALLOC_SET_SCSPEC($$,SC_STATIC);}
 		| AUTO				{ALLOC_SET_SCSPEC($$,SC_AUTO);}
@@ -295,7 +295,7 @@ typespec:	VOID				{ALLOC_SET_SCALAR($$,BT_VOID,LLS_UNSPEC,SIGN_UNSPEC);}
 		| UNSIGNED			{ALLOC_SET_SCALAR($$,BT_UNSPEC,LLS_UNSPEC,SIGN_UNSIGNED);}
 		| _BOOL 			{ALLOC_SET_SCALAR($$,BT_BOOL,LLS_UNSPEC,SIGN_UNSPEC);}
 		| _COMPLEX 			{/*TODO: might not implement this*/}
-		| structunionspec		{$$=$1;fprintf(stdout,"testing:%d\n",$$->generic.type==NT_TS_STRUCT_UNION);}
+		| structunionspec		{$$=$1;}
 		/*| enumspec			{/*TODO}*/
 		/*| typedefname			{/*TODO}*/
 		;
@@ -352,7 +352,7 @@ declarator:	pointer dirdeclarator		{ALLOC_DECLARATOR($$,$2,$1,0);}
 dirdeclarator:	IDENT							{union astnode *ident;
 									 ALLOC_SET_IDENT(ident,$1);
 									 ALLOC_REGULAR_DIRDECLARATOR($$,ident);}
-		| '(' declarator ')'					{$$=$2;}
+		| '(' declarator ')'					{ALLOC_REGULAR_DIRDECLARATOR($$,$2);}
 		| dirdeclarator '[' typequallist asnmtexpr ']'		{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,0);}
 		| dirdeclarator '[' asnmtexpr ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$3,0);}
 		| dirdeclarator '[' typequallist ']'			{ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,0);}

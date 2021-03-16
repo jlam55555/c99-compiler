@@ -104,8 +104,9 @@ union astnode {
 // helper to print an astnode
 void print_astnode(union astnode *);
 
+// use calloc because it also zeros (malloc is not guaranteed to zero)
 #define ALLOC(var)\
-	(var)=(union astnode *)malloc(sizeof(union astnode));
+	(var)=(union astnode *)calloc(1, sizeof(union astnode));
 
 #define ALLOC_SET_IDENT(var, idt)\
 	ALLOC(var);\
@@ -132,8 +133,7 @@ void print_astnode(union astnode *);
 // helpers to alloc att
 #define ALLOC_DECLSPEC(var)\
 	ALLOC(var);\
-	(var)->declspec.type = NT_DECLSPEC;\
-
+	(var)->declspec.type = NT_DECLSPEC;
 
 #define ALLOC_SET_SCSPEC(var, storageclass)\
 	ALLOC(var);\
@@ -159,22 +159,6 @@ void print_astnode(union astnode *);
 	(var)->declarator.dirdeclarator = dd;\
 	(var)->declarator.is_abstract = abs;\
 	(var)->declarator.pointer = ptr;
-
-/*
-int **const *x;
-
-DECLSPEC * * TYPEQUAL POINTER
-DECLSPEC * POINTER
-DECLSPEC POINTER
-
-struct typespec (int)
-
-1 struct pointer -> v
-2 struct pointer -> v
-3 struct pointer -> int
-
-struct directdeclarator
-*/
 
 #define ALLOC_POINTER(var, tqlist, from)\
 	ALLOC(var);\
@@ -209,11 +193,26 @@ struct directdeclarator
 #define ALLOC_ARRAY_DIRDECLARATOR(var, dd, tql, sizeexpr, abs)\
 	ALLOC(var);\
 	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
-	(var)->dirdeclarator.declarator_type = DT_ARRAY;\
-	(var)->dirdeclarator.ident = dd;\
-	(var)->dirdeclarator.typequallist = tql;\
-	(var)->dirdeclarator.size = sizeexpr;\
-	(var)->dirdeclarator.is_abstract = abs;
+	(var)->dirdeclarator.is_abstract = abs;\
+	union astnode *idt, *node = (dd), *iter;\
+	if (abs && node==NULL) {\
+		ALLOC_SET_IDENT(idt, "");\
+		ALLOC_REGULAR_DIRDECLARATOR(node, idt);\
+		node->dirdeclarator.is_abstract = 1;\
+	}\
+	/*loop to innermost dirdeclarator*/\
+	/*node is top-level, iter is inner-most, var gets added to innermost*/\
+	iter = node;\
+	while (iter->dirdeclarator.ident->generic.type == NT_DIRDECLARATOR) {\
+		iter = iter->dirdeclarator.ident;\
+	}\
+	iter->dirdeclarator.declarator_type = DT_ARRAY;\
+	iter->dirdeclarator.typequallist = tql;\
+	iter->dirdeclarator.size = sizeexpr;\
+	(var)->dirdeclarator.ident = iter->dirdeclarator.ident;\
+	iter->dirdeclarator.ident = (var);\
+	/*return the top dirdeclarator*/\
+	(var) = node;
 
 #define ALLOC_FN_DIRDECLARATOR(var, dd, ptl, abs)\
 	ALLOC(var);\

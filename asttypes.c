@@ -20,11 +20,13 @@ char *print_scope(enum scope_type st);
 void print_typequallist(union astnode *node);
 char *print_sc(union astnode *scspec_node);
 void fill_defaults(union astnode *declspec);
+void print_symbol(union astnode *node, int depth);
 
 // for printing out struct/union when it is defined
 void print_structunion_def(union astnode *node)
 {
 	FILE *outfile = stdout;
+	union astnode *iter;
 	struct astnode_typespec_structunion *su;
 
 	su = &node->ts_structunion;
@@ -33,7 +35,11 @@ void print_structunion_def(union astnode *node)
 		su->ident, su->def_filename, su->def_lineno);
 
 	// loop through fields
-	fprintf(outfile, "TODO: print out fields\n");
+	iter = su->members;
+	while (iter) {
+		print_symbol(iter, 0);
+		iter = iter->generic.next;
+	}
 
 	fprintf(outfile, "}\n");
 }
@@ -81,34 +87,72 @@ void print_type(union astnode *node, int depth)
 		break;
 
 	// struct types: only need to print tag and where it was defined
-	case NT_TS_STRUCT_UNION:
-		fprintf(outfile, "struct %s (defined at %s:%d)\n",
-			node->ts_structunion.ident,
-			node->ts_structunion.def_filename,
-			node->ts_structunion.def_lineno);
+	case NT_TS_STRUCT_UNION:;
+		struct astnode_typespec_structunion *su = &node->ts_structunion;
+		if (su->is_complete) {
+			fprintf(outfile, "struct %s (defined at %s:%d)\n",
+				su->ident, su->def_filename, su->def_lineno);
+		} else {
+			fprintf(outfile, "struct %s (incomplete)\n",
+				su->ident);
+		}
 		break;
 	}
 }
 
 // for printing symbols (and declarators (pointers and dirdeclarators, arrays,
-// functions)); basically everything but the abstract types
+// functions)); everything but the abstract types
 void print_symbol(union astnode *node, int depth)
 {
 	FILE *outfile = stdout;
+
+	// TODO: fix later
+	if (!node) {
+		return;
+	}
 	switch(node->generic.type)
 	{
 		// direct declarator: handling arrays, fns
 		case NT_DIRDECLARATOR:
+			if (node->dirdeclarator.ident->generic.type != NT_IDENT) {
+				print_symbol(node->dirdeclarator.ident, depth+1);
+			}
+
 			switch(node->dirdeclarator.declarator_type)
 			{
+				case DT_REGULAR:
+					
+					break;
+
 				case DT_ARRAY:
-					fprintf(outfile, "array of %d elements of type\n", node->dirdeclarator.size);
+					fprintf(outfile, "array of %d elements of type:\n", node->dirdeclarator.size->num.num.int_val);
+
 					// print_symbol(node->dirdeclarator.typequallist, depth+2);
 					break;
 
 				case DT_FN:
 					fprintf(outfile, "function returning\n");
+					if(node->dirdeclarator.paramtypelist)
+					{
+						fprintf(outfile, "and taking the following arguments\n");
+						print_type(node->dirdeclarator.paramtypelist, depth+1);
+					}
+					else
+						fprintf(outfile, "and taking an unspecified number of arguments.\n");
 					break;
+			}
+
+			break;
+
+		// handling (potentially nested) declarators
+		case NT_DECLARATOR:;
+			struct astnode_declarator *declarator = &node->declarator;
+
+			print_symbol(declarator->dirdeclarator, depth+1);
+
+			// pointers
+			if(declarator->pointer) {
+				print_symbol(declarator->pointer, depth+1);
 			}
 			break;
 
@@ -121,17 +165,28 @@ void print_symbol(union astnode *node, int depth)
 
 		case NT_SYMBOL:;
 			struct scope *curscope = get_current_scope();
-			fprintf(outfile, "%s is defined in %s:%d [in %s scope starting at %s:%d] as a ",
-			 	node->symbol.ident, filename, lineno, print_scope(curscope->type), "", 1);
-			INDENT(depth);
+			fprintf(outfile, "%s is defined at %s:%d [in %s scope starting at %s:%d] as a ",
+			 	node->symbol.ident, filename, lineno, print_scope(curscope->type), curscope->filename, curscope->lineno);
 			switch(node->symbol.value->generic.type) {
-				case NT_VARIABLE:
-					fprintf(outfile, "variable with stgclass %s of type:\n", print_sc(node->symbol.value->declspec.sc));
-					if(node->symbol.value->variable.declarator->declarator.pointer) {
-						print_symbol(node->symbol.value->variable.declarator->declarator.pointer, depth);
+				case NT_VARIABLE:;
+					struct astnode_variable *var = &node->symbol.value->variable;
+					struct astnode_declspec *declspec = &var->declspec->declspec;
+					switch(1)
+					{
+						case DT_FN:
+							fprintf(outfile, "%s function returning:\n", print_sc(declspec->sc));
+						default:
+							fprintf(outfile, "variable with stgclass %s of type:\n", print_sc(declspec->sc));
 					}
-					print_typequallist(node->symbol.value->variable.declspec->declspec.tq);
-					print_type(node->symbol.value->variable.declspec->declspec.ts, depth+1);
+					
+
+					// print declarator
+					print_symbol(var->declarator, depth+1);
+
+					// print typequallist
+					print_typequallist(declspec->tq);
+					INDENT(depth+2);
+					print_type(declspec->ts, depth+1);
 					break;
 
 				case NT_TS_STRUCT_UNION:
@@ -209,7 +264,15 @@ char *print_scope(enum scope_type st)
 		case ST_FILE:
 			return "global";
 			break;
+		
+		// "fake" scope for printing purposes
+		case ST_STRUCTUNION:
+			return "struct/union";
+			break;
 
+		case ST_BLOCK:
+			return "block";
+			break;
 		
 		//ST_FUNC, ST_BLOCK, ST_PROTO
 	}
@@ -271,19 +334,18 @@ void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 
 void fill_defaults(union astnode *declspec)
 {
-	// TODO
-	
 	// Check if null
-	ALLOC(declspec);
-	if(!declspec->declspec.sc->sc.scspec)
+	if(!declspec->declspec.sc)
 	{
 	//Check if global scope, set default to extern
 		struct scope *curscope = get_current_scope();
 		if(curscope->type == ST_FILE)
-			declspec->declspec.sc->sc.scspec = SC_EXTERN;
+			ALLOC_SET_SCSPEC(declspec->declspec.sc, SC_EXTERN);
+
 	}
 	//set type qual
-	declspec->declspec.tq->tq.qual = 0x0;
+	if(!declspec->declspec.tq)
+		ALLOC_SET_TQSPEC(declspec->declspec.tq, 0);
 	
 	
 }

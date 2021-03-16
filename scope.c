@@ -2,6 +2,7 @@
 #include "astnode.h"
 #include "scope.h"
 #include "parser.h"
+#include "lexerutils/errorutils.h"
 #include <stdio.h>
 #include <malloc.h>
 
@@ -29,7 +30,11 @@ void scope_push(enum scope_type type) {
 	for (i = 0; i < 3; i++) {
 		symtab_init(&scope->ns[i]);
 	}
+
+	// set scope parameters
 	scope->type = type;
+	scope->filename = strdup(filename);
+	scope->lineno = lineno;
 }
 
 // scope ended, destroy it

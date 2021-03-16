@@ -129,6 +129,16 @@ void structunion_install_member(union astnode *declarator,
 		}
 	}
 
+	// if declarator has a pointer, then make it point to the correct type
+	// (same as for regular variables)
+	else {
+		iter = declr->pointer;
+		while (iter->ptr.to) {
+			iter = iter->ptr.to;
+		}
+		iter->ptr.to = specquallist;
+	}
+
 	// get identifier from declarator
 	iter = declr->dirdeclarator->dirdeclarator.ident;
 	while (iter->generic.type != NT_IDENT) {
@@ -155,14 +165,19 @@ void structunion_install_member(union astnode *declarator,
 	symbol->symbol.value = var;
 	symtab_insert(&su->members_ht, ident, symbol);
 
-	// TODO: install into linked list
-	// TODO: working here
+	// install (symbol) into linked list
+	if (!su->members) {
+		su->members = symbol;
+	} else {
+		LL_APPEND(su->members, symbol);
+	}
 }
 
 union astnode *structunion_done(int is_complete)
 {
 	union astnode *node;
 	struct astnode_typespec_structunion *su;
+	struct scope *dummy_scope;
 
 	// if stack empty, error (shouldn't happen, indicates error w/ compiler)
 	if (su_decl_stack_pos < 0) {
@@ -174,12 +189,23 @@ union astnode *structunion_done(int is_complete)
 
 	// print out definition (only if just defined)
 	if (su->is_being_defined) {
+		// push dummy struct/union scope (for printing purposes)
+		scope_push(ST_STRUCTUNION);
+		dummy_scope = get_current_scope();
+		dummy_scope->filename = su->def_filename;
+		dummy_scope->lineno = su->def_lineno;
+
 		print_structunion_def(node);
+
+		// pop dummy struct/union scope
+		scope_pop();
 	}
 
-	// set type to complete
+	// not being defined anymore
 	su->is_being_defined = 0;
-	su->is_complete = is_complete;
+
+	// if was already complete, leave it; otherwise set it
+	su->is_complete |= is_complete;
 
 	// pop from stack
 	--su_decl_stack_pos;

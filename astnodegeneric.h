@@ -42,12 +42,13 @@ enum astnode_type {
 
 // this is declared in asttypes.c
 extern union astnode *ll_append_iter;
-#define LL_APPEND(ll, node)\
+#define LL_APPEND(ll, node) {\
 	ll_append_iter = node;\
 	while (ll_append_iter->generic.next) {\
 		ll_append_iter = ll_append_iter->generic.next;\
 	}\
-	ll_append_iter->generic.next = node;
+	ll_append_iter->generic.next = node;\
+}
 
 // "interface" for astnodes
 struct astnode_generic {

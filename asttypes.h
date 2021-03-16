@@ -81,7 +81,7 @@ struct astnode_typespec_structunion {
 	enum spec_type spectype;	// = ST_TAG
 	enum structunion_type su_type;
 
-	// linked-list and hashtable of members
+	// linked-list and hashtable of members as symbols
 	union astnode *members;
 	struct symtab members_ht;
 
@@ -90,7 +90,7 @@ struct astnode_typespec_structunion {
 
 	// for debugging purposes: prints out where struct is defined
 	char *def_filename;
-	int *def_lineno;
+	int def_lineno;
 };
 
 #define TQ_CONST	0x1

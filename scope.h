@@ -15,11 +15,15 @@
 
 // in asttypes.h:
 // enum name_space { NS_TAG, NS_LABEL, NS_IDENT }; 
-enum scope_type { ST_FILE, ST_FUNC, ST_BLOCK, ST_PROTO };
+enum scope_type { ST_FILE, ST_FUNC, ST_BLOCK, ST_PROTO, ST_STRUCTUNION };
 
 struct scope {
 	enum scope_type type;
 	struct symtab ns[3];
+
+	// for debugging/printing purposes
+	char *filename;
+	int lineno;
 };
 
 void scope_push(enum scope_type type);
