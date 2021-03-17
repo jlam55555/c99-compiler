@@ -349,8 +349,8 @@ funcspec:	INLINE				{/*not implementing inline functions*/}
 
 
 /* 6.7.5 Declarators */
-declarator:	pointer dirdeclarator		{$$=declarator_append($2,$1);/*ALLOC_DECLARATOR($$,$2,$1,0);*/}
-		| dirdeclarator			{$$=$1;/*ALLOC_DECLARATOR($$,$1,NULL,0);*/}
+declarator:	pointer dirdeclarator		{$$=declarator_append($2,$1);}
+		| dirdeclarator			{$$=$1;}
 		;
 
 /* have to expand these otherwise shift/reduce conflicts on optional sections */
@@ -367,18 +367,18 @@ dirdeclarator:	IDENT							{$$=declarator_new($1);}
 		| dirdeclarator '[' STATIC ']'				{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
 		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'	{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
 		| dirdeclarator '[' typequallist '*' ']'		{/*ignore variable length array*/
-									 }
-		| dirdeclarator '['  '*' ']'				{}
-		| dirdeclarator '(' paramtypelist ')'			{/*ALLOC_FN_DIRDECLARATOR($$,$1,$3,0);*/}
-		| dirdeclarator '(' identlist ')'			{/*ignore old C function syntax*/
-									 /*TODO: throw an error because this may cause other problems*/}
-		| dirdeclarator '(' ')'					{/*ALLOC_FN_DIRDECLARATOR($$,$1,NULL,0);*/}
+									 $$=declarator_append($1,declarator_array_new(NULL,$3));}
+		| dirdeclarator '['  '*' ']'				{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
+		| dirdeclarator '(' paramtypelist ')'			{$$=declarator_append($1,declarator_function_new($3));}
+		| dirdeclarator '(' identlist ')'			{/*reject old C function syntax*/
+									 yyerror_fatal("old function declaration style not allowed");}
+		| dirdeclarator '(' ')'					{$$=declarator_append($1,declarator_function_new(NULL));}
 		;
 
-pointer:	'*' typequallist		{$$=declarator_pointer_new($2);/*ALLOC_POINTER($$,$2,NULL);*/}
-		| '*'				{$$=declarator_pointer_new(NULL);/*ALLOC_POINTER($$,NULL,NULL);*/}
-		| '*' typequallist pointer	{$$=declarator_pointer_new($2);LL_NEXT($$)=$3;/*ALLOC_POINTER($$,$2,$3);$$=$3;*/}
-		| '*' pointer			{$$=declarator_pointer_new(NULL);LL_NEXT($$)=$2;/*ALLOC_POINTER($$,NULL,$2);$$=$2;*/}
+pointer:	'*' typequallist		{$$=declarator_pointer_new($2);}
+		| '*'				{$$=declarator_pointer_new(NULL);}
+		| '*' typequallist pointer	{$$=declarator_pointer_new($2);LL_NEXT($$)=$3;}
+		| '*' pointer			{$$=declarator_pointer_new(NULL);LL_NEXT($$)=$2;}
 		;
 
 typequallist:	typequal			{$$=$1;}

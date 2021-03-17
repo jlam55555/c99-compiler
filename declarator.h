@@ -63,20 +63,19 @@ union astnode *declarator_new(char *ident);
 
 // append a (multiple) declarator component(s) to a declarator;
 // returns declarator
-union astnode *declarator_append(union astnode *declarator_node,
-	union astnode *component_nodes);
+union astnode *declarator_append(union astnode *declarator,
+	union astnode *components);
 
 // reverse declarator component order since they are inserted in reverse
-void declarator_reverse(union astnode *declarator_node);
+void declarator_reverse(union astnode *declarator);
 
 // recursively print declarator components
-void declarator_print(union astnode *component_node, int depth);
+void declarator_print(union astnode *component, int depth);
 
-// create a new declarator array component; set parameters to NULL if missing
-union astnode *declarator_array_new(union astnode *length_node,
-	union astnode *spec_node);
-
-// create a new declarator array component; set parameters to NULL if missing
-union astnode *declarator_pointer_new(union astnode *spec_node);
+// create new declarator components; set parameters to NULL if missing
+union astnode *declarator_array_new(union astnode *length,
+	union astnode *spec);
+union astnode *declarator_pointer_new(union astnode *spec);
+union astnode *declarator_function_new(union astnode *paramdecls);
 
 #endif // DECLARATORH

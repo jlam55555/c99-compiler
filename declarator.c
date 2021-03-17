@@ -6,30 +6,30 @@
 
 union astnode *declarator_new(char *ident)
 {
-	union astnode *declarator_node;
+	union astnode *declarator;
 
-	ALLOC_TYPE(declarator_node, NT_DECLARATOR);
-	declarator_node->declarator.ident = strdup(ident);
+	ALLOC_TYPE(declarator, NT_DECLARATOR);
+	declarator->declarator.ident = strdup(ident);
 
-	return declarator_node;
+	return declarator;
 }
 
-union astnode *declarator_append(union astnode *declarator_node,
-	union astnode *component_nodes)
+union astnode *declarator_append(union astnode *declarator,
+	union astnode *components)
 {
-	LL_APPEND(component_nodes, declarator_node->declarator.components);
-	declarator_node->declarator.components = component_nodes;
+	LL_APPEND(components, declarator->declarator.components);
+	declarator->declarator.components = components;
 
-	return declarator_node;
+	return declarator;
 }
 
-void declarator_reverse(union astnode *declarator_node)
+void declarator_reverse(union astnode *declarator)
 {
 	// linear in-place singly-linked linked-list reversal
 	union astnode *a, *b, *c;
 
 	// components list is < 2 elements, nothing to do
-	if (!(a = declarator_node->declarator.components)
+	if (!(a = declarator->declarator.components)
 		|| !(b = LL_NEXT(a))) {
 		return;
 	}
@@ -46,23 +46,23 @@ void declarator_reverse(union astnode *declarator_node)
 		c = LL_NEXT(c);
 	}
 	LL_NEXT(b) = a;
-	declarator_node->declarator.components = b;
+	declarator->declarator.components = b;
 }
 
-void declarator_print(union astnode *component_node, int depth)
+void declarator_print(union astnode *component, int depth)
 {
 	FILE *fp = stdout;
 
 	// end of declarator chain
-	if (!component_node) {
+	if (!component) {
 		return;
 	}
 
 	INDENT(depth);
-	switch (component_node->generic.type) {
+	switch (component->generic.type) {
 	case NT_DECLARATOR_ARRAY:
 		fprintf(fp, "array (%d) of\n",
-			component_node->declarator_array.length->num.num.int_val);
+			component->declarator_array.length->num.num.int_val);
 		break;
 	case NT_DECLARATOR_POINTER:
 		fprintf(fp, "pointer to\n");
@@ -72,44 +72,53 @@ void declarator_print(union astnode *component_node, int depth)
 		break;
 	default:
 		fprintf(fp, "unknown type %d in print_symbol\n",
-			component_node->generic.type);
+			component->generic.type);
 		return;
 	}
 
 	// recursively print
-	declarator_print(component_node->declarator_component.next, depth+1);
+	declarator_print(component->declarator_component.next, depth+1);
 }
 
-union astnode *declarator_array_new(union astnode *length_node,
-	union astnode *spec_node)
+union astnode *declarator_array_new(union astnode *length,
+	union astnode *spec)
 {
-	union astnode *declarator_array_node;
-	struct astnode_declarator_array *declarator_array;
+	union astnode *declarator_array;
+	struct astnode_declarator_array *array;
 
-	ALLOC_TYPE(declarator_array_node, NT_DECLARATOR_ARRAY);
+	ALLOC_TYPE(declarator_array, NT_DECLARATOR_ARRAY);
 
-	declarator_array = &declarator_array_node->declarator_array;
-	declarator_array->length = length_node;
-	declarator_array->spec = spec_node;
+	array = &declarator_array->declarator_array;
+	array->length = length;
+	array->spec = spec;
 
 	// we are not implementing VLAs
-	if (!length_node) {
+	if (!length) {
 		yyerror_fatal("VLAs not supported");
 	}
 	// we only support numeric constants
 	// TODO: should also check for non-integer constants
-	else if (length_node->generic.type != NT_NUMBER) {
+	else if (length->generic.type != NT_NUMBER) {
 		yyerror_fatal("array length must be a numeric constant");
 	}
 
-	return declarator_array_node;
+	return declarator_array;
 }
 
-union astnode *declarator_pointer_new(union astnode *spec_node)
+union astnode *declarator_pointer_new(union astnode *spec)
 {
-	union astnode *declarator_pointer_node;
+	union astnode *declarator_pointer;
 
-	ALLOC_TYPE(declarator_pointer_node, NT_DECLARATOR_POINTER);
-	declarator_pointer_node->declarator_pointer.spec = spec_node;
-	return declarator_pointer_node;
+	ALLOC_TYPE(declarator_pointer, NT_DECLARATOR_POINTER);
+	declarator_pointer->declarator_pointer.spec = spec;
+	return declarator_pointer;
+}
+
+union astnode *declarator_function_new(union astnode *paramdecls)
+{
+	union astnode *declarator_function;
+
+	ALLOC_TYPE(declarator_function, NT_DECLARATOR_FUNCTION);
+	declarator_function->declarator_function.paramlist = paramdecls;
+	return declarator_function;
 }
