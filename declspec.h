@@ -60,4 +60,12 @@ struct astnode_declspec {
  */
 union astnode *merge_declspec(union astnode *ds1, union astnode *ds2);
 
+/**
+ * filling in the missing fields of a declspec appropriate given the context
+ * (e.g., default storage class is extern in global scope, auto otherwise)
+ *
+ * @param declspec	declspec to fill in defaults for
+ */
+void declspec_fill_defaults(union astnode *declspec);
+
 #endif // DECLSPECH

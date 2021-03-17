@@ -140,3 +140,8 @@ union astnode *merge_declspec(union astnode *spec1, union astnode *spec2) {
 	spec1->declspec = ds1;
 	return spec1;
 }
+
+void declspec_fill_defaults(union astnode *declspec)
+{
+	// TODO
+}

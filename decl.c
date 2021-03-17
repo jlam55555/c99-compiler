@@ -140,7 +140,13 @@ void install_varfn(union astnode *decl, union astnode *declspec)
 	FILE *fp = stdout;
 	char *ident;
 
+	// get ident from declarator
 	ident = decl->decl.ident;
+
+	// fill in missing fields of declspec
+	declspec_fill_defaults(declspec);
+
+	// combine declspec and decl to make full declaration
 	decl_finalize(decl, declspec);
 
 #if DEBUG
