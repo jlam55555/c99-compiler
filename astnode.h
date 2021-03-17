@@ -1,3 +1,10 @@
+/**
+ * 	Defining the core (expression) AST node types, the astnode union,
+ * 	and several macros dealing with union astnodes.
+ *
+ * 	TODO: clean up old stuff in this file
+ */
+
 #ifndef ASTNODEH
 #define ASTNODEH
 

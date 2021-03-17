@@ -1,3 +1,10 @@
+/**
+ * 	Header for functions defined in the parser.y file.
+ *
+ * 	Include this in other files to use the yyerror() and yyerror_fatal()
+ * 	error printing functions.
+ */
+
 #ifndef PARSERH
 #define PARSERH
 
