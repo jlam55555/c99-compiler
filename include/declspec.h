@@ -57,6 +57,8 @@ struct astnode_declspec {
  * merge two declaration specifers following the standard semantic rules;
  * returns the merged declspec and frees the other
  *
+ * for semantics: see the function definition
+ *
  * @param ds1	first declaration specifier
  * @param ds2	second declaration specifier
  * @return	merged declaration specifier

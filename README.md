@@ -46,5 +46,7 @@ TODO:
 - Implement prototype scope
 - Check that declaration specifier combination is valid (recursively)
     before inserting symbol
+- Move extra printing in parser.y to printutils.c
+- Implement abstract declarators and typenames
   
 [cmake-oos]: https://www.cs.swarthmore.edu/~adanner/tips/cmake.php

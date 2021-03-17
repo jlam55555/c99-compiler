@@ -24,9 +24,15 @@ union astnode *decl_append(union astnode *decl, union astnode *components)
 	return decl;
 }
 
+/**
+ * reverse list of components in declarator. Only called by decl_finalize().
+ * performs a linear in-place singly-linked linked-list reversal (thanks lc)
+ *
+ * @param decl 	declarator component ll
+ */
 static void decl_reverse(union astnode *decl)
 {
-	// linear in-place singly-linked linked-list reversal
+	//
 	union astnode *a, *b, *c;
 
 	// components list is < 2 elements, nothing to do
@@ -49,6 +55,56 @@ static void decl_reverse(union astnode *decl)
 	decl->decl.components = b;
 }
 
+/**
+ * check if declaration (declarator + declspec) is valid. Only called from
+ * decl_finalize. Works recursively
+ *
+ * TODO: lots to check. currently only checks for incomplete types
+ *
+ * @param node		node to check
+ * @param is_pointer	whether previous node was a pointer
+ */
+static void decl_check(union astnode *node, int is_pointer)
+{
+	union astnode *ts;
+
+	switch (NT(node)) {
+	case NT_DECLSPEC:
+		// check for incomplete type if struct/union and not pointer
+		if (!is_pointer && (ts = node->declspec.ts)
+			&& NT(ts) == NT_TS_STRUCT_UNION
+			&& !ts->ts_structunion.is_complete) {
+			yyerror_fatal("incomplete type in non-pointer "
+				 "declaration");
+		}
+		break;
+
+	case NT_DECLARATOR_FUNCTION:
+		decl_check(LL_NEXT_OF(node), 0);
+		break;
+
+	case NT_DECLARATOR_POINTER:
+		decl_check(LL_NEXT_OF(node), 1);
+		break;
+
+	case NT_DECLARATOR_ARRAY:
+		decl_check(LL_NEXT_OF(node), 0);
+		break;
+
+	case NT_DECL:
+		// start case: top-level declaration
+		// recursively check declaration components (this will
+		// eventually lead to declspec)
+		decl_check(node->decl.components, 0);
+		break;
+	}
+
+	// TODO: if function, check parameter list (e.g., void, ...,
+	//	declspecs, etc.)
+
+	// TODO: warn if tag declared within prototype scope
+}
+
 void decl_finalize(union astnode *decl, union astnode *declspec)
 {
 	decl->decl.declspec = declspec;
@@ -59,6 +115,9 @@ void decl_finalize(union astnode *decl, union astnode *declspec)
 
 	// reverse declspec ll so that it is in the logical order
 	decl_reverse(decl);
+
+	// check that declarator is valid
+	decl_check(decl, 0);
 }
 
 union astnode *decl_array_new(union astnode *length, union astnode *spec)
@@ -120,11 +179,6 @@ void decl_install(union astnode *decl, union astnode *declspec)
 
 	// combine declspec and decl to make full declaration
 	decl_finalize(decl, declspec);
-
-	// TODO: check that all of the declaration specifiers are valid
-	//	e.g., function param list cannot have certain storage class spec
-	//	https://en.cppreference.com/w/c/language/function_declaration
-	//	e.g., void special parameter
 
 #if DEBUG
 	print_symbol(decl, 1);

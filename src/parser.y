@@ -308,8 +308,9 @@ structunionspec:structunion '{' structdecllist '}'				{$$=structunion_done(1);}
 										 $$=structunion_done(0);}
 		;
 
-structunion:	STRUCT								{$$=structunion_new(SU_STRUCT);}
-		| UNION								{$$=structunion_new(SU_UNION);}
+structunion:	STRUCT								{/*note: doesn't set $$, rather builds struct/union globally*/
+										 structunion_new(SU_STRUCT);}
+		| UNION								{structunion_new(SU_UNION);}
 		;
 
 structdecllist:	structdecl							{/*nothing to do here*/}

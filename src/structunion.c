@@ -12,7 +12,7 @@
 static union astnode **su_decl_stack = NULL;
 int su_decl_stack_pos = -1, su_decl_stack_capacity = 0;
 
-union astnode *structunion_new(enum structunion_type type)
+void structunion_new(enum structunion_type type)
 {
 	union astnode *node;
 	struct astnode_typespec_structunion *su;
@@ -49,7 +49,7 @@ union astnode *structunion_new(enum structunion_type type)
 
 void structunion_set_name(char *ident, int begin_def)
 {
-	union astnode *node, *symbol;
+	union astnode *node;
 	struct astnode_typespec_structunion *su;
 
 	// if stack empty, error (shouldn't happen, indicates error w/ compiler)
@@ -77,7 +77,6 @@ void structunion_set_name(char *ident, int begin_def)
 		// replace top of stack with found, set begin_def
 		free(su_decl_stack[su_decl_stack_pos]);
 		su_decl_stack[su_decl_stack_pos] = node;
-		su->is_being_defined = begin_def;
 	}
 	
 	// not already declared in symbol table
@@ -90,21 +89,15 @@ void structunion_set_name(char *ident, int begin_def)
 		su->is_being_defined = begin_def;
 
 		// insert into symtab
-//		ALLOC(symbol);
-//		symbol->symbol.ident = su->ident;
-//		symbol->symbol.value = node;
-
 		scope_insert(ident, NS_TAG, node);
 	}
 }
 
-void structunion_install_member(union astnode *declarator,
-	union astnode *specquallist)
+void structunion_install_member(union astnode *decl,
+	union astnode *declspec)
 {
-	union astnode *node, *search, *iter, *var, *symbol;
+	union astnode *node, *search;
 	struct astnode_typespec_structunion *su;
-	struct astnode_decl *decl;
-	struct astnode_declspec *declspec;
 	char *ident;
 
 	// if stack empty, error (shouldn't happen, indicates error w/ compiler)
@@ -114,56 +107,24 @@ void structunion_install_member(union astnode *declarator,
 
 	node = su_decl_stack[su_decl_stack_pos];
 	su = &node->ts_structunion;
-	decl = &declarator->decl;
-	declspec = &specquallist->declspec;
 
-	// if declarator not a pointer, make sure typespec is not incomplete
-//	if (!declr->pointer) {
-//		if (declspec->ts->generic.type == NT_TS_STRUCT_UNION
-//			&& !declspec->ts->ts_structunion.is_complete) {
-//			yyerror_fatal("field has incomplete type");
-//		}
-//	}
-//
-//	// if declarator has a pointer, then make it point to the correct type
-//	// (same as for regular variables)
-//	else {
-//		iter = declr->pointer;
-//		while (iter->ptr.to) {
-//			iter = iter->ptr.to;
-//		}
-//		iter->ptr.to = specquallist;
-//	}
-//
-//	// get identifier from declarator
-//	iter = declr->dirdeclarator->dirdeclarator.ident;
-//	while (iter->generic.type != NT_IDENT) {
-//		iter = iter->dirdeclarator.ident;
-//	}
-//	ident = strdup(iter->ident.ident);
+	decl_finalize(decl, declspec);
 
 	// check if field exists in member symtab
+	ident = decl->decl.ident;
 	search = symtab_lookup(&su->members_ht, ident);
 	if (search) {
 		yyerror_fatal("duplicate member");
 	}
 
 	// insert into symtab and list
-//	ALLOC(var);
-//	var->variable.type = NT_VARIABLE;
-//	var->variable.declspec = specquallist;
-//	var->variable.declarator = declarator;
-
-//	ALLOC(symbol);
-//	symbol->symbol.ident = ident;
-//	symbol->symbol.value = var;
-	symtab_insert(&su->members_ht, ident, var);
+	symtab_insert(&su->members_ht, ident, decl);
 
 	// install (symbol) into linked list
 	if (!su->members) {
-		su->members = symbol;
+		su->members = decl;
 	} else {
-		LL_APPEND(su->members, symbol);
+		LL_APPEND(su->members, decl);
 	}
 }
 
@@ -182,7 +143,7 @@ union astnode *structunion_done(int is_complete)
 	su = &node->ts_structunion;
 
 	// print out definition (only if just defined)
-	if (su->is_being_defined) {
+	if (su->is_being_defined && is_complete) {
 		// push dummy struct/union scope (for printing purposes)
 		scope_push(ST_STRUCTUNION);
 		dummy_scope = get_current_scope();
@@ -195,11 +156,10 @@ union astnode *structunion_done(int is_complete)
 		scope_pop();
 	}
 
-	// not being defined anymore
-	su->is_being_defined = 0;
-
-	// if was already complete, leave it; otherwise set it
-	su->is_complete |= is_complete;
+	if (is_complete) {
+		su->is_being_defined = 0;
+		su->is_complete = 1;
+	}
 
 	// pop from stack
 	--su_decl_stack_pos;
