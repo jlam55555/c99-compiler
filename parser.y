@@ -349,8 +349,8 @@ funcspec:	INLINE				{/*not implementing inline functions*/}
 
 
 /* 6.7.5 Declarators */
-declarator:	pointer dirdeclarator		{/*ALLOC_DECLARATOR($$,$2,$1,0);*/}
-		| dirdeclarator			{/*ALLOC_DECLARATOR($$,$1,NULL,0);*/}
+declarator:	pointer dirdeclarator		{$$=declarator_append($2,$1);/*ALLOC_DECLARATOR($$,$2,$1,0);*/}
+		| dirdeclarator			{$$=$1;/*ALLOC_DECLARATOR($$,$1,NULL,0);*/}
 		;
 
 /* have to expand these otherwise shift/reduce conflicts on optional sections */
@@ -375,10 +375,10 @@ dirdeclarator:	IDENT							{$$=declarator_new($1);}
 		| dirdeclarator '(' ')'					{/*ALLOC_FN_DIRDECLARATOR($$,$1,NULL,0);*/}
 		;
 
-pointer:	'*' typequallist		{/*ALLOC_POINTER($$,$2,NULL);*/}
-		| '*'				{/*ALLOC_POINTER($$,NULL,NULL);*/}
-		| '*' typequallist pointer	{/*ALLOC_POINTER($$,$2,$3);$$=$3;*/}
-		| '*' pointer			{/*ALLOC_POINTER($$,NULL,$2);$$=$2;*/}
+pointer:	'*' typequallist		{$$=declarator_pointer_new($2);/*ALLOC_POINTER($$,$2,NULL);*/}
+		| '*'				{$$=declarator_pointer_new(NULL);/*ALLOC_POINTER($$,NULL,NULL);*/}
+		| '*' typequallist pointer	{$$=declarator_pointer_new($2);LL_NEXT($$)=$3;/*ALLOC_POINTER($$,$2,$3);$$=$3;*/}
+		| '*' pointer			{$$=declarator_pointer_new(NULL);LL_NEXT($$)=$2;/*ALLOC_POINTER($$,NULL,$2);$$=$2;*/}
 		;
 
 typequallist:	typequal			{$$=$1;}

@@ -61,9 +61,10 @@ struct astnode_declaration {
 // create a new declarator; ident=NULL for abstract
 union astnode *declarator_new(char *ident);
 
-// append a declarator component to a declarator; returns declarator
+// append a (multiple) declarator component(s) to a declarator;
+// returns declarator
 union astnode *declarator_append(union astnode *declarator_node,
-	union astnode *component_node);
+	union astnode *component_nodes);
 
 // reverse declarator component order since they are inserted in reverse
 void declarator_reverse(union astnode *declarator_node);
@@ -74,5 +75,8 @@ void declarator_print(union astnode *component_node, int depth);
 // create a new declarator array component; set parameters to NULL if missing
 union astnode *declarator_array_new(union astnode *length_node,
 	union astnode *spec_node);
+
+// create a new declarator array component; set parameters to NULL if missing
+union astnode *declarator_pointer_new(union astnode *spec_node);
 
 #endif // DECLARATORH

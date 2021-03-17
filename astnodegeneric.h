@@ -49,7 +49,7 @@ enum astnode_type {
 // ll_append_iter is declared in asttypes.c
 extern union astnode *ll_append_iter;
 #define LL_APPEND(ll, node) {\
-	ll_append_iter = node;\
+	ll_append_iter = ll;\
 	while (ll_append_iter->generic.next) {\
 		ll_append_iter = ll_append_iter->generic.next;\
 	}\

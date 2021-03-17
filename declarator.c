@@ -15,14 +15,10 @@ union astnode *declarator_new(char *ident)
 }
 
 union astnode *declarator_append(union astnode *declarator_node,
-	union astnode *component_node)
+	union astnode *component_nodes)
 {
-	struct astnode_declarator *declarator = &declarator_node->declarator;
-	struct astnode_declarator_component *component =
-		&component_node->declarator_component;
-
-	component->next = declarator->components;
-	declarator->components = component_node;
+	LL_APPEND(component_nodes, declarator_node->declarator.components);
+	declarator_node->declarator.components = component_nodes;
 
 	return declarator_node;
 }
@@ -32,29 +28,17 @@ void declarator_reverse(union astnode *declarator_node)
 	// linear in-place singly-linked linked-list reversal
 	union astnode *a, *b, *c;
 
-	a = declarator_node->declarator.components;
-	if (!a) {
-		// empty components list, nothing to do
+	// components list is < 2 elements, nothing to do
+	if (!(a = declarator_node->declarator.components)
+		|| !(b = LL_NEXT(a))) {
 		return;
 	}
 
-	b = LL_NEXT(a);
-	if (!b) {
-		// components list is singleton, nothing to do
-		return;
-	}
-
+	// initial setup
 	c = LL_NEXT(b);
-	if (!c) {
-		// components list is two elements a->b, reverse to b->a
-		LL_NEXT(b) = a;
-		LL_NEXT(a) = NULL;
-		declarator_node->declarator.components = b;
-		return;
-	}
+	LL_NEXT(a) = NULL;
 
 	// iterate
-	LL_NEXT(a) = NULL;
 	while (c) {
 		LL_NEXT(b) = a;
 		a = b;
@@ -121,3 +105,11 @@ union astnode *declarator_array_new(union astnode *length_node,
 	return declarator_array_node;
 }
 
+union astnode *declarator_pointer_new(union astnode *spec_node)
+{
+	union astnode *declarator_pointer_node;
+
+	ALLOC_TYPE(declarator_pointer_node, NT_DECLARATOR_POINTER);
+	declarator_pointer_node->declarator_pointer.spec = spec_node;
+	return declarator_pointer_node;
+}
