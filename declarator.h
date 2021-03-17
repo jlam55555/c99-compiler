@@ -14,24 +14,18 @@
 
 #define _ASTNODE_DECLARATOR_COMPONENT\
 	_ASTNODE\
-	union astnode *of;
+	union astnode *of, *spec;\
 
-struct astnode_declarator_generic {
+struct astnode_declarator_component {
 	_ASTNODE_DECLARATOR_COMPONENT
 };
 
 struct astnode_declarator_pointer {
 	_ASTNODE_DECLARATOR_COMPONENT
-
-	// pointer spec
-	union astnode *spec;
 };
 
 struct astnode_declarator_function {
 	_ASTNODE_DECLARATOR_COMPONENT
-
-	// can only include INLINE, which gets ignored anyway
-	union astnode *spec;
 
 	// paramlist
 	union astnode *paramlist;
@@ -64,7 +58,18 @@ struct astnode_declaration {
 	struct astnode_declarator *declarator;
 };
 
-void declarator_set_ident(union astnode *node, char *ident);
-void declarator_print(union astnode *node, int depth);
+// create a new declarator; ident=NULL for abstract
+union astnode *declarator_new(char *ident);
+
+// append a declarator component to a declarator; returns declarator
+union astnode *declarator_append(union astnode *declarator_node,
+	union astnode *component_node);
+
+// recursively print declarator components
+void declarator_print(union astnode *component_node, int depth);
+
+// create a new declarator array component; set parameters to NULL if missing
+union astnode *declarator_array_new(union astnode *length_node,
+	union astnode *spec_node);
 
 #endif // DECLARATORH

@@ -91,10 +91,10 @@ union astnode {
 	struct astnode_declspec declspec;
 
 	// declarator types
-	struct astnode_declarator_generic declarator_component;
-	struct astnode_declarator_pointer pointer;
-	struct astnode_declarator_function fn;
-	struct astnode_declarator_array array;
+	struct astnode_declarator_component declarator_component;
+	struct astnode_declarator_pointer declarator_pointer;
+	struct astnode_declarator_function declarator_function;
+	struct astnode_declarator_array declarator_array;
 	struct astnode_declarator declarator;
 	struct astnode_declaration declaration;
 //	struct astnode_pointer ptr;

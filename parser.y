@@ -353,11 +353,11 @@ declarator:	pointer dirdeclarator		{/*ALLOC_DECLARATOR($$,$2,$1,0);*/}
 		| dirdeclarator			{/*ALLOC_DECLARATOR($$,$1,NULL,0);*/}
 		;
 
-dirdeclarator:	IDENT							{ALLOC_TYPE($$,NT_DECLARATOR);
-									 declarator_set_ident($$,$1);}
-		| '(' declarator ')'					{/*ALLOC_REGULAR_DIRDECLARATOR($$,$2);*/}
-		| dirdeclarator '[' typequallist asnmtexpr ']'		{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,0);*/}
-		| dirdeclarator '[' asnmtexpr ']'			{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$3,0);*/}
+dirdeclarator:	IDENT							{$$=declarator_new($1);}
+		| '(' declarator ')'					{$$=$2;/*ALLOC_REGULAR_DIRDECLARATOR($$,$2);*/}
+		| dirdeclarator '[' typequallist asnmtexpr ']'		{$$=declarator_append($1,declarator_array_new($4,$3));/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,0);*/}
+		| dirdeclarator '[' asnmtexpr ']'			{$$=declarator_append($1,declarator_array_new($3,NULL));
+									 /*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$3,0);*/}
 		| dirdeclarator '[' typequallist ']'			{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,0);*/}
 		| dirdeclarator '[' ']'					{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,0);*/}
 		| dirdeclarator '[' STATIC typequallist asnmtexpr ']'	{/*ignore static keyword*/
