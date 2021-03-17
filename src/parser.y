@@ -267,8 +267,8 @@ declspec:	scspec 								{ALLOC_DECLSPEC($$);$$->declspec.sc=$1;}
 		;
 
 initdecllist:	initdecl							{/*doesn't have to return anything*/
-										 install_varfn($1,$<astnode>0);}
-		| initdecllist ',' initdecl					{install_varfn($3,$<astnode>0);}
+										 decl_install($1,$<astnode>0);}
+		| initdecllist ',' initdecl					{decl_install($3,$<astnode>0);}
 		;
 
 initdecl:	declarator							{$$=$1;}
@@ -368,7 +368,8 @@ dirdeclarator:	IDENT								{$$=decl_new($1);}
 		| dirdeclarator '[' typequallist '*' ']'			{/*ignore variable length array*/
 										 $$=decl_append($1,decl_array_new(NULL,$3));}
 		| dirdeclarator '['  '*' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
-		| dirdeclarator '(' paramtypelist ')'				{$$=decl_append($1,decl_function_new($3));}
+		| dirdeclarator '(' paramtypelist ')'				{/*TODO: implement prototype scope*/
+										 $$=decl_append($1,decl_function_new($3));}
 		| dirdeclarator '(' identlist ')'				{/*reject old C function syntax*/
 										 yyerror_fatal("old function declaration style not allowed");}
 		| dirdeclarator '(' ')'						{$$=decl_append($1,decl_function_new(NULL));}
@@ -376,8 +377,8 @@ dirdeclarator:	IDENT								{$$=decl_new($1);}
 
 pointer:	'*' typequallist						{$$=decl_pointer_new($2);}
 		| '*'								{$$=decl_pointer_new(NULL);}
-		| '*' typequallist pointer					{$$=decl_pointer_new($2);LL_NEXT($$)=$3;}
-		| '*' pointer							{$$=decl_pointer_new(NULL);LL_NEXT($$)=$2;}
+		| '*' typequallist pointer					{$$=decl_pointer_new($2);LL_NEXT_OF($$)=$3;}
+		| '*' pointer							{$$=decl_pointer_new(NULL);LL_NEXT_OF($$)=$2;}
 		;
 
 typequallist:	typequal							{ALLOC_TYPE($$,NT_DECLSPEC);$$->declspec.tq=$1;}
@@ -393,9 +394,9 @@ paramlist:	paramdecl							{$$=$1;}
 		| paramlist ',' paramdecl					{$$=$1;LL_APPEND($1,$3);}
 		;
 
-paramdecl:	declspeclist declarator						{/*ALLOC_PARAMDECL($$,$1,$2);*/}
-		| declspeclist absdeclarator					{/*ALLOC_PARAMDECL($$,$1,$2);*/}
-		| declspeclist 							{/*ALLOC_PARAMDECL($$,$1,NULL);*/}
+paramdecl:	declspeclist declarator						{decl_finalize($2,$1);$$=$2;/*ALLOC_PARAMDECL($$,$1,$2);*/}
+		| declspeclist absdeclarator					{decl_finalize($2,$1);$$=$2;/*ALLOC_PARAMDECL($$,$1,$2);*/}
+		| declspeclist 							{$$=decl_new("");decl_finalize($$,$1);/*ALLOC_PARAMDECL($$,$1,NULL);*/}
 		;
 
 identlist:	IDENT								{/*NOT DEALING WITH THIS*/}

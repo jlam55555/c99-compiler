@@ -7,6 +7,7 @@
 #define DECLSPECH
 
 #include "common.h"
+#include "decl.h"
 
 // typespec: scalar types
 #define TS_SCALAR_SIGNED	0x4u
@@ -43,9 +44,11 @@ struct astnode_storageclass {
 	enum sc_spec { SC_EXTERN, SC_STATIC, SC_AUTO, SC_REGISTER } scspec;
 };
 
-// composite declaration specifiers class
+// composite declaration specifiers class; make this an
+// _ASTNODE_DECLARATOR_COMPONENT so that it has the *of field for complex
+// declarator chaining
 struct astnode_declspec {
-	_ASTNODE
+	_ASTNODE_DECLARATOR_COMPONENT
 
 	union astnode *ts, *tq, *sc;
 };

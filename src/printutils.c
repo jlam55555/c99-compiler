@@ -16,7 +16,7 @@ void print_typespec(union astnode *node)
 		return;
 	}
 
-	switch (node->generic.type) {
+	switch (NT(node)) {
 
 	// scalar types
 	case NT_TS_SCALAR:
@@ -40,6 +40,10 @@ void print_typespec(union astnode *node)
 		case BT_DOUBLE: 	fprintf(fp, "double"); break;
 		case BT_CHAR: 		fprintf(fp, "char"); break;
 		case BT_BOOL: 		fprintf(fp, "bool"); break;
+
+		// should only be used in function param lists, but this
+		// is not really enforced
+		case BT_VOID:		fprintf(fp, "void"); break;
 		}
 		break;
 
@@ -84,22 +88,23 @@ void print_structunion_def(union astnode *node)
 void print_declarator(union astnode *component, int depth)
 {
 	FILE *fp = stdout;
+	union astnode *iter;
 
 	// end of declarator chain
 	if (!component) {
 		return;
 	}
 
-	switch (component->generic.type) {
+	switch (NT(component)) {
 	// base case
 	case NT_DECL:
 		print_declarator(component->decl.components, depth);
-		break;
+		return;
 
 	// end of declarator chain, typespec reached
 	case NT_DECLSPEC:
 		print_declspec(component, depth);
-		break;
+		return;
 
 	// declarator components
 	case NT_DECLARATOR_ARRAY:
@@ -114,17 +119,32 @@ void print_declarator(union astnode *component, int depth)
 		break;
 	case NT_DECLARATOR_FUNCTION:
 		INDENT(depth);
-		// TODO: print function arguments
-		fprintf(fp, "function returning\n");
+		fprintf(fp, "function\n");
+		++depth;
+		INDENT(depth);
+		fprintf(fp, "with arguments\n");
+
+		// print out argument list
+		if (!component->decl_function.paramlist) {
+			INDENT(depth+1);
+			fprintf(fp, "<unknown>\n");
+		} else {
+			LL_FOR(component->decl_function.paramlist, iter) {
+				// TODO: handle ... and void in paramlist
+				print_declarator(iter, depth+1);
+			}
+		}
+
+		INDENT(depth);
+		fprintf(fp, "returning\n");
 		break;
 	default:
-		fprintf(fp, "unknown type %d in print_symbol\n",
-			component->generic.type);
+		fprintf(fp, "unknown type %d in print_symbol\n", NT(component));
 		return;
 	}
 
 	// recursively print
-	print_declarator(component->decl_component.next, depth+1);
+	print_declarator(LL_NEXT_OF(component), depth+1);
 }
 
 void print_typequal(union astnode *node)
@@ -200,7 +220,7 @@ void print_symbol(union astnode *node, int print_sc)
 {
 	FILE *fp = stdout;
 
-	if (!node || node->generic.type != NT_DECL) {
+	if (!node || NT(node) != NT_DECL) {
 		return;
 	}
 

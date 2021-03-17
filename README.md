@@ -40,7 +40,11 @@ without a special linked-list type (e.g., for function argument lists or
 initializer lists).
 
 ##### Declarations
-TODO: Finish this writeup about the declaration parser
-TODO: Fix error with short not being recognized
+TODO:
+- Finish this writeup about the declaration parser
+- Fix error with short not being recognized
+- Implement prototype scope
+- Check that declaration specifier combination is valid (recursively)
+    before inserting symbol
   
 [cmake-oos]: https://www.cs.swarthmore.edu/~adanner/tips/cmake.php

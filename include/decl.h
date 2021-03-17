@@ -17,9 +17,17 @@
 
 #include "common.h"
 
+// need a second linked-list pointer *of since the generic *next may be used
+// for linking declarators together (e.g., in parameter type list)
 #define _ASTNODE_DECLARATOR_COMPONENT\
 	_ASTNODE\
-	union astnode *spec;\
+	union astnode *of, *spec;\
+
+// special linked list macros since this uses a different field name
+// (regular LL_* macros use generic.next)
+#define LL_APPEND_OF(ll, node) _LL_APPEND(ll, node, decl_component.of)
+#define LL_NEXT_OF(ll) _LL_NEXT(ll, decl_component.of)
+#define LL_FOR_OF(ll, iter) _LL_FOR(ll, iter, decl_component.of)
 
 struct astnode_decl_component {
 	_ASTNODE_DECLARATOR_COMPONENT
@@ -100,6 +108,6 @@ union astnode *decl_function_new(union astnode *paramdecls);
  * @param decl 		declarator
  * @param declspec 	declspec
  */
-void install_varfn(union astnode *decl, union astnode *declspec);
+void decl_install(union astnode *decl, union astnode *declspec);
 
 #endif // DECLARATORH

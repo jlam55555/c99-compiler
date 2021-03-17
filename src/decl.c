@@ -18,7 +18,7 @@ union astnode *decl_new(char *ident)
 
 union astnode *decl_append(union astnode *decl, union astnode *components)
 {
-	LL_APPEND(components, decl->decl.components);
+	LL_APPEND_OF(components, decl->decl.components);
 	decl->decl.components = components;
 
 	return decl;
@@ -30,22 +30,22 @@ static void decl_reverse(union astnode *decl)
 	union astnode *a, *b, *c;
 
 	// components list is < 2 elements, nothing to do
-	if (!(a = decl->decl.components) || !(b = LL_NEXT(a))) {
+	if (!(a = decl->decl.components) || !(b = LL_NEXT_OF(a))) {
 		return;
 	}
 
 	// initial setup
-	c = LL_NEXT(b);
-	LL_NEXT(a) = NULL;
+	c = LL_NEXT_OF(b);
+	LL_NEXT_OF(a) = NULL;
 
 	// iterate
 	while (c) {
-		LL_NEXT(b) = a;
+		LL_NEXT_OF(b) = a;
 		a = b;
 		b = c;
-		c = LL_NEXT(c);
+		c = LL_NEXT_OF(c);
 	}
-	LL_NEXT(b) = a;
+	LL_NEXT_OF(b) = a;
 	decl->decl.components = b;
 }
 
@@ -78,7 +78,7 @@ union astnode *decl_array_new(union astnode *length, union astnode *spec)
 	}
 	// we only support numeric constants
 	// TODO: should also check for non-integer constants
-	else if (length->generic.type != NT_NUMBER) {
+	else if (NT(length) != NT_NUMBER) {
 		yyerror_fatal("array length must be a numeric constant");
 	}
 
@@ -107,7 +107,7 @@ union astnode *decl_function_new(union astnode *paramdecls)
 	return decl_function;
 }
 
-void install_varfn(union astnode *decl, union astnode *declspec)
+void decl_install(union astnode *decl, union astnode *declspec)
 {
 	FILE *fp = stdout;
 	char *ident;
@@ -120,6 +120,11 @@ void install_varfn(union astnode *decl, union astnode *declspec)
 
 	// combine declspec and decl to make full declaration
 	decl_finalize(decl, declspec);
+
+	// TODO: check that all of the declaration specifiers are valid
+	//	e.g., function param list cannot have certain storage class spec
+	//	https://en.cppreference.com/w/c/language/function_declaration
+	//	e.g., void special parameter
 
 #if DEBUG
 	print_symbol(decl, 1);

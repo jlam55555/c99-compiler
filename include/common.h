@@ -50,18 +50,29 @@ struct astnode_generic {
 	_ASTNODE
 };
 
+#define NT(node) (node)->generic.type
+
 // assumes ll is not null
 extern union astnode *ll_append_iter;
-#define LL_APPEND(ll, node) {\
+#define _LL_APPEND(ll, node, next) {\
 	ll_append_iter = ll;\
-	while (ll_append_iter->generic.next) {\
-		ll_append_iter = ll_append_iter->generic.next;\
+	while (ll_append_iter->next) {\
+		ll_append_iter = ll_append_iter->next;\
 	}\
-	ll_append_iter->generic.next = node;\
+	ll_append_iter->next = node;\
 }
 
+// linked list iterator: need to provide iterator pointer
+#define _LL_FOR(ll, iter, next)\
+	for ((iter) = ll; (iter); (iter)=(iter)->next)
+
 // get next element in a linked list
-#define LL_NEXT(ll) ((ll)->generic.next)
+#define _LL_NEXT(ll, next) ((ll)->next)
+
+// for convenience
+#define LL_APPEND(ll, node)	_LL_APPEND(ll, node, generic.next)
+#define LL_NEXT(ll) 		_LL_NEXT(ll, generic.next)
+#define LL_FOR(ll, iter)	_LL_FOR(ll, iter, generic.next)
 
 // global symbol to represent ellipsis declarator as an ordinary union astnode *
 // so that we don't have to handle it separately
