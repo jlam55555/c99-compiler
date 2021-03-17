@@ -22,12 +22,9 @@ enum astnode_type {
 	NT_UNOP,
 	NT_TERNOP,
 	NT_FNCALL,	// function invocation
-	NT_COMLIT,	// compound literal
 
 	// declaration types
 	NT_TS_SCALAR,
-	NT_TS_FN,
-	NT_TS_ARRAY,
 	NT_TS_STRUCT_UNION,
 	NT_TQ,
 	NT_SC,

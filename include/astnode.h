@@ -1,8 +1,6 @@
 /**
  * 	Defining the core (expression) AST node types, the astnode union,
  * 	and several macros dealing with union astnodes.
- *
- * 	TODO: clean up old stuff in this file
  */
 
 #ifndef ASTNODEH
@@ -90,8 +88,6 @@ union astnode {
 
 	// decl types
 	struct astnode_typespec_scalar ts_scalar;
-//	struct astnode_typespec_fn ts_fn;
-//	struct astnode_typespec_array ts_array;
 	struct astnode_typespec_structunion ts_structunion;
 	struct astnode_typequal tq;
 	struct astnode_storageclass sc;
@@ -102,17 +98,7 @@ union astnode {
 	struct astnode_decl_pointer decl_pointer;
 	struct astnode_decl_function decl_function;
 	struct astnode_decl_array decl_array;
-//	struct astnode_declarator declarator;
 	struct astnode_decl decl;
-//	struct astnode_pointer ptr;
-//	struct astnode_declarator declarator;
-//	struct astnode_dirdeclarator dirdeclarator;
-//	struct astnode_paramdecl paramdecl;
-//	struct astnode_typename typename;
-
-	// symbol table
-//	struct astnode_variable variable;
-//	struct astnode_symbol symbol;
 };
 
 // helper to print an astnode
@@ -169,74 +155,5 @@ void print_astnode(union astnode *);
 	(var)->ts_scalar.basetype = scalartype;\
 	(var)->ts_scalar.modifiers.lls = longlongshort;\
 	(var)->ts_scalar.modifiers.sign = signunsign;
-
-//#define ALLOC_DECLARATOR(var, dd, ptr, abs)\
-//	ALLOC(var);\
-//	(var)->declarator.type = NT_DECLARATOR;\
-//	(var)->declarator.dirdeclarator = dd;\
-//	(var)->declarator.is_abstract = abs;\
-//	(var)->declarator.pointer = ptr;
-//
-//#define ALLOC_POINTER(var, tqlist, from)\
-//	ALLOC(var);\
-//	(var)->ptr.type = NT_POINTER;\
-//	(var)->ptr.typequallist = tqlist;\
-//	if (from) {\
-//		union astnode *iter = (from);\
-//		while (iter->ptr.to) {\
-//			iter = iter->ptr.to;\
-//		}\
-//		iter->ptr.to = (var);\
-//	}
-//
-//#define ALLOC_PARAMDECL(var, ds, declr)\
-//	ALLOC(var);\
-//	(var)->paramdecl.type = NT_PARAMDECLARATOR;\
-//	(var)->paramdecl.declspec = ds;\
-//	(var)->paramdecl.declarator = declr;
-//
-//#define ALLOC_TYPENAME(var, sql, declr)\
-//	ALLOC(var);\
-//	(var)->typename.specquallist = sql;\
-//	(var)->typename.absdeclarator = declr;
-//
-//#define ALLOC_REGULAR_DIRDECLARATOR(var, idt)\
-//	ALLOC(var);\
-//	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
-//	(var)->dirdeclarator.decl_type = DT_REGULAR;\
-//	(var)->dirdeclarator.ident = idt;\
-//	(var)->dirdeclarator.is_abstract = 0;
-//
-//#define ALLOC_ARRAY_DIRDECLARATOR(var, dd, tql, sizeexpr, abs)\
-//	ALLOC(var);\
-//	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
-//	(var)->dirdeclarator.is_abstract = abs;\
-//	union astnode *idt, *node = (dd), *iter;\
-//	if (abs && node==NULL) {\
-//		ALLOC_SET_IDENT(idt, "");\
-//		ALLOC_REGULAR_DIRDECLARATOR(node, idt);\
-//		node->dirdeclarator.is_abstract = 1;\
-//	}\
-//	/*loop to innermost dirdeclarator*/\
-//	/*node is top-level, iter is inner-most, var gets added to innermost*/\
-//	iter = node;\
-//	while (iter->dirdeclarator.ident->generic.type == NT_DIRDECLARATOR) {\
-//		iter = iter->dirdeclarator.ident;\
-//	}\
-//	iter->dirdeclarator.decl_type = DT_ARRAY;\
-//	iter->dirdeclarator.typequallist = tql;\
-//	iter->dirdeclarator.size = sizeexpr;\
-//	(var)->dirdeclarator.ident = iter->dirdeclarator.ident;\
-//	iter->dirdeclarator.ident = (var);\
-//	/*return the top dirdeclarator*/\
-//	(var) = node;
-//
-//#define ALLOC_FN_DIRDECLARATOR(var, dd, ptl, abs)\
-//	ALLOC(var);\
-//	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
-//	(var)->dirdeclarator.decl_type = DT_FN;\
-//	(var)->dirdeclarator.ident = dd;\
-//	(var)->dirdeclarator.paramtypelist = ptl;\
-//	(var)->dirdeclarator.is_abstract = abs;
 
 #endif
