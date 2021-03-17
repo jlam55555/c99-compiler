@@ -7,6 +7,7 @@ CMAKE:=cmake
 build:
 	mkdir $(BUILDDIR)
 	$(CMAKE) -B$(BUILDDIR) -S.
+	$(MAKE) -C$(BUILDDIR)
 
 .PHONY:
 run:
