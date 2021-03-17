@@ -102,8 +102,8 @@ void print_type(union astnode *node, int depth)
 }
 
 // recursive declarator print function
-void print_declarator(union astnode *node, int depth)
-{
+//void print_declarator(union astnode *node, int depth)
+//{
 //	FILE *outfile = stdout;
 //
 //	// TODO: fix later
@@ -201,7 +201,7 @@ void print_declarator(union astnode *node, int depth)
 //	}
 //
 
-}
+//}
 
 void print_typequallist(union astnode *node)
 {
@@ -286,12 +286,14 @@ void insert_into_symtab(union astnode *declarator_node,
 	struct astnode_declarator *declarator;
 	char *ident;
 
+	// reverse declarator since components were inserted backwards
+	declarator_reverse(declarator_node);
 	declarator = &declarator_node->declarator;
 	ident = declarator->ident;
 
-	declarator_print(declarator->components, 0);
-
 	fprintf(stdout, "Declaring new variable with ident %s\n", ident);
+
+	declarator_print(declarator->components, 0);
 
 //	char *ident;
 //	union astnode *symbol, *iter, *var;

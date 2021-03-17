@@ -41,11 +41,12 @@ enum astnode_type {
 	NT_SYMBOL
 };
 
+// any astnode union type can be used as a linked list without a container type
 #define _ASTNODE\
 	enum astnode_type type;\
-	union astnode *prev, *next;
+	union astnode *next;
 
-// this is declared in asttypes.c
+// ll_append_iter is declared in asttypes.c
 extern union astnode *ll_append_iter;
 #define LL_APPEND(ll, node) {\
 	ll_append_iter = node;\
@@ -54,6 +55,8 @@ extern union astnode *ll_append_iter;
 	}\
 	ll_append_iter->generic.next = node;\
 }
+
+#define LL_NEXT(ll) ((ll)->generic.next)
 
 // "interface" for astnodes
 struct astnode_generic {

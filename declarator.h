@@ -14,7 +14,7 @@
 
 #define _ASTNODE_DECLARATOR_COMPONENT\
 	_ASTNODE\
-	union astnode *of, *spec;\
+	union astnode *spec;\
 
 struct astnode_declarator_component {
 	_ASTNODE_DECLARATOR_COMPONENT
@@ -64,6 +64,9 @@ union astnode *declarator_new(char *ident);
 // append a declarator component to a declarator; returns declarator
 union astnode *declarator_append(union astnode *declarator_node,
 	union astnode *component_node);
+
+// reverse declarator component order since they are inserted in reverse
+void declarator_reverse(union astnode *declarator_node);
 
 // recursively print declarator components
 void declarator_print(union astnode *component_node, int depth);

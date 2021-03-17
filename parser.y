@@ -99,15 +99,15 @@ exprstmt:	expr ';'		{print_astnode($1);}
 		
 
 /* 6.4.4 */
-constant:	NUMBER		{ALLOC($$);$$->num=(struct astnode_number){NT_NUMBER,NULL,NULL,$1};}
+constant:	NUMBER		{ALLOC($$);$$->num=(struct astnode_number){NT_NUMBER,NULL,$1};}
 		/*| enumconst	{TODO}*/
-		| CHARLIT	{ALLOC($$);$$->charlit=(struct astnode_charlit){NT_CHARLIT,NULL,NULL,$1};}
+		| CHARLIT	{ALLOC($$);$$->charlit=(struct astnode_charlit){NT_CHARLIT,NULL,$1};}
 		;
 
 /* primary expr: 6.5.1 */
 pexpr:		IDENT		{ALLOC_SET_IDENT($$,$1);}
 		| constant	{$$=$1;}
-		| STRING	{ALLOC($$);$$->string=(struct astnode_string){NT_STRING,NULL,NULL,$1};}
+		| STRING	{ALLOC($$);$$->string=(struct astnode_string){NT_STRING,NULL,$1};}
 		| '(' expr ')'	{$$=$2;}
 		;
 
@@ -118,7 +118,7 @@ pofexpr:	pexpr				{$$=$1;}
 						 ALLOC_SET_BINOP(inner,'+',$1,$3);
 						 ALLOC_SET_UNOP($$,'*',inner);}
 		| pofexpr '(' arglistopt ')'	{ALLOC($$);
-						 $$->fncall=(struct astnode_fncall){NT_FNCALL,NULL,NULL,$1,$3};}
+						 $$->fncall=(struct astnode_fncall){NT_FNCALL,NULL,$1,$3};}
 		| pofexpr '.' IDENT		{union astnode *ident;
 						 ALLOC_SET_IDENT(ident,$3);
 						 ALLOC_SET_BINOP($$,$2,$1,ident);}
@@ -150,13 +150,13 @@ uexpr:		pofexpr			{$$=$1;}
 		| PLUSPLUS uexpr	{/*replace ++a with a=a+1*/
 					 union astnode *one, *inner;
 					 ALLOC(one);
-					 one->num=(struct astnode_number){NT_NUMBER,NULL,NULL,(struct number){INT_T,UNSIGNED_T,1}};
+					 one->num=(struct astnode_number){NT_NUMBER,NULL,(struct number){INT_T,UNSIGNED_T,1}};
 					 ALLOC_SET_BINOP(inner,'+',$2,one);
 					 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| MINUSMINUS uexpr	{/*replace --a with a=a-1*/
 					 union astnode *one, *inner;
 					 ALLOC(one);
-					 one->num=(struct astnode_number){NT_NUMBER,NULL,NULL,(struct number){INT_T,UNSIGNED_T,1}};
+					 one->num=(struct astnode_number){NT_NUMBER,NULL,(struct number){INT_T,UNSIGNED_T,1}};
 					 ALLOC_SET_BINOP(inner,'-',$2,one);
 					 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| uop castexpr		{ALLOC_SET_UNOP($$,$1,$2);}
@@ -353,23 +353,22 @@ declarator:	pointer dirdeclarator		{/*ALLOC_DECLARATOR($$,$2,$1,0);*/}
 		| dirdeclarator			{/*ALLOC_DECLARATOR($$,$1,NULL,0);*/}
 		;
 
+/* have to expand these otherwise shift/reduce conflicts on optional sections */
 dirdeclarator:	IDENT							{$$=declarator_new($1);}
-		| '(' declarator ')'					{$$=$2;/*ALLOC_REGULAR_DIRDECLARATOR($$,$2);*/}
-		| dirdeclarator '[' typequallist asnmtexpr ']'		{$$=declarator_append($1,declarator_array_new($4,$3));/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,0);*/}
-		| dirdeclarator '[' asnmtexpr ']'			{$$=declarator_append($1,declarator_array_new($3,NULL));
-									 /*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$3,0);*/}
-		| dirdeclarator '[' typequallist ']'			{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,0);*/}
-		| dirdeclarator '[' ']'					{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,0);*/}
+		| '(' declarator ')'					{$$=$2;}
+		| dirdeclarator '[' typequallist asnmtexpr ']'		{$$=declarator_append($1,declarator_array_new($4,$3));}
+		| dirdeclarator '[' asnmtexpr ']'			{$$=declarator_append($1,declarator_array_new($3,NULL));}
+		| dirdeclarator '[' typequallist ']'			{$$=declarator_append($1,declarator_array_new(NULL,$3));}
+		| dirdeclarator '[' ']'					{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
 		| dirdeclarator '[' STATIC typequallist asnmtexpr ']'	{/*ignore static keyword*/
-									 /*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,$5,0);*/}
-		| dirdeclarator '[' STATIC asnmtexpr ']'		{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$4,0);*/}
-		| dirdeclarator '[' STATIC typequallist ']'		{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,NULL,0);*/}
-		| dirdeclarator '[' STATIC ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,0);*/}
-		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'	{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$5,0);*/}
+									 $$=declarator_append($1,declarator_array_new($5,$4));}
+		| dirdeclarator '[' STATIC asnmtexpr ']'		{$$=declarator_append($1,declarator_array_new($4,NULL));}
+		| dirdeclarator '[' STATIC typequallist ']'		{$$=declarator_append($1,declarator_array_new(NULL,$4));}
+		| dirdeclarator '[' STATIC ']'				{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
+		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'	{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
 		| dirdeclarator '[' typequallist '*' ']'		{/*ignore variable length array*/
-									 /*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,0);*/}
-		| dirdeclarator '['  '*' ']'				{/*ignore variable length array*/
-									 /*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,0);*/}
+									 }
+		| dirdeclarator '['  '*' ']'				{}
 		| dirdeclarator '(' paramtypelist ')'			{/*ALLOC_FN_DIRDECLARATOR($$,$1,$3,0);*/}
 		| dirdeclarator '(' identlist ')'			{/*ignore old C function syntax*/
 									 /*TODO: throw an error because this may cause other problems*/}

@@ -121,19 +121,19 @@ void print_astnode(union astnode *);
 
 #define ALLOC_SET_IDENT(var, idt)\
 	ALLOC(var);\
-	(var)->ident=(struct astnode_ident){NT_IDENT, NULL, NULL, strdup(idt)}
+	(var)->ident=(struct astnode_ident){NT_IDENT, NULL, strdup(idt)}
 
 #define ALLOC_SET_BINOP(var, op, left, right)\
 	ALLOC(var);\
-	(var)->binop=(struct astnode_binop){NT_BINOP, NULL, NULL, op, left, right}
+	(var)->binop=(struct astnode_binop){NT_BINOP, NULL, op, left, right}
 
 #define ALLOC_SET_UNOP(var, op, arg)\
 	ALLOC(var);\
-	(var)->unop=(struct astnode_unop){NT_UNOP, NULL, NULL, op, arg};
+	(var)->unop=(struct astnode_unop){NT_UNOP, NULL, op, arg};
 
 #define ALLOC_SET_TERNOP(var, first, second, third)\
 	ALLOC(var);\
-	(var)->ternop=(struct astnode_ternop){NT_TERNOP, NULL, NULL, first, second,third};
+	(var)->ternop=(struct astnode_ternop){NT_TERNOP, NULL, first, second,third};
 
 // rewrite assignment-equals operators
 #define ASNEQ(var, type, left, right) \
