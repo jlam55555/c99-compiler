@@ -6,9 +6,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "parser.h"
+#include "common.h"
 #include "lexerutils/errorutils.h"
 #include "astnode.h"
-#include "asttypes.h"
 #include "symtab.h"
 #include "scope.h"
 #include "structunion.h"
@@ -266,8 +266,8 @@ declspec:	scspec 								{ALLOC_DECLSPEC($$);$$->declspec.sc=$1;}
 		;
 
 initdecllist:	initdecl							{/*doesn't have to return anything*/
-										 insert_into_symtab($1,$<astnode>0,NS_IDENT);}
-		| initdecllist ',' initdecl					{insert_into_symtab($3,$<astnode>0,NS_IDENT);}
+										 /*insert_into_symtab($1,$<astnode>0,NS_IDENT);*/}
+		| initdecllist ',' initdecl					{/*insert_into_symtab($3,$<astnode>0,NS_IDENT);*/}
 		;
 
 initdecl:	declarator							{$$=$1;}
@@ -384,7 +384,7 @@ typequallist:	typequal							{$$=$1;}
 		;
 
 paramtypelist:	paramlist							{$$=$1;}
-		| paramlist ',' ELLIPSIS					{$$=$1;LL_APPEND($1,&ELLIPSIS_DECLARATOR);}
+		| paramlist ',' ELLIPSIS					{$$=$1;LL_APPEND($1,ELLIPSIS_DECLARATOR);}
 		;
 
 paramlist:	paramdecl							{$$=$1;}
@@ -486,8 +486,6 @@ int yyerror_fatal(char *err)
 	yyerror(err);
 }
 
-// for indenting
-int indi;
 void print_astnode_rec(union astnode *node, int depth)
 {
 	INDENT(depth);

@@ -1,11 +1,11 @@
 #include <malloc.h>
 #include "astnode.h"
-#include "asttypes.h"
 #include "structunion.h"
 #include "symtab.h"
 #include "parser.h"
 #include "scope.h"
 #include "string.h"
+#include "printutils.h"
 #include "lexerutils/errorutils.h"
 
 // stack of union astnodes currently being declared
@@ -35,7 +35,6 @@ union astnode *structunion_new(enum structunion_type type)
 	su->type = NT_TS_STRUCT_UNION;
 	su->ident = NULL;
 	su->members = NULL;
-	su->spectype = ST_TAG;
 	su->su_type = type;
 	symtab_init(&su->members_ht);
 	su->is_complete = su->is_being_defined = 0;
@@ -95,7 +94,6 @@ void structunion_set_name(char *ident, int begin_def)
 		ALLOC(symbol);
 		symbol->symbol.type = NT_SYMBOL;
 		symbol->symbol.ident = su->ident;
-		symbol->symbol.ns = NS_TAG;
 		symbol->symbol.value = node;
 
 		scope_insert(ident, NS_TAG, symbol);
@@ -161,7 +159,6 @@ void structunion_install_member(union astnode *declarator,
 	ALLOC(symbol);
 	symbol->symbol.type = NT_SYMBOL;
 	symbol->symbol.ident = ident;
-	symbol->symbol.ns = NT_IDENT;
 	symbol->symbol.value = var;
 	symtab_insert(&su->members_ht, ident, symbol);
 

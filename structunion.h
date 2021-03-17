@@ -9,8 +9,28 @@
 #ifndef STRUCTUNIONH
 #define STRUCTUNIONH
 
-#include "astnode.h"
-#include "asttypes.h"
+#include "declspec.h"
+#include "symtab.h"
+
+enum structunion_type { SU_STRUCT, SU_UNION };
+
+struct astnode_typespec_structunion {
+	_ASTNODE
+
+	char *ident;
+	enum structunion_type su_type;
+
+	// linked-list and hashtable of members as symbols
+	union astnode *members;
+	struct symtab members_ht;
+
+	// to prevent multiple (nested) redefinition: see structunion.h
+	int is_complete, is_being_defined;
+
+	// for debugging purposes: prints out where struct is defined
+	char *def_filename;
+	int def_lineno;
+};
 
 // create new struct/union type and push onto stack
 union astnode *structunion_new(enum structunion_type type);
@@ -32,8 +52,7 @@ union astnode *structunion_new(enum structunion_type type);
 void structunion_set_name(char *ident, int begin_def);
 
 // add new member to the current struct being defined
-void structunion_install_member(union astnode *declarator,
-	union astnode *specquallist);
+void structunion_install_member(union astnode *decl, union astnode *declspec);
 
 // pop current struct/union type from stack and set complete if is_complete,
 // returns it

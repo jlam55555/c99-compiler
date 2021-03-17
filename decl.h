@@ -15,7 +15,7 @@
 #ifndef DECLARATORH
 #define DECLARATORH
 
-#include "astnodegeneric.h"
+#include "common.h"
 
 #define _ASTNODE_DECLARATOR_COMPONENT\
 	_ASTNODE\

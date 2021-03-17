@@ -10,11 +10,9 @@
 
 #ifndef SCOPEH
 #define SCOPEH
-#include "asttypes.h"
 #include "symtab.h"
 
-// in asttypes.h:
-// enum name_space { NS_TAG, NS_LABEL, NS_IDENT }; 
+enum name_space { NS_TAG, NS_LABEL, NS_IDENT };
 enum scope_type { ST_FILE, ST_FUNC, ST_BLOCK, ST_PROTO, ST_STRUCTUNION };
 
 struct scope {

@@ -5,9 +5,9 @@
 #include <string.h>	// for strdup in macro
 #include "lexerutils/numutils.h"
 #include "lexerutils/stringutils.h"
-#include "asttypes.h"
-#include "astnodegeneric.h"
 #include "decl.h"
+#include "declspec.h"
+#include "structunion.h"
 
 struct astnode_binop {
 	_ASTNODE
@@ -159,7 +159,7 @@ void print_astnode(union astnode *);
 #define ALLOC_SET_SCALAR(var, scalartype, longlongshort, signunsign)\
 	ALLOC(var);\
 	(var)->ts_scalar.type = NT_TS_SCALAR;\
-	(var)->ts_scalar.spectype = ST_SCALAR;\
+	/*(var)->ts_scalar.spectype = ST_SCALAR;*/\
 	(var)->ts_scalar.basetype = scalartype;\
 	(var)->ts_scalar.modifiers.lls = longlongshort;\
 	(var)->ts_scalar.modifiers.sign = signunsign;

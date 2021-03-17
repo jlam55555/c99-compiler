@@ -1,6 +1,6 @@
 #include <stdio.h>
+#include "common.h"
 #include "parser.h"
-#include "astnodegeneric.h"
 #include "astnode.h"
 #include "decl.h"
 
@@ -14,8 +14,7 @@ union astnode *decl_new(char *ident)
 	return decl;
 }
 
-union astnode *decl_append(union astnode *decl,
-	union astnode *components)
+union astnode *decl_append(union astnode *decl, union astnode *components)
 {
 	LL_APPEND(components, decl->decl.components);
 	decl->decl.components = components;
@@ -92,8 +91,7 @@ void decl_print(union astnode *component, int depth)
 	decl_print(component->decl_component.next, depth+1);
 }
 
-union astnode *decl_array_new(union astnode *length,
-	union astnode *spec)
+union astnode *decl_array_new(union astnode *length, union astnode *spec)
 {
 	union astnode *decl_array;
 	struct astnode_decl_array *array;
