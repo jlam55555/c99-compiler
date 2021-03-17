@@ -7,6 +7,7 @@
 #include "lexerutils/stringutils.h"
 #include "asttypes.h"
 #include "astnodegeneric.h"
+#include "declarator.h"
 
 struct astnode_binop {
 	_ASTNODE
@@ -82,22 +83,27 @@ union astnode {
 
 	// decl types
 	struct astnode_typespec_scalar ts_scalar;
-	struct astnode_typespec_fn ts_fn;
-	struct astnode_typespec_array ts_array;
+//	struct astnode_typespec_fn ts_fn;
+//	struct astnode_typespec_array ts_array;
 	struct astnode_typespec_structunion ts_structunion;
 	struct astnode_typequal tq;
 	struct astnode_storageclass sc;
 	struct astnode_declspec declspec;
 
 	// declarator types
-	struct astnode_pointer ptr;
+	struct astnode_declarator_pointer pointer;
+	struct astnode_declarator_function fn;
+	struct astnode_declarator_array array;
 	struct astnode_declarator declarator;
-	struct astnode_dirdeclarator dirdeclarator;
-	struct astnode_paramdecl paramdecl;
-	struct astnode_typename typename;
+	struct astnode_declaration declaration;
+//	struct astnode_pointer ptr;
+//	struct astnode_declarator declarator;
+//	struct astnode_dirdeclarator dirdeclarator;
+//	struct astnode_paramdecl paramdecl;
+//	struct astnode_typename typename;
 
 	// symbol table
-	struct astnode_variable variable;
+//	struct astnode_variable variable;
 	struct astnode_symbol symbol;
 };
 

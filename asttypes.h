@@ -30,7 +30,7 @@ storage spec:
 
 
 enum spec_type { ST_SCALAR, ST_FN, ST_TAG, ST_POINTER, ST_ARRAY,
-	ST_TYPEDEF} st;
+	ST_TYPEDEF};
 
 #define TS_SCALAR_SIGNED	0x4
 #define TS_SCALAR_LL		0x2
@@ -49,24 +49,24 @@ struct astnode_typespec_scalar {
 	} modifiers;
 };
 
-struct astnode_typespec_fn {
-	_ASTNODE
-
-	enum spec_type spectype;
-	union astnode_typespec *rettype;
-
-	// TODO: how to deal with param names? right now using full
-	// declarations to describe parameters
-	union astnode *param_list;
-};
-
-struct astnode_typespec_array {
-	_ASTNODE
-
-	enum spec_type spectype;
-	unsigned len;
-	union astnode_typespec *arrtype;
-};
+//struct astnode_typespec_fn {
+//	_ASTNODE
+//
+//	enum spec_type spectype;
+//	union astnode_typespec *rettype;
+//
+//	// TODO: how to deal with param names? right now using full
+//	// declarations to describe parameters
+//	union astnode *param_list;
+//};
+//
+//struct astnode_typespec_array {
+//	_ASTNODE
+//
+//	enum spec_type spectype;
+//	unsigned len;
+//	union astnode_typespec *arrtype;
+//};
 
 // see: structunion.h
 enum structunion_type { SU_STRUCT, SU_UNION };
@@ -115,60 +115,62 @@ struct astnode_declspec {
 };
 
 // declarators
-struct astnode_pointer {
-	_ASTNODE
+//struct astnode_pointer {
+//	_ASTNODE
+//
+//	union astnode *typequallist, *to;
+//};
+//
+//struct astnode_declarator {
+//	_ASTNODE
+//
+//	union astnode *pointer, *dirdeclarator;
+//	int is_abstract;
+//};
+//
+//struct astnode_dirdeclarator {
+//	_ASTNODE
+//
+//	enum declarator_type {DT_REGULAR, DT_ARRAY, DT_FN} declarator_type;
+//	int is_abstract;
+//
+//	// this can be either an NT_IDENT or NT_DIRDECLARATOR -- check type
+//	// before using it
+//	union astnode *ident;
+//
+//	// if function
+//	union astnode *paramtypelist;
+//
+//	// if array (assume size is an integer literal for now)
+//	union astnode *size;
+//
+//	// when in function declarator; these will be moved to the pointer
+//	union astnode *typequallist;
+//
+//	// NOTE: we are not doing anything with the STATIC keyword
+//};
+//
+//struct astnode_paramdecl {
+//	_ASTNODE
+//
+//	union astnode *declspec, *declarator;
+//};
+//
+//struct astnode_typename {
+//	_ASTNODE
+//
+//	union astnode *specquallist, *absdeclarator;
+//};
+//
+//struct astnode_variable {
+//	_ASTNODE
+//
+//	union astnode *declspec, *declarator;
+//};
 
-	union astnode *typequallist, *to;
-};
+enum name_space { NS_TAG, NS_LABEL, NS_IDENT };
 
-struct astnode_declarator {
-	_ASTNODE
-
-	union astnode *pointer, *dirdeclarator;
-	int is_abstract;
-};
-
-struct astnode_dirdeclarator {
-	_ASTNODE
-
-	enum declarator_type {DT_REGULAR, DT_ARRAY, DT_FN} declarator_type;
-	int is_abstract;
-
-	// this can be either an NT_IDENT or NT_DIRDECLARATOR -- check type
-	// before using it
-	union astnode *ident;
-
-	// if function
-	union astnode *paramtypelist;
-
-	// if array (assume size is an integer literal for now)
-	union astnode *size;
-
-	// when in function declarator; these will be moved to the pointer
-	union astnode *typequallist;
-
-	// NOTE: we are not doing anything with the STATIC keyword
-};
-
-struct astnode_paramdecl {
-	_ASTNODE
-
-	union astnode *declspec, *declarator;
-};
-
-struct astnode_typename {
-	_ASTNODE
-
-	union astnode *specquallist, *absdeclarator;
-};
-
-struct astnode_variable {
-	_ASTNODE
-
-	union astnode *declspec, *declarator;
-};
-
-enum name_space { NS_TAG, NS_LABEL, NS_IDENT }; 
+// an entry in the symbol table
 struct astnode_symbol {
 	_ASTNODE
 

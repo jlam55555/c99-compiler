@@ -14,5 +14,8 @@ parser
 .vscode
 *~
 
+# JetBrains files
+.idea
+
 # Mac OS
 .DS_Store

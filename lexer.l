@@ -9,7 +9,7 @@
 #include "lexerutils/numutils.h"
 #include "parser.tab.h"
 
-YYSTYPE yylval;
+//YYSTYPE yylval;
 
 // helper for making integral and float types
 #define MAKEINT(radix, sign, type) \

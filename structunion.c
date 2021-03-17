@@ -122,29 +122,29 @@ void structunion_install_member(union astnode *declarator,
 	declspec = &specquallist->declspec;
 
 	// if declarator not a pointer, make sure typespec is not incomplete
-	if (!declr->pointer) {
-		if (declspec->ts->generic.type == NT_TS_STRUCT_UNION
-			&& !declspec->ts->ts_structunion.is_complete) {
-			yyerror_fatal("field has incomplete type");
-		}
-	}
-
-	// if declarator has a pointer, then make it point to the correct type
-	// (same as for regular variables)
-	else {
-		iter = declr->pointer;
-		while (iter->ptr.to) {
-			iter = iter->ptr.to;
-		}
-		iter->ptr.to = specquallist;
-	}
-
-	// get identifier from declarator
-	iter = declr->dirdeclarator->dirdeclarator.ident;
-	while (iter->generic.type != NT_IDENT) {
-		iter = iter->dirdeclarator.ident;
-	}
-	ident = strdup(iter->ident.ident);
+//	if (!declr->pointer) {
+//		if (declspec->ts->generic.type == NT_TS_STRUCT_UNION
+//			&& !declspec->ts->ts_structunion.is_complete) {
+//			yyerror_fatal("field has incomplete type");
+//		}
+//	}
+//
+//	// if declarator has a pointer, then make it point to the correct type
+//	// (same as for regular variables)
+//	else {
+//		iter = declr->pointer;
+//		while (iter->ptr.to) {
+//			iter = iter->ptr.to;
+//		}
+//		iter->ptr.to = specquallist;
+//	}
+//
+//	// get identifier from declarator
+//	iter = declr->dirdeclarator->dirdeclarator.ident;
+//	while (iter->generic.type != NT_IDENT) {
+//		iter = iter->dirdeclarator.ident;
+//	}
+//	ident = strdup(iter->ident.ident);
 
 	// check if field exists in member symtab
 	search = symtab_lookup(&su->members_ht, ident);
@@ -153,10 +153,10 @@ void structunion_install_member(union astnode *declarator,
 	}
 
 	// insert into symtab and list
-	ALLOC(var);
-	var->variable.type = NT_VARIABLE;
-	var->variable.declspec = specquallist;
-	var->variable.declarator = declarator;
+//	ALLOC(var);
+//	var->variable.type = NT_VARIABLE;
+//	var->variable.declspec = specquallist;
+//	var->variable.declarator = declarator;
 
 	ALLOC(symbol);
 	symbol->symbol.type = NT_SYMBOL;

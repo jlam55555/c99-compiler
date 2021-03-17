@@ -104,102 +104,102 @@ void print_type(union astnode *node, int depth)
 // functions)); everything but the abstract types
 void print_symbol(union astnode *node, int depth)
 {
-	FILE *outfile = stdout;
-
-	// TODO: fix later
-	if (!node) {
-		return;
-	}
-	switch(node->generic.type)
-	{
-		// direct declarator: handling arrays, fns
-		case NT_DIRDECLARATOR:
-			if (node->dirdeclarator.ident->generic.type != NT_IDENT) {
-				print_symbol(node->dirdeclarator.ident, depth+1);
-			}
-
-			switch(node->dirdeclarator.declarator_type)
-			{
-				case DT_REGULAR:
-					
-					break;
-
-				case DT_ARRAY:
-					fprintf(outfile, "array of %d elements of type:\n", node->dirdeclarator.size->num.num.int_val);
-
-					// print_symbol(node->dirdeclarator.typequallist, depth+2);
-					break;
-
-				case DT_FN:
-					fprintf(outfile, "function returning\n");
-					if(node->dirdeclarator.paramtypelist)
-					{
-						fprintf(outfile, "and taking the following arguments\n");
-						print_type(node->dirdeclarator.paramtypelist, depth+1);
-					}
-					else
-						fprintf(outfile, "and taking an unspecified number of arguments.\n");
-					break;
-			}
-
-			break;
-
-		// handling (potentially nested) declarators
-		case NT_DECLARATOR:;
-			struct astnode_declarator *declarator = &node->declarator;
-
-			print_symbol(declarator->dirdeclarator, depth+1);
-
-			// pointers
-			if(declarator->pointer) {
-				print_symbol(declarator->pointer, depth+1);
-			}
-			break;
-
-		// pointer included in declarator
-		case NT_POINTER:
-			print_typequallist(node->ptr.typequallist);
-			fprintf(outfile, "pointer to\n");
-			print_symbol(node->ptr.to, depth+2);
-			break;
-
-		case NT_SYMBOL:;
-			struct scope *curscope = get_current_scope();
-			fprintf(outfile, "%s is defined at %s:%d [in %s scope starting at %s:%d] as a ",
-			 	node->symbol.ident, filename, lineno, print_scope(curscope->type), curscope->filename, curscope->lineno);
-			switch(node->symbol.value->generic.type) {
-				case NT_VARIABLE:;
-					struct astnode_variable *var = &node->symbol.value->variable;
-					struct astnode_declspec *declspec = &var->declspec->declspec;
-					switch(1)
-					{
-						case DT_FN:
-							fprintf(outfile, "%s function returning:\n", print_sc(declspec->sc));
-						default:
-							fprintf(outfile, "variable with stgclass %s of type:\n", print_sc(declspec->sc));
-					}
-					
-
-					// print declarator
-					print_symbol(var->declarator, depth+1);
-
-					// print typequallist
-					print_typequallist(declspec->tq);
-					INDENT(depth+2);
-					print_type(declspec->ts, depth+1);
-					break;
-
-				case NT_TS_STRUCT_UNION:
-					print_type(node->symbol.value, depth+1);
-					break;
-
-				// case NT_LABEL:
-			}
-			
-			break;
-
-	}
-	
+//	FILE *outfile = stdout;
+//
+//	// TODO: fix later
+//	if (!node) {
+//		return;
+//	}
+//	switch(node->generic.type)
+//	{
+//		// direct declarator: handling arrays, fns
+//		case NT_DIRDECLARATOR:
+//			if (node->dirdeclarator.ident->generic.type != NT_IDENT) {
+//				print_symbol(node->dirdeclarator.ident, depth+1);
+//			}
+//
+//			switch(node->dirdeclarator.declarator_type)
+//			{
+//				case DT_REGULAR:
+//
+//					break;
+//
+//				case DT_ARRAY:
+//					fprintf(outfile, "array of %d elements of type:\n", node->dirdeclarator.size->num.num.int_val);
+//
+//					// print_symbol(node->dirdeclarator.typequallist, depth+2);
+//					break;
+//
+//				case DT_FN:
+//					fprintf(outfile, "function returning\n");
+//					if(node->dirdeclarator.paramtypelist)
+//					{
+//						fprintf(outfile, "and taking the following arguments\n");
+//						print_type(node->dirdeclarator.paramtypelist, depth+1);
+//					}
+//					else
+//						fprintf(outfile, "and taking an unspecified number of arguments.\n");
+//					break;
+//			}
+//
+//			break;
+//
+//		// handling (potentially nested) declarators
+//		case NT_DECLARATOR:;
+//			struct astnode_declarator *declarator = &node->declarator;
+//
+//			print_symbol(declarator->dirdeclarator, depth+1);
+//
+//			// pointers
+//			if(declarator->pointer) {
+//				print_symbol(declarator->pointer, depth+1);
+//			}
+//			break;
+//
+//		// pointer included in declarator
+//		case NT_POINTER:
+//			print_typequallist(node->ptr.typequallist);
+//			fprintf(outfile, "pointer to\n");
+//			print_symbol(node->ptr.to, depth+2);
+//			break;
+//
+//		case NT_SYMBOL:;
+//			struct scope *curscope = get_current_scope();
+//			fprintf(outfile, "%s is defined at %s:%d [in %s scope starting at %s:%d] as a ",
+//			 	node->symbol.ident, filename, lineno, print_scope(curscope->type), curscope->filename, curscope->lineno);
+//			switch(node->symbol.value->generic.type) {
+//				case NT_VARIABLE:;
+//					struct astnode_variable *var = &node->symbol.value->variable;
+//					struct astnode_declspec *declspec = &var->declspec->declspec;
+//					switch(1)
+//					{
+//						case DT_FN:
+//							fprintf(outfile, "%s function returning:\n", print_sc(declspec->sc));
+//						default:
+//							fprintf(outfile, "variable with stgclass %s of type:\n", print_sc(declspec->sc));
+//					}
+//
+//
+//					// print declarator
+//					print_symbol(var->declarator, depth+1);
+//
+//					// print typequallist
+//					print_typequallist(declspec->tq);
+//					INDENT(depth+2);
+//					print_type(declspec->ts, depth+1);
+//					break;
+//
+//				case NT_TS_STRUCT_UNION:
+//					print_type(node->symbol.value, depth+1);
+//					break;
+//
+//				// case NT_LABEL:
+//			}
+//
+//			break;
+//
+//	}
+//
 
 }
 
@@ -283,53 +283,53 @@ char *print_scope(enum scope_type st)
 void insert_into_symtab(union astnode *declarator, union astnode *declspec,
 	enum name_space ns)
 {
-	char *ident;
-	union astnode *symbol, *iter, *var;
-
-	// get declarator name/identifier
-	iter = declarator->declarator.dirdeclarator;
-	while (iter->generic.type != NT_IDENT) {
-		iter = iter->dirdeclarator.ident;
-	}
-	ident = iter->ident.ident;
-
-	// if declarator has a pointer, then make it point to the correct type
-	if (declarator->declarator.pointer) {
-		iter = declarator->declarator.pointer;
-		while (iter->ptr.to) {
-			iter = iter->ptr.to;
-		}
-		iter->ptr.to = declspec;
-	}
-
-	// fill in declspec missing values with their defaults
-	fill_defaults(declspec);
-
-	ALLOC(var);
-	var->variable.type = NT_VARIABLE;
-	var->variable.declspec = declspec;
-	var->variable.declarator = declarator;
-
-	// create symbol and insert
-	ALLOC(symbol);
-	symbol->symbol.type = NT_SYMBOL;
-	symbol->symbol.ident = ident;
-	symbol->symbol.ns = ns;
-	symbol->symbol.value = var;
-
-	// TODO: if declspec has unspecified parts, fill them in with their
-	// context-specific defaults
-	// e.g., if storage class is unspecified, it should be set to extern if
-	// global scope, otherwise auto
-
-	print_symbol(symbol, 0);
- 
-	#if DEBUG
-	printf("Declaring symbol %s with type %d\n", ident,
-		declspec->declspec.ts->ts_scalar.basetype);
-	#endif
-
-	scope_insert(ident, ns, symbol);
+//	char *ident;
+//	union astnode *symbol, *iter, *var;
+//
+//	// get declarator name/identifier
+//	iter = declarator->declarator.dirdeclarator;
+//	while (iter->generic.type != NT_IDENT) {
+//		iter = iter->dirdeclarator.ident;
+//	}
+//	ident = iter->ident.ident;
+//
+//	// if declarator has a pointer, then make it point to the correct type
+//	if (declarator->declarator.pointer) {
+//		iter = declarator->declarator.pointer;
+//		while (iter->ptr.to) {
+//			iter = iter->ptr.to;
+//		}
+//		iter->ptr.to = declspec;
+//	}
+//
+//	// fill in declspec missing values with their defaults
+//	fill_defaults(declspec);
+//
+//	ALLOC(var);
+//	var->variable.type = NT_VARIABLE;
+//	var->variable.declspec = declspec;
+//	var->variable.declarator = declarator;
+//
+//	// create symbol and insert
+//	ALLOC(symbol);
+//	symbol->symbol.type = NT_SYMBOL;
+//	symbol->symbol.ident = ident;
+//	symbol->symbol.ns = ns;
+//	symbol->symbol.value = var;
+//
+//	// TODO: if declspec has unspecified parts, fill them in with their
+//	// context-specific defaults
+//	// e.g., if storage class is unspecified, it should be set to extern if
+//	// global scope, otherwise auto
+//
+//	print_symbol(symbol, 0);
+//
+//	#if DEBUG
+//	printf("Declaring symbol %s with type %d\n", ident,
+//		declspec->declspec.ts->ts_scalar.basetype);
+//	#endif
+//
+//	scope_insert(ident, ns, symbol);
 }
 
 void fill_defaults(union astnode *declspec)
