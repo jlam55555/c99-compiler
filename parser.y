@@ -266,8 +266,8 @@ declspec:	scspec 								{ALLOC_DECLSPEC($$);$$->declspec.sc=$1;}
 		;
 
 initdecllist:	initdecl							{/*doesn't have to return anything*/
-										 /*insert_into_symtab($1,$<astnode>0,NS_IDENT);*/}
-		| initdecllist ',' initdecl					{/*insert_into_symtab($3,$<astnode>0,NS_IDENT);*/}
+										 install_varfn($1,$<astnode>0);}
+		| initdecllist ',' initdecl					{install_varfn($3,$<astnode>0);}
 		;
 
 initdecl:	declarator							{$$=$1;}

@@ -1,13 +1,15 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "symtab.h"
-#include "astnode.h"
 
 // good hash primes: https://planetmath.org/goodhashtableprimes
 static int ghp[] = {53, 97, 193, 389, 769, 1533, 3079, 6151, 12289, 24593};
 void *symtab_init(struct symtab *st) {
 	st->size = 0;
 	st->capacity = ghp[0];
-	st->bs = (union astnode **) calloc(st->capacity, sizeof(union astnode));
+	st->bs = (struct symbol **) calloc(st->capacity,
+		sizeof(struct symbol *));
 }
 
 void symtab_destroy(struct symtab *st) {
@@ -17,7 +19,7 @@ void symtab_destroy(struct symtab *st) {
 	for (i = 0; i < st->capacity; i++) {
 		if (st->bs[i]) {
 			// TODO: how to clean up node at st->bs[i] ??????????
-			free(st->bs[i]);
+			// free(st->bs[i].value);
 		}
 	}
 
@@ -39,7 +41,7 @@ static unsigned long symtab_hash(char *s) {
 
 static void symtab_rehash(struct symtab *st) {
 	int i;
-	union astnode **tmp, *iter, *end;
+	struct symbol **tmp, *iter, *end;
 
 	// find next "good hash prime"
 	for (i = 0; i < 10 && ghp[i] != st->capacity; i++);
@@ -49,18 +51,21 @@ static void symtab_rehash(struct symtab *st) {
 
 	st->capacity = ghp[i+1];
 	tmp = st->bs;
-	st->bs = calloc(st->capacity, sizeof(union astnode *));
+	st->bs = (struct symbol **) calloc(st->capacity,
+		sizeof(struct symbol *));
 
 	// rehash and reinsert all of the old elements
 	for (iter = *tmp, end = *tmp+ghp[i]; iter < end; ++iter) {
-		symtab_insert(st, iter->symbol.ident, iter);
+		symtab_insert(st, iter->ident, iter->value);
+		free(iter);
 	}
 
 	free(tmp);
 }
 
-int symtab_insert(struct symtab *st, char *ident, union astnode *node) {
+void symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 	int i;
+	struct symbol *symbol;
 
 	// resize hashtable if necessary
 	if (st->size >= st->capacity / 2) {
@@ -69,23 +74,21 @@ int symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 
 	// hash and linear probe; if name already exists then error
 	for (i = symtab_hash(ident) % st->capacity;
-		st->bs[i] && strcmp(ident, st->bs[i]->symbol.ident);
+		st->bs[i] && strcmp(ident, st->bs[i]->ident);
 		i = (i+1) % st->capacity);
 
-	// error: identifier already exists in this symbol table
-	// TODO: this should not be an error if current one is an extern and
-	// matches previous declaration
-	if (st->bs[i] && !strcmp(ident, st->bs[i]->symbol.ident)) {
-		char buf[1024];
-		snprintf(buf, sizeof(buf), "symbol %s already exists in symtab",
-			ident);
-		yyerror_fatal(buf);
-		return -1;
+	// identifier already exists in this symbol table
+	if (st->bs[i] && !strcmp(ident, st->bs[i]->ident)) {
+		yyerror_fatal("symbol already exists in symtab");
 	}
 
-	st->bs[i] = node;
+	// allocate symbol
+	symbol = malloc(sizeof(struct symbol));
+	symbol->value = node;
+	symbol->ident = ident;
+
+	st->bs[i] = symbol;
 	++st->size;
-	return 0;
 }
 
 union astnode *symtab_lookup(struct symtab *st, char *ident) {
@@ -96,11 +99,11 @@ union astnode *symtab_lookup(struct symtab *st, char *ident) {
 	}
 
 	for (i = symtab_hash(ident) % st->capacity;
-		st->bs[i] && strcmp(ident, st->bs[i]->symbol.ident);
+		st->bs[i] && strcmp(ident, st->bs[i]->ident);
 		i = (i+1) % st->capacity);
 
-	if (st->bs[i] && 1 /* TODO: check if identifier matches name */) {
-		return st->bs[i];
+	if (st->bs[i] && !(strcmp(ident, st->bs[i]->ident))) {
+		return st->bs[i]->value;
 	}
 	return NULL;
 }

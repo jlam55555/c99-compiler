@@ -3,6 +3,8 @@
 #include "parser.h"
 #include "astnode.h"
 #include "decl.h"
+#include "scope.h"
+#include "printutils.h"
 
 union astnode *decl_new(char *ident)
 {
@@ -131,4 +133,21 @@ union astnode *decl_function_new(union astnode *paramdecls)
 	ALLOC_TYPE(decl_function, NT_DECLARATOR_FUNCTION);
 	decl_function->decl_function.paramlist = paramdecls;
 	return decl_function;
+}
+
+void install_varfn(union astnode *decl, union astnode *declspec)
+{
+	FILE *fp = stdout;
+	char *ident;
+
+	ident = decl->decl.ident;
+	decl_finalize(decl, declspec);
+
+#if DEBUG
+	fprintf(fp, "declaring an ident %s\n", ident);
+
+	decl_print(decl->decl.components, 0);
+#endif
+
+	scope_insert(ident, NS_IDENT, decl);
 }

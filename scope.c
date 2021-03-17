@@ -16,7 +16,7 @@ void scope_push(enum scope_type type) {
 	if (scope_stack_capacity <= scope_pos + 1) {
 		// stack has never been initialized, give it an initial value
 		if (!scope_stack_capacity) {
-			scope_stack_capacity = 16;		
+			scope_stack_capacity = 16;
 		} else {
 			scope_stack_capacity *= 2;
 		}

@@ -103,4 +103,12 @@ union astnode *decl_array_new(union astnode *length,
 union astnode *decl_pointer_new(union astnode *spec);
 union astnode *decl_function_new(union astnode *paramdecls);
 
+/**
+ * install variable/function into the regular namespace in the current scope
+ *
+ * @param decl 		declarator
+ * @param declspec 	declspec
+ */
+void install_varfn(union astnode *decl, union astnode *declspec);
+
 #endif // DECLARATORH

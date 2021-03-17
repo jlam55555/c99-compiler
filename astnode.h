@@ -112,7 +112,7 @@ union astnode {
 
 	// symbol table
 //	struct astnode_variable variable;
-	struct astnode_symbol symbol;
+//	struct astnode_symbol symbol;
 };
 
 // helper to print an astnode

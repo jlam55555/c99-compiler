@@ -62,7 +62,6 @@ void structunion_set_name(char *ident, int begin_def)
 
 	// already declared in symbol table (in the current scope)
 	if (node && (get_scope(ident, NS_TAG) == get_current_scope())) {
-		node = node->symbol.value;
 		su = &node->ts_structunion;
 
 		// redefinition of completed type
@@ -91,12 +90,11 @@ void structunion_set_name(char *ident, int begin_def)
 		su->is_being_defined = begin_def;
 
 		// insert into symtab
-		ALLOC(symbol);
-		symbol->symbol.type = NT_SYMBOL;
-		symbol->symbol.ident = su->ident;
-		symbol->symbol.value = node;
+//		ALLOC(symbol);
+//		symbol->symbol.ident = su->ident;
+//		symbol->symbol.value = node;
 
-		scope_insert(ident, NS_TAG, symbol);
+		scope_insert(ident, NS_TAG, node);
 	}
 }
 
@@ -156,11 +154,10 @@ void structunion_install_member(union astnode *declarator,
 //	var->variable.declspec = specquallist;
 //	var->variable.declarator = declarator;
 
-	ALLOC(symbol);
-	symbol->symbol.type = NT_SYMBOL;
-	symbol->symbol.ident = ident;
-	symbol->symbol.value = var;
-	symtab_insert(&su->members_ht, ident, symbol);
+//	ALLOC(symbol);
+//	symbol->symbol.ident = ident;
+//	symbol->symbol.value = var;
+	symtab_insert(&su->members_ht, ident, var);
 
 	// install (symbol) into linked list
 	if (!su->members) {
