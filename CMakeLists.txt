@@ -6,10 +6,10 @@ set(CMAKE_C_STANDARD 11)
 include_directories(include)
 
 find_package(BISON)
-BISON_TARGET(parser src/parser.y src/parser.tab.c COMPILE_FLAGS --defines=include/parser.tab.h)
+BISON_TARGET(parser src/parser.y src/parser.tab.c VERBOSE COMPILE_FLAGS --defines=include/parser.tab.h)
 
 find_package(FLEX)
-FLEX_TARGET(lexer src/lexer.l src/lexer.yy.c COMPILE_FLAGS --header-file=include/lexer.yy.h)
+FLEX_TARGET(lexer src/lexer.l src/lex.yy.c COMPILE_FLAGS --header-file=include/lex.yy.h)
 
 # redundant but ok
 ADD_FLEX_BISON_DEPENDENCY(lexer parser)
