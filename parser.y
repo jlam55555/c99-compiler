@@ -78,7 +78,7 @@
 %type<astnode>	paramlist paramtypelist paramdecl absdeclarator declspeclist
 %type<astnode>	specquallist typename dirabsdeclarator paramtypelistopt
 %type<astnode>	structunionspec structunion structdeclaratorlist
-%type<astnode>	structdeclarator
+%type<astnode>	structdeclarator specqual
 %type<ident> 	IDENT
 %type<string>	STRING
 %type<charlit>	CHARLIT
@@ -319,9 +319,12 @@ structdecllist:	structdecl					{/*nothing to do here*/}
 structdecl:	specquallist structdeclaratorlist ';'		{/*nothing to do here*/}
 		;
 
-specquallist:	typespec					{ALLOC_DECLSPEC($$);$$->declspec.ts=$1;}
+specquallist:	specqual					{$$=$1;}
+		| specquallist specqual				{$$=merge_declspec($1,$2);}
+		;
+
+specqual:	typespec					{ALLOC_DECLSPEC($$);$$->declspec.ts=$1;}
 		| typequal					{ALLOC_DECLSPEC($$);$$->declspec.tq=$1;}
-		| specquallist specquallist			{$$=merge_declspec($1,$2);}
 		;
 
 structdeclaratorlist:	structdeclarator			{structunion_install_member($1,$<astnode>0);}

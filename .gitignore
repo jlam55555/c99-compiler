@@ -16,6 +16,7 @@ parser
 
 # JetBrains files
 .idea
+cmake-build-debug
 
 # Mac OS
 .DS_Store
