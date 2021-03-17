@@ -12,6 +12,7 @@
 #include "symtab.h"
 #include "scope.h"
 #include "structunion.h"
+#include "declarator.h"
 %}
 %locations
 
@@ -352,9 +353,8 @@ declarator:	pointer dirdeclarator		{/*ALLOC_DECLARATOR($$,$2,$1,0);*/}
 		| dirdeclarator			{/*ALLOC_DECLARATOR($$,$1,NULL,0);*/}
 		;
 
-dirdeclarator:	IDENT							{/*union astnode *ident;
-									 ALLOC_SET_IDENT(ident,$1);
-									 ALLOC_REGULAR_DIRDECLARATOR($$,ident);*/}
+dirdeclarator:	IDENT							{ALLOC_TYPE($$,NT_DECLARATOR);
+									 declarator_set_ident($$,$1);}
 		| '(' declarator ')'					{/*ALLOC_REGULAR_DIRDECLARATOR($$,$2);*/}
 		| dirdeclarator '[' typequallist asnmtexpr ']'		{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,0);*/}
 		| dirdeclarator '[' asnmtexpr ']'			{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$3,0);*/}
@@ -444,7 +444,7 @@ paramtypelistopt:	paramtypelist		{$$=$1;}
 
 /* 6.7.7 type definitions */
  /*typedefname:	IDENT				{/*not implementing this}*/
-		;
+ /*		;*/
 
 %%
 

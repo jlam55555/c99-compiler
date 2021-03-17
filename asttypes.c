@@ -7,6 +7,7 @@
 #include "asttypes.h"
 #include "scope.h"
 #include "parser.h"
+#include "declarator.h"
 #include "lexerutils/errorutils.h"
 #include <stdio.h>
 
@@ -20,7 +21,7 @@ char *print_scope(enum scope_type st);
 void print_typequallist(union astnode *node);
 char *print_sc(union astnode *scspec_node);
 void fill_defaults(union astnode *declspec);
-void print_symbol(union astnode *node, int depth);
+//void print_symbol(union astnode *node, int depth);
 
 // for printing out struct/union when it is defined
 void print_structunion_def(union astnode *node)
@@ -37,7 +38,7 @@ void print_structunion_def(union astnode *node)
 	// loop through fields
 	iter = su->members;
 	while (iter) {
-		print_symbol(iter, 0);
+		//print_symbol(iter, 0);
 		iter = iter->generic.next;
 	}
 
@@ -100,9 +101,8 @@ void print_type(union astnode *node, int depth)
 	}
 }
 
-// for printing symbols (and declarators (pointers and dirdeclarators, arrays,
-// functions)); everything but the abstract types
-void print_symbol(union astnode *node, int depth)
+// recursive declarator print function
+void print_declarator(union astnode *node, int depth)
 {
 //	FILE *outfile = stdout;
 //
@@ -280,9 +280,19 @@ char *print_scope(enum scope_type st)
 }
 
 // insert variable into symbol table
-void insert_into_symtab(union astnode *declarator, union astnode *declspec,
-	enum name_space ns)
+void insert_into_symtab(union astnode *declarator_node,
+	union astnode *declspec_node, enum name_space ns)
 {
+	struct astnode_declarator *declarator;
+	char *ident;
+
+	declarator = &declarator_node->declarator;
+	ident = declarator->ident;
+
+	declarator_print(declarator->components, 0);
+
+	fprintf(stdout, "Declaring new variable with ident %s\n", ident);
+
 //	char *ident;
 //	union astnode *symbol, *iter, *var;
 //

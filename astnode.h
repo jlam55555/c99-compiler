@@ -91,6 +91,7 @@ union astnode {
 	struct astnode_declspec declspec;
 
 	// declarator types
+	struct astnode_declarator_generic declarator_component;
 	struct astnode_declarator_pointer pointer;
 	struct astnode_declarator_function fn;
 	struct astnode_declarator_array array;
@@ -113,6 +114,10 @@ void print_astnode(union astnode *);
 // use calloc because it also zeros (malloc is not guaranteed to zero)
 #define ALLOC(var)\
 	(var)=(union astnode *)calloc(1, sizeof(union astnode));
+
+#define ALLOC_TYPE(var, type_name)\
+	ALLOC(var);\
+	(var)->generic.type = type_name;
 
 #define ALLOC_SET_IDENT(var, idt)\
 	ALLOC(var);\

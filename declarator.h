@@ -12,19 +12,23 @@
 
 #include "astnodegeneric.h"
 
-struct astnode_declarator_pointer {
-	_ASTNODE
-
+#define _ASTNODE_DECLARATOR_COMPONENT\
+	_ASTNODE\
 	union astnode *of;
+
+struct astnode_declarator_generic {
+	_ASTNODE_DECLARATOR_COMPONENT
+};
+
+struct astnode_declarator_pointer {
+	_ASTNODE_DECLARATOR_COMPONENT
 
 	// pointer spec
 	union astnode *spec;
 };
 
 struct astnode_declarator_function {
-	_ASTNODE
-
-	union astnode *of;
+	_ASTNODE_DECLARATOR_COMPONENT
 
 	// can only include INLINE, which gets ignored anyway
 	union astnode *spec;
@@ -34,9 +38,7 @@ struct astnode_declarator_function {
 };
 
 struct astnode_declarator_array {
-	_ASTNODE
-
-	union astnode *of;
+	_ASTNODE_DECLARATOR_COMPONENT
 
 	// for now can only hold NT_NUMBER type
 	union astnode *length;
@@ -61,5 +63,8 @@ struct astnode_declaration {
 	struct astnode_declspec *declspec;
 	struct astnode_declarator *declarator;
 };
+
+void declarator_set_ident(union astnode *node, char *ident);
+void declarator_print(union astnode *node, int depth);
 
 #endif // DECLARATORH
