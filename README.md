@@ -41,5 +41,6 @@ initializer lists).
 
 ##### Declarations
 TODO: Finish this writeup about the declaration parser
+TODO: Fix error with short not being recognized
   
 [cmake-oos]: https://www.cs.swarthmore.edu/~adanner/tips/cmake.php

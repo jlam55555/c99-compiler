@@ -40,15 +40,15 @@ union astnode *merge_declspec(union astnode *spec1, union astnode *spec2) {
 				default: lls2 = 0;
 			}
 
-			lls_res = 0;
+			lls_res = lls1 + lls2;
 			// cannot have more than 2 longs
 			if (lls1 >= 0 && lls2 >= 0) {
-				if ((lls_res = lls1 + lls2) > 2) {
+				if (lls_res > 2) {
 					yyerror("integer type too long for C; truncating to long long");
 					lls_res = 2;
 				}
 			}
-				// cannot have long and short
+			// cannot have long and short
 			else if (lls1 > 0 && lls2 < 0 || lls1 < 0 && lls2 > 0) {
 				yyerror_fatal("both long and short in declaration specifiers");
 			}

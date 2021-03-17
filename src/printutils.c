@@ -6,6 +6,10 @@
 void print_typespec(union astnode *node, int depth)
 {
 	FILE *fp = stdout;
+	struct astnode_typespec_scalar *sc;
+	struct astnode_typespec_structunion *su;
+
+	INDENT(depth);
 
 	if (!node) {
 		fprintf(fp, "unspecified type\n");
@@ -16,19 +20,21 @@ void print_typespec(union astnode *node, int depth)
 
 	// scalar types
 	case NT_TS_SCALAR:
+		sc = &node->ts_scalar;
+
 		// signedness (for applicable types)
-		if(node->ts_scalar.modifiers.sign==SIGN_UNSIGNED)
+		if(sc->modifiers.sign==SIGN_UNSIGNED)
 			fprintf(fp, "unsigned");
 
 		// long/long long/short (for applicable types)
-		switch(node->ts_scalar.modifiers.lls) {
+		switch(sc->modifiers.lls) {
 		case LLS_SHORT:		fprintf(fp, "short "); break;
 		case LLS_LONG:		fprintf(fp, "long "); break;
 		case LLS_LONG_LONG:	fprintf(fp, "long long "); break;
 		}
 
 		// "base" scalar type
-		switch(node->ts_scalar.basetype) {
+		switch(sc->basetype) {
 		case BT_INT: 		fprintf(fp, "int"); break;
 		case BT_FLOAT: 		fprintf(fp, "float"); break;
 		case BT_DOUBLE: 	fprintf(fp, "double"); break;
@@ -39,8 +45,8 @@ void print_typespec(union astnode *node, int depth)
 		break;
 
 	// struct types: only need to print tag and where it was defined
-	case NT_TS_STRUCT_UNION:;
-		struct astnode_typespec_structunion *su = &node->ts_structunion;
+	case NT_TS_STRUCT_UNION:
+		su = &node->ts_structunion;
 		fprintf(fp, "struct %s ", su->ident);
 		if (su->is_complete) {
 			fprintf(fp, "(defined at %s:%d)\n",
@@ -90,9 +96,8 @@ void print_declarator(union astnode *component, int depth)
 			break;
 
 		// end of declarator chain, typespec reached
-		case NT_TS_SCALAR:
-		case NT_TS_STRUCT_UNION:
-			print_typespec(component, depth+1);
+		case NT_DECLSPEC:
+			print_typespec(component->declspec.ts, depth+1);
 			break;
 
 		// declarator components
