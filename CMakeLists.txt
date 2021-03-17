@@ -3,13 +3,17 @@ project(ece466_compiler C)
 
 set(CMAKE_C_STANDARD 11)
 
-include_directories(include)
+include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 
 find_package(BISON)
-BISON_TARGET(parser src/parser.y src/parser.tab.c VERBOSE COMPILE_FLAGS --defines=include/parser.tab.h)
+BISON_TARGET(parser ${CMAKE_SOURCE_DIR}/src/parser.y
+        ${CMAKE_BINARY_DIR}/parser.tab.c VERBOSE
+        COMPILE_FLAGS --defines=${CMAKE_BINARY_DIR}/parser.tab.h)
 
 find_package(FLEX)
-FLEX_TARGET(lexer src/lexer.l src/lex.yy.c COMPILE_FLAGS --header-file=include/lex.yy.h)
+FLEX_TARGET(lexer ${CMAKE_SOURCE_DIR}/src/lexer.l
+        ${CMAKE_BINARY_DIR}/lex.yy.c
+        COMPILE_FLAGS --header-file=${CMAKE_BINARY_DIR}/lex.yy.h)
 
 # redundant but ok
 ADD_FLEX_BISON_DEPENDENCY(lexer parser)
@@ -17,7 +21,6 @@ ADD_FLEX_BISON_DEPENDENCY(lexer parser)
 add_executable(compiler
         ${BISON_parser_OUTPUTS}
         ${FLEX_lexer_OUTPUTS}
-        src/lexer.l
         src/lexerutils/errorutils.c
         src/lexerutils/numutils.c
         src/lexerutils/stringutils.c

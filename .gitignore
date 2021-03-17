@@ -4,10 +4,7 @@ lex.yy.*
 *.tab.*
 
 # executable target
-compiler
-
-# object files
-*.o
+target
 
 # vscode files
 .vscode
@@ -22,7 +19,6 @@ CMakeFiles
 CMakeCache.txt
 cmake_install.cmake
 *.cbp
-Makefile
 
 # Mac OS
 .DS_Store
