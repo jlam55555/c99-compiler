@@ -119,9 +119,7 @@ void install_varfn(union astnode *decl, union astnode *declspec)
 	decl_finalize(decl, declspec);
 
 #if DEBUG
-	fprintf(fp, "declaring an ident %s\n", ident);
-
-	print_declarator(decl->decl.components, 0);
+	print_symbol(decl);
 #endif
 
 	scope_insert(ident, NS_IDENT, decl);

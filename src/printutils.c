@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <scope.h>
+#include <lexerutils/errorutils.h>
 #include "astnode.h"
 #include "structunion.h"
 #include "printutils.h"
@@ -24,7 +26,7 @@ void print_typespec(union astnode *node, int depth)
 
 		// signedness (for applicable types)
 		if(sc->modifiers.sign==SIGN_UNSIGNED)
-			fprintf(fp, "unsigned");
+			fprintf(fp, "unsigned ");
 
 		// long/long long/short (for applicable types)
 		switch(sc->modifiers.lls) {
@@ -52,9 +54,12 @@ void print_typespec(union astnode *node, int depth)
 			fprintf(fp, "(defined at %s:%d)\n",
 				su->def_filename, su->def_lineno);
 		} else {
-			fprintf(fp, "(incomplete)\n", su->ident);
+			fprintf(fp, "(incomplete)\n");
 		}
 		break;
+
+	default:
+		yyerror("unknown typespec");
 	}
 }
 
@@ -88,35 +93,107 @@ void print_declarator(union astnode *component, int depth)
 		return;
 	}
 
-	INDENT(depth);
 	switch (component->generic.type) {
-		// base case
-		case NT_DECL:
-			print_declarator(component->decl.components, depth);
-			break;
+	// base case
+	case NT_DECL:
+		print_declarator(component->decl.components, depth);
+		break;
 
-		// end of declarator chain, typespec reached
-		case NT_DECLSPEC:
-			print_typespec(component->declspec.ts, depth+1);
-			break;
+	// end of declarator chain, typespec reached
+	case NT_DECLSPEC:
+		print_typespec(component->declspec.ts, depth);
+		break;
 
-		// declarator components
-		case NT_DECLARATOR_ARRAY:
-			fprintf(fp, "array (%d) of\n",
-				component->decl_array.length->num.num.int_val);
-			break;
-		case NT_DECLARATOR_POINTER:
-			fprintf(fp, "pointer to\n");
-			break;
-		case NT_DECLARATOR_FUNCTION:
-			fprintf(fp, "function returning\n");
-			break;
-		default:
-			fprintf(fp, "unknown type %d in print_symbol\n",
-				component->generic.type);
-			return;
+	// declarator components
+	case NT_DECLARATOR_ARRAY:
+		INDENT(depth);
+		fprintf(fp, "array (%d) of\n",
+			component->decl_array.length->num.num.int_val);
+		break;
+	case NT_DECLARATOR_POINTER:
+		INDENT(depth);
+		fprintf(fp, "pointer to\n");
+		break;
+	case NT_DECLARATOR_FUNCTION:
+		INDENT(depth);
+		fprintf(fp, "function returning\n");
+		break;
+	default:
+		fprintf(fp, "unknown type %d in print_symbol\n",
+			component->generic.type);
+		return;
 	}
 
 	// recursively print
 	print_declarator(component->decl_component.next, depth+1);
+}
+
+void print_typequal(union astnode *node)
+{
+	FILE *fp = stdout;
+	unsigned char tq;
+
+	if (!node) {
+		return;
+	}
+
+	tq = node->tq.qual;
+	if (tq & TQ_CONST)	fprintf(fp, "const ");
+	if (tq & TQ_RESTRICT)	fprintf(fp, "restrict ");
+	if (tq & TQ_VOLATILE)	fprintf(fp, "volatile ");
+}
+
+void print_storageclass(union astnode *node)
+{
+	FILE *fp = stdout;
+	enum sc_spec scspec;
+
+	if (!node) {
+		return;
+	}
+
+	scspec = node->sc.scspec;
+
+	switch (scspec) {
+	case SC_EXTERN:		fprintf(fp, "extern "); return;
+	case SC_STATIC:		fprintf(fp, "static "); return;
+	case SC_AUTO:		fprintf(fp, "auto "); return;
+	case SC_REGISTER:	fprintf(fp, "register "); return;
+	}
+}
+
+void print_scope(struct scope *scope)
+{
+	FILE *fp = stdout;
+	char *type;
+
+	switch (scope->type) {
+	case ST_FILE:		type = "global"; break;
+	case ST_FUNC:		type = "block"; break;
+	case ST_BLOCK:		type = "block"; break;
+	// "fake" scope for printing purposes
+	case ST_STRUCTUNION:	type = "struct/union"; break;
+	default:		yyerror_fatal("unknown scope type");
+	}
+
+	fprintf(fp, "%s scope starting at %s:%d",
+		type, scope->filename, scope->lineno);
+}
+
+void print_symbol(union astnode *node)
+{
+	FILE *fp = stdout;
+
+	if (!node || node->generic.type != NT_DECL) {
+		return;
+	}
+
+	// print type
+	fprintf(fp, "%s is defined at %s:%d [in ",
+		node->decl.ident, filename, lineno);
+	print_scope(get_current_scope());
+	fprintf(fp, "] as a\n");
+
+	// print declarator and type
+	print_declarator(node->decl.components, 1);
 }

@@ -9,9 +9,9 @@
 #include "common.h"
 
 // typespec: scalar types
-#define TS_SCALAR_SIGNED	0x4
-#define TS_SCALAR_LL		0x2
-#define TS_SCALAR_L		0x1
+#define TS_SCALAR_SIGNED	0x4u
+#define TS_SCALAR_LL		0x2u
+#define TS_SCALAR_L		0x1u
 struct astnode_typespec_scalar {
 	_ASTNODE
 
@@ -27,9 +27,9 @@ struct astnode_typespec_scalar {
 };
 
 // type qualifiers
-#define TQ_CONST	0x1
-#define TQ_RESTRICT	0x2
-#define TQ_VOLATILE	0x4
+#define TQ_CONST	0x1u
+#define TQ_RESTRICT	0x2u
+#define TQ_VOLATILE	0x4u
 struct astnode_typequal {
 	_ASTNODE
 
