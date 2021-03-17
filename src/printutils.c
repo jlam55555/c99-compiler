@@ -5,16 +5,14 @@
 #include "structunion.h"
 #include "printutils.h"
 
-void print_typespec(union astnode *node, int depth)
+void print_typespec(union astnode *node)
 {
 	FILE *fp = stdout;
 	struct astnode_typespec_scalar *sc;
 	struct astnode_typespec_structunion *su;
 
-	INDENT(depth);
-
 	if (!node) {
-		fprintf(fp, "unspecified type\n");
+		fprintf(fp, "<unspecified type>\n");
 		return;
 	}
 
@@ -43,7 +41,6 @@ void print_typespec(union astnode *node, int depth)
 		case BT_CHAR: 		fprintf(fp, "char"); break;
 		case BT_BOOL: 		fprintf(fp, "bool"); break;
 		}
-		fprintf(fp, "\n");
 		break;
 
 	// struct types: only need to print tag and where it was defined
@@ -51,10 +48,10 @@ void print_typespec(union astnode *node, int depth)
 		su = &node->ts_structunion;
 		fprintf(fp, "struct %s ", su->ident);
 		if (su->is_complete) {
-			fprintf(fp, "(defined at %s:%d)\n",
+			fprintf(fp, "(defined at %s:%d)",
 				su->def_filename, su->def_lineno);
 		} else {
-			fprintf(fp, "(incomplete)\n");
+			fprintf(fp, "(incomplete)");
 		}
 		break;
 
@@ -77,7 +74,7 @@ void print_structunion_def(union astnode *node)
 	// loop through fields
 	iter = su->members;
 	while (iter) {
-		//print_symbol(iter, 0);
+		print_symbol(iter, 0);
 		iter = iter->generic.next;
 	}
 
@@ -101,7 +98,7 @@ void print_declarator(union astnode *component, int depth)
 
 	// end of declarator chain, typespec reached
 	case NT_DECLSPEC:
-		print_typespec(component->declspec.ts, depth);
+		print_declspec(component, depth);
 		break;
 
 	// declarator components
@@ -112,10 +109,12 @@ void print_declarator(union astnode *component, int depth)
 		break;
 	case NT_DECLARATOR_POINTER:
 		INDENT(depth);
+		print_typequal(component->decl_pointer.spec);
 		fprintf(fp, "pointer to\n");
 		break;
 	case NT_DECLARATOR_FUNCTION:
 		INDENT(depth);
+		// TODO: print function arguments
 		fprintf(fp, "function returning\n");
 		break;
 	default:
@@ -149,6 +148,7 @@ void print_storageclass(union astnode *node)
 	enum sc_spec scspec;
 
 	if (!node) {
+		// unspecified storage class
 		return;
 	}
 
@@ -160,6 +160,22 @@ void print_storageclass(union astnode *node)
 	case SC_AUTO:		fprintf(fp, "auto "); return;
 	case SC_REGISTER:	fprintf(fp, "register "); return;
 	}
+}
+
+void print_declspec(union astnode *node, int depth)
+{
+	FILE *fp = stdout;
+
+	if (!node) {
+		// shouldn't happen
+		yyerror("missing declspec?");
+		return;
+	}
+
+	INDENT(depth);
+	print_typequal(node->declspec.tq);
+	print_typespec(node->declspec.ts);
+	fprintf(fp, "\n");
 }
 
 void print_scope(struct scope *scope)
@@ -180,7 +196,7 @@ void print_scope(struct scope *scope)
 		type, scope->filename, scope->lineno);
 }
 
-void print_symbol(union astnode *node)
+void print_symbol(union astnode *node, int print_sc)
 {
 	FILE *fp = stdout;
 
@@ -188,12 +204,17 @@ void print_symbol(union astnode *node)
 		return;
 	}
 
-	// print type
-	fprintf(fp, "%s is defined at %s:%d [in ",
-		node->decl.ident, filename, lineno);
+	fprintf(fp, "%s is defined ", node->decl.ident);
+	if (print_sc) {
+		fprintf(fp, "with storage class ");
+		print_storageclass(node->decl.declspec->declspec.sc);
+	}
+	fprintf(fp, "\n");
+	INDENT(1);
+	fprintf(fp, "at %s:%d [in ", filename, lineno);
 	print_scope(get_current_scope());
 	fprintf(fp, "] as a\n");
 
 	// print declarator and type
-	print_declarator(node->decl.components, 1);
+	print_declarator(node->decl.components, 2);
 }

@@ -380,8 +380,9 @@ pointer:	'*' typequallist						{$$=decl_pointer_new($2);}
 		| '*' pointer							{$$=decl_pointer_new(NULL);LL_NEXT($$)=$2;}
 		;
 
-typequallist:	typequal							{$$=$1;}
-		| typequallist typequal						{$$=$1;LL_APPEND($1,$2);}
+typequallist:	typequal							{ALLOC_TYPE($$,NT_DECLSPEC);$$->declspec.tq=$1;}
+		| typequallist typequal						{ALLOC_TYPE($$,NT_DECLSPEC);$$->declspec.tq=$2;
+										 $$=merge_declspec($1,$$);}
 		;
 
 paramtypelist:	paramlist							{$$=$1;}

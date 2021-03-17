@@ -30,8 +30,7 @@ static void decl_reverse(union astnode *decl)
 	union astnode *a, *b, *c;
 
 	// components list is < 2 elements, nothing to do
-	if (!(a = decl->decl.components)
-		|| !(b = LL_NEXT(a))) {
+	if (!(a = decl->decl.components) || !(b = LL_NEXT(a))) {
 		return;
 	}
 
@@ -91,7 +90,11 @@ union astnode *decl_pointer_new(union astnode *spec)
 	union astnode *decl_pointer;
 
 	ALLOC_TYPE(decl_pointer, NT_DECLARATOR_POINTER);
-	decl_pointer->decl_pointer.spec = spec;
+	// spec is a declspec (because we use declspec_merge to merge them
+	// but we only need to store a typequal list
+	if (spec) {
+		decl_pointer->decl_pointer.spec = spec->declspec.tq;
+	}
 	return decl_pointer;
 }
 
@@ -119,7 +122,7 @@ void install_varfn(union astnode *decl, union astnode *declspec)
 	decl_finalize(decl, declspec);
 
 #if DEBUG
-	print_symbol(decl);
+	print_symbol(decl, 1);
 #endif
 
 	scope_insert(ident, NS_IDENT, decl);

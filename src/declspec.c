@@ -1,3 +1,4 @@
+#include <scope.h>
 #include "declspec.h"
 #include "astnode.h"
 
@@ -141,7 +142,41 @@ union astnode *merge_declspec(union astnode *spec1, union astnode *spec2) {
 	return spec1;
 }
 
-void declspec_fill_defaults(union astnode *declspec)
+void declspec_fill_defaults(union astnode *declspec_node)
 {
-	// TODO
+	struct scope *curscope;
+	struct astnode_declspec *declspec;
+
+	if (!declspec_node) {
+		// shouldn't happen
+		yyerror_fatal("empty declspec?");
+	}
+
+	declspec = &declspec_node->declspec;
+
+	// type spec
+	if (!declspec->ts) {
+		yyerror("no type specifier; defaulting to int");
+
+		ALLOC_SET_SCALAR(declspec->ts, BT_INT,
+			LLS_UNSPEC, SIGN_UNSPEC);
+	}
+
+	// storage class
+	if (!declspec->sc) {
+		curscope = get_current_scope();
+
+		// check if global scope, set default to extern
+		if(curscope->type == ST_FILE) {
+			ALLOC_SET_SCSPEC(declspec->sc, SC_EXTERN);
+		} else {
+			ALLOC_SET_SCSPEC(declspec->sc, SC_AUTO);
+		}
+
+	}
+
+	// type qualifiers
+	if (!declspec->tq) {
+		ALLOC_SET_TQSPEC(declspec->tq, 0);
+	}
 }
