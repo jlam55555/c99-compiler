@@ -1,7 +1,6 @@
 #include <stdio.h>
-#include "errorutils.h"
-#include "numutils.h"
-#include "stringutils.h"
+#include "lexerutils/stringutils.h"
+#include "lexerutils/numutils.h"
 #include "parser.tab.h"
 
 int lineno = 1;

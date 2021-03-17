@@ -82,15 +82,6 @@ union astnode *decl_append(union astnode *decl, union astnode *components);
 void decl_finalize(union astnode *decl, union astnode *declspec);
 
 /**
- * recursively print declarator components; initiate by calling on the
- * component list of a astnode_decl object
- *
- * @param component	ll of astnode_decl_*
- * @param depth		indenting depth
- */
-void decl_print(union astnode *component, int depth);
-
-/**
  * create new declarator components; set parameters to NULL if missing
  *
  * @param length 	length of array

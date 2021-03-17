@@ -70,7 +70,7 @@ struct astnode_comlit {		// compound literal
 	_ASTNODE
 
 	// typename is keyword in C++ but not C so this is ok
-	union astnode *typename, *initlist;
+	union astnode *tag, *initlist;
 };
 
 union astnode {

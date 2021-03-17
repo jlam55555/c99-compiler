@@ -8,6 +8,7 @@
 #include "parser.h"
 #include "common.h"
 #include "lexerutils/errorutils.h"
+#include "lexerutils/numutils.h"
 #include "astnode.h"
 #include "symtab.h"
 #include "scope.h"

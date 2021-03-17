@@ -37,7 +37,7 @@ enum astnode_type {
 	NT_DECLARATOR_POINTER,
 	NT_DECLARATOR_FUNCTION,
 	NT_DECLARATOR_ARRAY,
-	NT_DECLARATION,
+	NT_DECL,
 };
 
 // any astnode union type can be used as a linked list without a container type

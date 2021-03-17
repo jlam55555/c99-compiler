@@ -10,7 +10,7 @@ union astnode *decl_new(char *ident)
 {
 	union astnode *decl;
 
-	ALLOC_TYPE(decl, NT_DECLARATION);
+	ALLOC_TYPE(decl, NT_DECL);
 	decl->decl.ident = strdup(ident);
 
 	return decl;
@@ -60,37 +60,6 @@ void decl_finalize(union astnode *decl, union astnode *declspec)
 
 	// reverse declspec ll so that it is in the logical order
 	decl_reverse(decl);
-}
-
-void decl_print(union astnode *component, int depth)
-{
-	FILE *fp = stdout;
-
-	// end of declarator chain
-	if (!component) {
-		return;
-	}
-
-	INDENT(depth);
-	switch (component->generic.type) {
-	case NT_DECLARATOR_ARRAY:
-		fprintf(fp, "array (%d) of\n",
-			component->decl_array.length->num.num.int_val);
-		break;
-	case NT_DECLARATOR_POINTER:
-		fprintf(fp, "pointer to\n");
-		break;
-	case NT_DECLARATOR_FUNCTION:
-		fprintf(fp, "function returning\n");
-		break;
-	default:
-		fprintf(fp, "unknown type %d in print_symbol\n",
-			component->generic.type);
-		return;
-	}
-
-	// recursively print
-	decl_print(component->decl_component.next, depth+1);
 }
 
 union astnode *decl_array_new(union astnode *length, union astnode *spec)
@@ -152,7 +121,7 @@ void install_varfn(union astnode *decl, union astnode *declspec)
 #if DEBUG
 	fprintf(fp, "declaring an ident %s\n", ident);
 
-	decl_print(decl->decl.components, 0);
+	print_declarator(decl->decl.components, 0);
 #endif
 
 	scope_insert(ident, NS_IDENT, decl);
