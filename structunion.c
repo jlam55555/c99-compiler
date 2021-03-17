@@ -107,7 +107,7 @@ void structunion_install_member(union astnode *declarator,
 {
 	union astnode *node, *search, *iter, *var, *symbol;
 	struct astnode_typespec_structunion *su;
-	struct astnode_declarator *declr;
+	struct astnode_decl *decl;
 	struct astnode_declspec *declspec;
 	char *ident;
 
@@ -118,7 +118,7 @@ void structunion_install_member(union astnode *declarator,
 
 	node = su_decl_stack[su_decl_stack_pos];
 	su = &node->ts_structunion;
-	declr = &declarator->declarator;
+	decl = &declarator->decl;
 	declspec = &specquallist->declspec;
 
 	// if declarator not a pointer, make sure typespec is not incomplete

@@ -7,7 +7,7 @@
 #include "lexerutils/stringutils.h"
 #include "asttypes.h"
 #include "astnodegeneric.h"
-#include "declarator.h"
+#include "decl.h"
 
 struct astnode_binop {
 	_ASTNODE
@@ -91,12 +91,12 @@ union astnode {
 	struct astnode_declspec declspec;
 
 	// declarator types
-	struct astnode_declarator_component declarator_component;
-	struct astnode_declarator_pointer declarator_pointer;
-	struct astnode_declarator_function declarator_function;
-	struct astnode_declarator_array declarator_array;
-	struct astnode_declarator declarator;
-	struct astnode_declaration declaration;
+	struct astnode_decl_component decl_component;
+	struct astnode_decl_pointer decl_pointer;
+	struct astnode_decl_function decl_function;
+	struct astnode_decl_array decl_array;
+//	struct astnode_declarator declarator;
+	struct astnode_decl decl;
 //	struct astnode_pointer ptr;
 //	struct astnode_declarator declarator;
 //	struct astnode_dirdeclarator dirdeclarator;
@@ -164,73 +164,73 @@ void print_astnode(union astnode *);
 	(var)->ts_scalar.modifiers.lls = longlongshort;\
 	(var)->ts_scalar.modifiers.sign = signunsign;
 
-#define ALLOC_DECLARATOR(var, dd, ptr, abs)\
-	ALLOC(var);\
-	(var)->declarator.type = NT_DECLARATOR;\
-	(var)->declarator.dirdeclarator = dd;\
-	(var)->declarator.is_abstract = abs;\
-	(var)->declarator.pointer = ptr;
-
-#define ALLOC_POINTER(var, tqlist, from)\
-	ALLOC(var);\
-	(var)->ptr.type = NT_POINTER;\
-	(var)->ptr.typequallist = tqlist;\
-	if (from) {\
-		union astnode *iter = (from);\
-		while (iter->ptr.to) {\
-			iter = iter->ptr.to;\
-		}\
-		iter->ptr.to = (var);\
-	}
-
-#define ALLOC_PARAMDECL(var, ds, declr)\
-	ALLOC(var);\
-	(var)->paramdecl.type = NT_PARAMDECLARATOR;\
-	(var)->paramdecl.declspec = ds;\
-	(var)->paramdecl.declarator = declr;
-
-#define ALLOC_TYPENAME(var, sql, declr)\
-	ALLOC(var);\
-	(var)->typename.specquallist = sql;\
-	(var)->typename.absdeclarator = declr;
-
-#define ALLOC_REGULAR_DIRDECLARATOR(var, idt)\
-	ALLOC(var);\
-	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
-	(var)->dirdeclarator.declarator_type = DT_REGULAR;\
-	(var)->dirdeclarator.ident = idt;\
-	(var)->dirdeclarator.is_abstract = 0;
-
-#define ALLOC_ARRAY_DIRDECLARATOR(var, dd, tql, sizeexpr, abs)\
-	ALLOC(var);\
-	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
-	(var)->dirdeclarator.is_abstract = abs;\
-	union astnode *idt, *node = (dd), *iter;\
-	if (abs && node==NULL) {\
-		ALLOC_SET_IDENT(idt, "");\
-		ALLOC_REGULAR_DIRDECLARATOR(node, idt);\
-		node->dirdeclarator.is_abstract = 1;\
-	}\
-	/*loop to innermost dirdeclarator*/\
-	/*node is top-level, iter is inner-most, var gets added to innermost*/\
-	iter = node;\
-	while (iter->dirdeclarator.ident->generic.type == NT_DIRDECLARATOR) {\
-		iter = iter->dirdeclarator.ident;\
-	}\
-	iter->dirdeclarator.declarator_type = DT_ARRAY;\
-	iter->dirdeclarator.typequallist = tql;\
-	iter->dirdeclarator.size = sizeexpr;\
-	(var)->dirdeclarator.ident = iter->dirdeclarator.ident;\
-	iter->dirdeclarator.ident = (var);\
-	/*return the top dirdeclarator*/\
-	(var) = node;
-
-#define ALLOC_FN_DIRDECLARATOR(var, dd, ptl, abs)\
-	ALLOC(var);\
-	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
-	(var)->dirdeclarator.declarator_type = DT_FN;\
-	(var)->dirdeclarator.ident = dd;\
-	(var)->dirdeclarator.paramtypelist = ptl;\
-	(var)->dirdeclarator.is_abstract = abs;
+//#define ALLOC_DECLARATOR(var, dd, ptr, abs)\
+//	ALLOC(var);\
+//	(var)->declarator.type = NT_DECLARATOR;\
+//	(var)->declarator.dirdeclarator = dd;\
+//	(var)->declarator.is_abstract = abs;\
+//	(var)->declarator.pointer = ptr;
+//
+//#define ALLOC_POINTER(var, tqlist, from)\
+//	ALLOC(var);\
+//	(var)->ptr.type = NT_POINTER;\
+//	(var)->ptr.typequallist = tqlist;\
+//	if (from) {\
+//		union astnode *iter = (from);\
+//		while (iter->ptr.to) {\
+//			iter = iter->ptr.to;\
+//		}\
+//		iter->ptr.to = (var);\
+//	}
+//
+//#define ALLOC_PARAMDECL(var, ds, declr)\
+//	ALLOC(var);\
+//	(var)->paramdecl.type = NT_PARAMDECLARATOR;\
+//	(var)->paramdecl.declspec = ds;\
+//	(var)->paramdecl.declarator = declr;
+//
+//#define ALLOC_TYPENAME(var, sql, declr)\
+//	ALLOC(var);\
+//	(var)->typename.specquallist = sql;\
+//	(var)->typename.absdeclarator = declr;
+//
+//#define ALLOC_REGULAR_DIRDECLARATOR(var, idt)\
+//	ALLOC(var);\
+//	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
+//	(var)->dirdeclarator.decl_type = DT_REGULAR;\
+//	(var)->dirdeclarator.ident = idt;\
+//	(var)->dirdeclarator.is_abstract = 0;
+//
+//#define ALLOC_ARRAY_DIRDECLARATOR(var, dd, tql, sizeexpr, abs)\
+//	ALLOC(var);\
+//	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
+//	(var)->dirdeclarator.is_abstract = abs;\
+//	union astnode *idt, *node = (dd), *iter;\
+//	if (abs && node==NULL) {\
+//		ALLOC_SET_IDENT(idt, "");\
+//		ALLOC_REGULAR_DIRDECLARATOR(node, idt);\
+//		node->dirdeclarator.is_abstract = 1;\
+//	}\
+//	/*loop to innermost dirdeclarator*/\
+//	/*node is top-level, iter is inner-most, var gets added to innermost*/\
+//	iter = node;\
+//	while (iter->dirdeclarator.ident->generic.type == NT_DIRDECLARATOR) {\
+//		iter = iter->dirdeclarator.ident;\
+//	}\
+//	iter->dirdeclarator.decl_type = DT_ARRAY;\
+//	iter->dirdeclarator.typequallist = tql;\
+//	iter->dirdeclarator.size = sizeexpr;\
+//	(var)->dirdeclarator.ident = iter->dirdeclarator.ident;\
+//	iter->dirdeclarator.ident = (var);\
+//	/*return the top dirdeclarator*/\
+//	(var) = node;
+//
+//#define ALLOC_FN_DIRDECLARATOR(var, dd, ptl, abs)\
+//	ALLOC(var);\
+//	(var)->dirdeclarator.type = NT_DIRDECLARATOR;\
+//	(var)->dirdeclarator.decl_type = DT_FN;\
+//	(var)->dirdeclarator.ident = dd;\
+//	(var)->dirdeclarator.paramtypelist = ptl;\
+//	(var)->dirdeclarator.is_abstract = abs;
 
 #endif

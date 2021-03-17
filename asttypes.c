@@ -7,7 +7,7 @@
 #include "asttypes.h"
 #include "scope.h"
 #include "parser.h"
-#include "declarator.h"
+#include "decl.h"
 #include "lexerutils/errorutils.h"
 #include <stdio.h>
 
@@ -280,20 +280,20 @@ char *print_scope(enum scope_type st)
 }
 
 // insert variable into symbol table
-void insert_into_symtab(union astnode *declarator_node,
-	union astnode *declspec_node, enum name_space ns)
+void insert_into_symtab(union astnode *decl_node, union astnode *declspec_node,
+	enum name_space ns)
 {
-	struct astnode_declarator *declarator;
+	struct astnode_decl *decl;
 	char *ident;
 
 	// reverse declarator since components were inserted backwards
-	declarator_reverse(declarator_node);
-	declarator = &declarator_node->declarator;
-	ident = declarator->ident;
+	decl_finalize(decl_node, declspec_node);
+	decl = &decl_node->decl;
+	ident = decl->ident;
 
 	fprintf(stdout, "Declaring new variable with ident %s\n", ident);
 
-	declarator_print(declarator->components, 0);
+	decl_print(decl->components, 0);
 
 //	char *ident;
 //	union astnode *symbol, *iter, *var;

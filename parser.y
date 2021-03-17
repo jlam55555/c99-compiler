@@ -12,7 +12,7 @@
 #include "symtab.h"
 #include "scope.h"
 #include "structunion.h"
-#include "declarator.h"
+#include "decl.h"
 %}
 %locations
 
@@ -347,36 +347,36 @@ funcspec:	INLINE								{/*not implementing inline functions*/}
 
 
 /* 6.7.5 Declarators */
-declarator:	pointer dirdeclarator						{$$=declarator_append($2,$1);}
+declarator:	pointer dirdeclarator						{$$=decl_append($2,$1);}
 		| dirdeclarator							{$$=$1;}
 		;
 
 /* have to expand these otherwise shift/reduce conflicts on optional sections */
-dirdeclarator:	IDENT								{$$=declarator_new($1);}
+dirdeclarator:	IDENT								{$$=decl_new($1);}
 		| '(' declarator ')'						{$$=$2;}
-		| dirdeclarator '[' typequallist asnmtexpr ']'			{$$=declarator_append($1,declarator_array_new($4,$3));}
-		| dirdeclarator '[' asnmtexpr ']'				{$$=declarator_append($1,declarator_array_new($3,NULL));}
-		| dirdeclarator '[' typequallist ']'				{$$=declarator_append($1,declarator_array_new(NULL,$3));}
-		| dirdeclarator '[' ']'						{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
+		| dirdeclarator '[' typequallist asnmtexpr ']'			{$$=decl_append($1,decl_array_new($4,$3));}
+		| dirdeclarator '[' asnmtexpr ']'				{$$=decl_append($1,decl_array_new($3,NULL));}
+		| dirdeclarator '[' typequallist ']'				{$$=decl_append($1,decl_array_new(NULL,$3));}
+		| dirdeclarator '[' ']'						{$$=decl_append($1,decl_array_new(NULL,NULL));}
 		| dirdeclarator '[' STATIC typequallist asnmtexpr ']'		{/*ignore static keyword*/
-										 $$=declarator_append($1,declarator_array_new($5,$4));}
-		| dirdeclarator '[' STATIC asnmtexpr ']'			{$$=declarator_append($1,declarator_array_new($4,NULL));}
-		| dirdeclarator '[' STATIC typequallist ']'			{$$=declarator_append($1,declarator_array_new(NULL,$4));}
-		| dirdeclarator '[' STATIC ']'					{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
-		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'		{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
+										 $$=decl_append($1,decl_array_new($5,$4));}
+		| dirdeclarator '[' STATIC asnmtexpr ']'			{$$=decl_append($1,decl_array_new($4,NULL));}
+		| dirdeclarator '[' STATIC typequallist ']'			{$$=decl_append($1,decl_array_new(NULL,$4));}
+		| dirdeclarator '[' STATIC ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'		{$$=decl_append($1,decl_array_new(NULL,NULL));}
 		| dirdeclarator '[' typequallist '*' ']'			{/*ignore variable length array*/
-										 $$=declarator_append($1,declarator_array_new(NULL,$3));}
-		| dirdeclarator '['  '*' ']'					{$$=declarator_append($1,declarator_array_new(NULL,NULL));}
-		| dirdeclarator '(' paramtypelist ')'				{$$=declarator_append($1,declarator_function_new($3));}
+										 $$=decl_append($1,decl_array_new(NULL,$3));}
+		| dirdeclarator '['  '*' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| dirdeclarator '(' paramtypelist ')'				{$$=decl_append($1,decl_function_new($3));}
 		| dirdeclarator '(' identlist ')'				{/*reject old C function syntax*/
 										 yyerror_fatal("old function declaration style not allowed");}
-		| dirdeclarator '(' ')'						{$$=declarator_append($1,declarator_function_new(NULL));}
+		| dirdeclarator '(' ')'						{$$=decl_append($1,decl_function_new(NULL));}
 		;
 
-pointer:	'*' typequallist						{$$=declarator_pointer_new($2);}
-		| '*'								{$$=declarator_pointer_new(NULL);}
-		| '*' typequallist pointer					{$$=declarator_pointer_new($2);LL_NEXT($$)=$3;}
-		| '*' pointer							{$$=declarator_pointer_new(NULL);LL_NEXT($$)=$2;}
+pointer:	'*' typequallist						{$$=decl_pointer_new($2);}
+		| '*'								{$$=decl_pointer_new(NULL);}
+		| '*' typequallist pointer					{$$=decl_pointer_new($2);LL_NEXT($$)=$3;}
+		| '*' pointer							{$$=decl_pointer_new(NULL);LL_NEXT($$)=$2;}
 		;
 
 typequallist:	typequal							{$$=$1;}

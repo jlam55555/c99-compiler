@@ -28,7 +28,7 @@ enum astnode_type {
 	NT_DECLARATOR_POINTER,
 	NT_DECLARATOR_FUNCTION,
 	NT_DECLARATOR_ARRAY,
-	NT_DECLARATOR,
+//	NT_DECLARATOR,
 	NT_DECLARATION,
 //	NT_DECLARATOR,
 //	NT_DIRDECLARATOR,
@@ -48,6 +48,8 @@ enum astnode_type {
 
 // ll_append_iter is declared in asttypes.c
 extern union astnode *ll_append_iter;
+
+// assumes ll is not null
 #define LL_APPEND(ll, node) {\
 	ll_append_iter = ll;\
 	while (ll_append_iter->generic.next) {\
