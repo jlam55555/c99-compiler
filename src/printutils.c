@@ -22,19 +22,21 @@ void print_typespec(union astnode *node)
 	case NT_TS_SCALAR:
 		sc = &node->ts_scalar;
 
-		// signedness (for applicable types)
-		if(sc->modifiers.sign==SIGN_UNSIGNED)
-			fprintf(fp, "unsigned ");
+		// signedness (if specified)
+		switch (sc->modifiers.sign) {
+		case SIGN_SIGNED:	fprintf(fp, "signed "); break;
+		case SIGN_UNSIGNED:	fprintf(fp, "unsigned "); break;
+		}
 
 		// long/long long/short (for applicable types)
-		switch(sc->modifiers.lls) {
+		switch (sc->modifiers.lls) {
 		case LLS_SHORT:		fprintf(fp, "short "); break;
 		case LLS_LONG:		fprintf(fp, "long "); break;
 		case LLS_LONG_LONG:	fprintf(fp, "long long "); break;
 		}
 
 		// "base" scalar type
-		switch(sc->basetype) {
+		switch (sc->basetype) {
 		case BT_INT: 		fprintf(fp, "int"); break;
 		case BT_FLOAT: 		fprintf(fp, "float"); break;
 		case BT_DOUBLE: 	fprintf(fp, "double"); break;
