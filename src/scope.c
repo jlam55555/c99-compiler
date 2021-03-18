@@ -3,7 +3,6 @@
 #include "parser.h"
 #include "lexerutils/errorutils.h"
 #include <stdio.h>
-#include <malloc.h>
 
 static struct scope *scope_stack = NULL;
 static int scope_pos = -1, scope_stack_capacity = 0;
@@ -20,8 +19,8 @@ void scope_push(enum scope_type type) {
 		} else {
 			scope_stack_capacity *= 2;
 		}
-		scope_stack = reallocarray(scope_stack, scope_stack_capacity,
-			sizeof(struct scope));
+		scope_stack = realloc(scope_stack,
+			scope_stack_capacity * sizeof(struct scope));
 	}
 
 	// create scope

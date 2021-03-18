@@ -1,4 +1,3 @@
-#include <malloc.h>
 #include "astnode.h"
 #include "structunion.h"
 #include "symtab.h"
@@ -23,8 +22,8 @@ void structunion_new(enum structunion_type type)
 		su_decl_stack_capacity = su_decl_stack_capacity
 			? su_decl_stack_capacity * 2 : 16;
 
-		su_decl_stack = (union astnode **) reallocarray(su_decl_stack,
-			su_decl_stack_capacity, sizeof(union astnode *));
+		su_decl_stack = (union astnode **) realloc(su_decl_stack,
+			su_decl_stack_capacity * sizeof(union astnode *));
 	}
 
 	// create new struct/union
