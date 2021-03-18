@@ -1,0 +1,102 @@
+struct str2 definition at struct1.c:5{
+c is defined at struct1.c:7 [in struct/union scope starting at struct1.c:5] as a 
+field of struct str2  off=4 bit_off=0 bit_wid=0, type:
+  char
+d is defined at struct1.c:6 [in struct/union scope starting at struct1.c:5] as a 
+field of struct str2  off=0 bit_off=0 bit_wid=0, type:
+  short
+e is defined at struct1.c:6 [in struct/union scope starting at struct1.c:5] as a 
+field of struct str2  off=2 bit_off=0 bit_wid=0, type:
+  short
+} (size==6)
+
+struct str1 definition at struct1.c:2{
+str2 is defined at struct1.c:8 [in struct/union scope starting at struct1.c:2] as a 
+field of struct str1  off=8 bit_off=0 bit_wid=0, type:
+  struct str2 (defined at struct1.c:5)
+a is defined at struct1.c:3 [in struct/union scope starting at struct1.c:2] as a 
+field of struct str1  off=0 bit_off=0 bit_wid=0, type:
+  int
+c is defined at struct1.c:9 [in struct/union scope starting at struct1.c:2] as a 
+field of struct str1  off=14 bit_off=0 bit_wid=0, type:
+  char
+i is defined at struct1.c:4 [in struct/union scope starting at struct1.c:2] as a 
+field of struct str1  off=4 bit_off=0 bit_wid=0, type:
+  int
+} (size==16)
+
+s1 is defined at struct1.c:10 [in global scope starting at struct1.c:1] as a 
+variable with stgclass static  of type:
+  struct str1 (defined at struct1.c:2)
+s2 is defined at struct1.c:12 [in global scope starting at struct1.c:1] as a 
+variable with stgclass extern  of type:
+  struct str2 (defined at struct1.c:5)
+struct str3 definition at struct1.c:14{
+p4 is defined at struct1.c:15 [in struct/union scope starting at struct1.c:14] as a 
+field of struct str3  off=0 bit_off=0 bit_wid=0, type:
+  pointer to 
+   struct str4 (incomplete)
+} (size==4)
+
+s3 is defined at struct1.c:16 [in global scope starting at struct1.c:1] as a 
+variable with stgclass extern  of type:
+  struct str3 (defined at struct1.c:14)
+struct str4 definition at struct1.c:18{
+str1 is defined at struct1.c:20 [in struct/union scope starting at struct1.c:18] as a 
+field of struct str4  off=4 bit_off=0 bit_wid=0, type:
+  array of  10 elements of type
+   struct str1 (defined at struct1.c:2)
+p3 is defined at struct1.c:19 [in struct/union scope starting at struct1.c:18] as a 
+field of struct str4  off=0 bit_off=0 bit_wid=0, type:
+  pointer to 
+   struct str3 (defined at struct1.c:14)
+i is defined at struct1.c:21 [in struct/union scope starting at struct1.c:18] as a 
+field of struct str4  off=164 bit_off=0 bit_wid=0, type:
+  int
+} (size==168)
+
+s4 is defined at struct1.c:22 [in global scope starting at struct1.c:1] as a 
+variable with stgclass extern  of type:
+  struct str4 (defined at struct1.c:18)
+struct (anonymous) definition at struct1.c:24{
+y is defined at struct1.c:25 [in struct/union scope starting at struct1.c:24] as a 
+field of struct (anonymous)  off=0 bit_off=0 bit_wid=0, type:
+  int
+} (size==4)
+
+s5 is defined at struct1.c:26 [in global scope starting at struct1.c:1] as a 
+variable with stgclass extern  of type:
+  struct (anonymous) (defined at struct1.c:24)
+struct str6 definition at struct1.c:29{
+a is defined at struct1.c:30 [in struct/union scope starting at struct1.c:29] as a 
+field of struct str6  off=0 bit_off=0 bit_wid=0, type:
+  int
+b is defined at struct1.c:31 [in struct/union scope starting at struct1.c:29] as a 
+field of struct str6  off=4 bit_off=0 bit_wid=2, type:
+  unsigned int
+c is defined at struct1.c:32 [in struct/union scope starting at struct1.c:29] as a 
+field of struct str6  off=4 bit_off=2 bit_wid=5, type:
+  unsigned int
+d is defined at struct1.c:34 [in struct/union scope starting at struct1.c:29] as a 
+field of struct str6  off=8 bit_off=0 bit_wid=0, type:
+  unsigned int
+e is defined at struct1.c:35 [in struct/union scope starting at struct1.c:29] as a 
+field of struct str6  off=12 bit_off=0 bit_wid=16, type:
+  unsigned int
+} (size==16)
+
+s6 is defined at struct1.c:36 [in global scope starting at struct1.c:1] as a 
+variable with stgclass extern  of type:
+  struct str6 (defined at struct1.c:29)
+union u1 definition at struct1.c:37{
+str3 is defined at struct1.c:39 [in struct/union scope starting at struct1.c:37] as a 
+field of union u1  off=0 bit_off=0 bit_wid=0, type:
+  struct str3 (defined at struct1.c:14)
+str4 is defined at struct1.c:38 [in struct/union scope starting at struct1.c:37] as a 
+field of union u1  off=0 bit_off=0 bit_wid=0, type:
+  struct str4 (defined at struct1.c:18)
+} (size==168)
+
+u1 is defined at struct1.c:40 [in global scope starting at struct1.c:1] as a 
+variable with stgclass extern  of type:
+  union u1 (defined at struct1.c:37)

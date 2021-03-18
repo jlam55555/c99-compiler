@@ -1,10 +1,9 @@
 #include <stdio.h>
-#include "errorutils.h"
-#include "numutils.h"
-#include "stringutils.h"
+#include "lexerutils/stringutils.h"
+#include "lexerutils/numutils.h"
 #include "parser.tab.h"
 
-int lineno;
+int lineno = 1;
 char filename[255] = "<stdin>";
 
 extern char *yytext;
@@ -21,6 +20,9 @@ void parse_lineno() {
 	lineno = 0;
 	while (*c >= '0' && *c <= '9')
 		lineno = lineno * 10 + (*c++ - '0');
+	
+	// add 1 to lineno so we have counting numbers
+	++lineno;
 
 	// discard extra characters
 	while (*c != '"')

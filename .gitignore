@@ -4,11 +4,21 @@ lex.yy.*
 *.tab.*
 
 # executable target
-lexertest
-parser
+target
 
-# object files
-*.o
-
-# vscode tmp files
+# vscode files
+.vscode
 *~
+
+# JetBrains files
+.idea
+
+# CMake
+cmake-build-debug
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+*.cbp
+
+# Mac OS
+.DS_Store

@@ -1,41 +1,18 @@
-# TODO: this file needs to be cleaned up
+BUILDDIR:=target
+CMAKE:=cmake
 
-parser: parser.tab.o lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o
-	gcc -o parser parser.tab.o lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o
+# perform a CMake out-of-source build
+# (or configure IDE to do the same)
+.PHONY:
+build:
+	mkdir $(BUILDDIR)
+	$(CMAKE) -B$(BUILDDIR) -S.
+	$(MAKE) -C$(BUILDDIR)
 
-parser.tab.o: parser.y
-	bison -vd parser.y
-	gcc -c -o parser.tab.o parser.tab.c
+.PHONY:
+run:
+	$(BUILDDIR)/compiler
 
-parser.tab.h: parser.tab.o
-
-lexertest: lex.yy.o lex.yy.h numutils.o stringutils.o errorutils.o unicodeutils.o lexertest.o
-	gcc -o lexertest lex.yy.o numutils.o stringutils.o errorutils.o unicodeutils.o lexertest.o
-
-# only for lexertest
-lex.yy.h: lex.yy.c
-	flex --header-file=lex.yy.h lexer.l
-
-lexertest.o: lexertest.c lex.yy.h parser.tab.h
-	gcc -c -o lexertest.o lexertest.c
-
-lex.yy.o: lex.yy.c
-	gcc -c -o lex.yy.o lex.yy.c
-
-lex.yy.c: lexer.l parser.tab.h
-	flex lexer.l
-
-numutils.o: numutils.c
-	gcc -c -o numutils.o numutils.c
-
-stringutils.o: stringutils.c
-	gcc -c -o stringutils.o stringutils.c
-
-errorutils.o: errorutils.c
-	gcc -c -o errorutils.o errorutils.c
-
-unicodeutils.o: unicodeutils.c
-	gcc -c -o unicodeutils.o unicodeutils.c
-
+.PHONY:
 clean:
-	rm -f *.o lex.yy.c lex.yy.h lexertest parser.tab.* parser parser.output
+	rm -rf $(BUILDDIR)

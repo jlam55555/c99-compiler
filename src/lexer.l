@@ -4,12 +4,12 @@
 %{
 #include <stdlib.h>
 #include <stddef.h>
-#include "stringutils.h"
-#include "errorutils.h"
-#include "numutils.h"
+#include "lexerutils/stringutils.h"
+#include "lexerutils/errorutils.h"
+#include "lexerutils/numutils.h"
 #include "parser.tab.h"
 
-YYSTYPE yylval;
+//YYSTYPE yylval;
 
 // helper for making integral and float types
 #define MAKEINT(radix, sign, type) \
@@ -22,6 +22,7 @@ YYSTYPE yylval;
 	yylval.sc = x;\
 	return x
 %}
+%option yylineno
 
 DEC	[1-9]+[0-9]*
 EXP 	[eE][+-]?{DEC}+
@@ -157,7 +158,7 @@ _Complex	{SC(_COMPLEX);}
 _Imaginary	{SC(_IMAGINARY);}
 
  /* IDENT */
-[a-zA-Z_][a-zA-Z0-9_]*	{yylval.ident = yytext; return IDENT;}
+[a-zA-Z_][a-zA-Z0-9_]*	{yylval.ident=strdup(yytext);return IDENT;}
 
  /* single-character operators get their ASCII value passed as token type */
 [~!%\^&\*\(\)\-\=\+\[\]\{\}\|\;:\<\>,\.\?/] {SC(yytext[0]);}
