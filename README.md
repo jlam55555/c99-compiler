@@ -40,13 +40,45 @@ without a special linked-list type (e.g., for function argument lists or
 initializer lists).
 
 ##### Declarations
-TODO:
-- Finish this writeup about the declaration parser
-- Fix error with short not being recognized
-- Implement prototype scope
+The declaration parser handles the syntax from 6.5. (Abstract declarators
+and typenames are in 6.6 and are not currently implemented, but they should
+be for the next checkpoint.) This includes most regular declarations (variables
+and functions), struct/union tag declarations and definitions, arbitrarily
+complex declarators, and a basic symbol table and scope implementation.
+(In the absence of function definitions and blocks, the only scopes are
+currently the global scope and struct/union "scopes.")
+
+Not implemented:
+- enums
+- bitfields
+- typedefs
+- initializers
+- most functionality related to type qualifiers and storage class specifiers
+
+TODO (for next checkpoint):
 - Check that declaration specifier combination is valid (recursively)
-    before inserting symbol
+    before inserting symbol (a lot of work to be done here)
 - Move extra printing in parser.y to printutils.c
-- Implement abstract declarators and typenames
+- Abstract declarators and typenames (should be a relatively trivial extension
+    to existing (regular) declarators)
+- Scoping (function, block, prototype)
+
+---
+
+### Changelog
+ - 3/17/21: start of changelog, submission of assignment 3 (declarations)
+    - refactored a large part of the codebase to clean up code: split asttypes.c
+        into smaller files and functions with better commenting; stopped abusing
+        macros for things macros should not be used for; wrote macros for
+        common linked-list operations
+    - rewrote data structures for complex declarations; now pointers, arrays,
+        functions, and declaration specifiers all somewhat-equal, which makes
+        them much easier to link together and interpret
+    - changed build system from custom Makefile to cmake, as well as separating
+        src/ and include/ in the directory structure due to the large number
+        of total source files
+    - updated README
+
+---
   
 [cmake-oos]: https://www.cs.swarthmore.edu/~adanner/tips/cmake.php

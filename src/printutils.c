@@ -207,7 +207,7 @@ void print_scope(struct scope *scope)
 
 	switch (scope->type) {
 	case ST_FILE:		type = "global"; break;
-	case ST_FUNC:		type = "block"; break;
+	case ST_FUNC:		type = "function"; break;
 	case ST_BLOCK:		type = "block"; break;
 	// "fake" scope for printing purposes
 	case ST_STRUCTUNION:	type = "struct/union"; break;
