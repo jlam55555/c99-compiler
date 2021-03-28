@@ -13,6 +13,7 @@
 #include "decl.h"
 #include "declspec.h"
 #include "structunion.h"
+#include "stmt.h"
 
 struct astnode_binop {
 	_ASTNODE
@@ -99,6 +100,10 @@ union astnode {
 	struct astnode_decl_function decl_function;
 	struct astnode_decl_array decl_array;
 	struct astnode_decl decl;
+
+	// statement types
+	struct astnode_stmt_label stmt_label;
+
 };
 
 // helper to print an astnode

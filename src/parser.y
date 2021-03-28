@@ -81,6 +81,7 @@
 %type<astnode>	specquallist typename dirabsdeclarator paramtypelistopt
 %type<astnode>	structunionspec structunion structdeclaratorlist
 %type<astnode>	structdeclarator specqual
+%type<astnode>	stmt compoundstmt exprstmt	selectionstmt iterationstmt jumpstmt
 %type<ident> 	IDENT
 %type<string>	STRING
 %type<charlit>	CHARLIT
@@ -446,6 +447,58 @@ paramtypelistopt:	paramtypelist						{$$=$1;}
 /* 6.7.7 type definitions */
 /*typedefname:	IDENT								{/*not implementing typedefs}*/
 /*		;*/
+
+/* 6.8 statements and blocks */
+stmt:		labeledstmt		{/*TODO*/}
+		| compoundstmt		{/*TODO*/}
+		| exprstmt		{/*TODO*/}
+		| selectionstmt		{/*TODO*/}
+		| iterationstmt		{/*TODO*/}
+		| jumpstmt		{/*TODO*/}
+		;
+
+/* 6.8.1 labeled statements */
+labeledstmt:	IDENT ':' stmt			{/*TODO*/}
+		/*| CASE constexpr ':' stmt		{TODO}*/
+		| DEFAULT ':' stmt				{/*TODO*/}
+		;
+
+/* 6.8.2 compound statement */
+compoundstmt:	'{' blockitemlist '}'	{/*TODO*/}
+		| '{' '}'		{/*TODO*/}
+		;
+
+blockitemlist:	blockitem			{/*TODO*/}
+		| blockitemlist blockitem	{/*TODO*/}
+		;
+
+blockitem:	decl		{/*TODO*/}
+		| stmt		{/*TODO*/}
+		;
+
+/* 6.8.4 selection statements */
+selectionstmt:	IF '(' expr ')' stmt %prec IF			{/*TODO*/}
+		| IF '(' expr ')' stmt ELSE stmt %prec ELSE	{/*TODO*/}
+		| SWITCH '(' expr ')' stmt			{/*TODO*/}
+		;
+
+/* 6.8.5 Iteration statements */
+iterationstmt:	WHILE '(' expr ')' stmt							{/*TODO*/}
+		| DO stmt WHILE '(' expr ')'							{/*TODO*/}
+		| FOR '(' expropt ';' expropt ';' expropt ')' stmt	{/*TODO*/}
+		| FOR '(' decl expropt ';' expropt ')' stmt				{/*TODO*/}
+		;
+expropt:	expr	{/*TODO*/}
+		| 		{/*empty*/}
+		;
+
+/* 6.8.6 Jump Statements */
+jumpstmt:	GOTO IDENT ';'		{/*TODO*/}
+		| CONTINUE ';'		{/*TODO*/}
+		| BREAK ';'		{/*TODO*/}
+		| RETURN expropt ';'	{/*TODO*/}
+		;
+
 
 %%
 
