@@ -96,7 +96,6 @@ exprstmt:	expr ';'							{print_astnode($1);}
 		| exprstmt expr ';'						{print_astnode($2);}
 		| exprstmt decl							{/*TODO*/}
 		| error ';'							{/*use yyerror() to recover; not fatal*/}
-		| stmt 							{/*TODO*/}
 		;
 
 /* 6.4.4.3 */
