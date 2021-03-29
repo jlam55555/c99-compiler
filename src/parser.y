@@ -82,6 +82,7 @@
 %type<astnode>	structunionspec structunion structdeclaratorlist
 %type<astnode>	structdeclarator specqual
 %type<astnode>	stmt compoundstmt exprstmt	selectionstmt iterationstmt jumpstmt
+%type<astnode>	blockitemlist blockitem
 %type<ident> 	IDENT
 %type<string>	STRING
 %type<charlit>	CHARLIT
@@ -95,6 +96,7 @@ exprstmt:	expr ';'							{print_astnode($1);}
 		| exprstmt expr ';'						{print_astnode($2);}
 		| exprstmt decl							{/*TODO*/}
 		| error ';'							{/*use yyerror() to recover; not fatal*/}
+		| stmt 							{/*TODO*/}
 		;
 
 /* 6.4.4.3 */
@@ -485,18 +487,26 @@ selectionstmt:	IF '(' expr ')' stmt %prec IF			{/*TODO*/}
 /* 6.8.5 Iteration statements */
 iterationstmt:	WHILE '(' expr ')' stmt							{/*TODO*/}
 		| DO stmt WHILE '(' expr ')'							{/*TODO*/}
-		| FOR '(' expropt ';' expropt ';' expropt ')' stmt	{/*TODO*/}
-		| FOR '(' decl expropt ';' expropt ')' stmt				{/*TODO*/}
-		;
-expropt:	expr	{/*TODO*/}
-		| 		{/*empty*/}
+		| FOR '(' expr ';' expr ';' expr ')' stmt	{/*TODO*/}
+		| FOR '(' ';' expr ';' expr ')' stmt	{/*TODO*/}
+		| FOR '(' expr ';' ';' expr ')' stmt	{/*TODO*/}
+		| FOR '(' expr ';' expr ';' ')' stmt	{/*TODO*/}
+		| FOR '('';'';' expr ')' stmt	{/*TODO*/}
+		| FOR '(' expr ';'  ';' ')' stmt	{/*TODO*/}
+		| FOR '(' ';' expr ';' ')' stmt	{/*TODO*/}
+		| FOR '(' ';' ';' ')' stmt	{/*TODO*/}
+		| FOR '(' decl expr ';' expr ')' stmt				{/*TODO*/}
+		| FOR '(' decl ';' expr ')' stmt				{/*TODO*/}
+		| FOR '(' decl expr ';' ')' stmt				{/*TODO*/}
+		| FOR '(' decl ';' ')' stmt				{/*TODO*/}
 		;
 
 /* 6.8.6 Jump Statements */
 jumpstmt:	GOTO IDENT ';'		{/*TODO*/}
 		| CONTINUE ';'		{/*TODO*/}
 		| BREAK ';'		{/*TODO*/}
-		| RETURN expropt ';'	{/*TODO*/}
+		| RETURN expr ';'	{/*TODO*/}
+		| RETURN ';'		{/*TODO*/}
 		;
 
 

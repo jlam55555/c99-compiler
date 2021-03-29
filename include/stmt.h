@@ -1,5 +1,3 @@
-
-
 #ifndef STATEMENTH
 #define STATEMENTH
 
