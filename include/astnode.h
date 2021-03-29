@@ -103,6 +103,15 @@ union astnode {
 
 	// statement types
 	struct astnode_stmt_label stmt_label;
+	struct astnode_stmt_case stmt_case;
+	struct astnode_stmt_if_else stmt_if_else;
+	struct astnode_stmt_switch stmt_switch;
+	struct astnode_stmt_do_while stmt_do_while;
+	struct astnode_stmt_while stmt_while;
+	struct astnode_stmt_for stmt_for;
+	struct astnode_stmt_goto stmt_goto;
+	struct astnode_stmt_break_cont stmt_bc;
+	struct astnode_stmt_return stmt_return;
 
 };
 
