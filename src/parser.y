@@ -81,8 +81,8 @@
 %type<astnode>	specquallist typename dirabsdeclarator paramtypelistopt
 %type<astnode>	structunionspec structunion structdeclaratorlist
 %type<astnode>	structdeclarator specqual
-%type<astnode>	stmt compoundstmt exprstmt	selectionstmt iterationstmt jumpstmt
-%type<astnode>	blockitemlist blockitem
+%type<astnode>	stmt compoundstmt selectionstmt iterationstmt jumpstmt
+%type<astnode>	blockitemlist blockitem translnunit externdecl funcdef
 %type<ident> 	IDENT
 %type<string>	STRING
 %type<charlit>	CHARLIT
@@ -90,13 +90,19 @@
 %%
 /* beware, the document gets wide here (rip 80 characters) */
 
-/* for assignment 3, only have expressions and statements*/
-exprstmt:	expr ';'							{print_astnode($1);}
-		| decl								{/*TODO*/}
-		| exprstmt expr ';'						{print_astnode($2);}
-		| exprstmt decl							{/*TODO*/}
-		| error ';'							{/*use yyerror() to recover; not fatal*/}
+/* top level is translation unit (from 6.9 external definitions) */
+translnunit: 	externdecl 							{/*TODO*/}
+		| translnunit externdecl					{/*TODO*/}
 		;
+
+/* for assignment 3, only have expressions and statements*/
+/* TODO: remove this part; translnunit is the new top level */
+/*exprstmt:	expr ';'							{print_astnode($1);}
+		| decl								{/*TODO}
+		| exprstmt expr ';'						{print_astnode($2);}
+		| exprstmt decl							{/*TODO}
+		| error ';'							{/*use yyerror() to recover; not fatal}
+		;*/
 
 /* 6.4.4.3 */
 /*enumconst:	IDENT								{/*not implementing enums} */
@@ -249,7 +255,7 @@ asnmtexpr:	condexpr							{$$=$1;}
 		;
 
 /*comma expression*/
-expr:	asnmtexpr								{$$=$1;}
+expr:		asnmtexpr								{$$=$1;}
 		| expr ',' asnmtexpr						{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
@@ -477,6 +483,11 @@ blockitem:	decl								{/*TODO*/}
 		| stmt								{/*TODO*/}
 		;
 
+/* 6.8.3 expression and null statements */
+exprstmt:	expr								{/*TODO*/}
+		|								{/*empty*/}
+		;
+
 /* 6.8.4 selection statements */
 selectionstmt:	IF '(' expr ')' stmt %prec IF					{/*TODO*/}
 		| IF '(' expr ')' stmt ELSE stmt %prec ELSE			{/*TODO*/}
@@ -509,6 +520,14 @@ jumpstmt:	GOTO IDENT ';'							{/*TODO*/}
 		| RETURN ';'							{/*TODO*/}
 		;
 
+/* 6.9 External Definitions */
+externdecl: 	funcdef								{/*TODO*/}
+		| decl								{/*TODO*/}
+		;
+
+/* 6.9.1 Function definitions */
+funcdef:	declspec declarator compoundstmt				{/*TODO*/}
+		;
 
 %%
 
