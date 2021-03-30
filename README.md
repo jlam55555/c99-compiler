@@ -70,7 +70,7 @@ TODO (for this assignment):
 ---
 
 ### Changelog
- - 3/17/21: start of changelog, submission of assignment 3 (declarations)
+- 3/17/21: start of changelog, submission of assignment 3 (declarations)
     - refactored a large part of the codebase to clean up code: split asttypes.c
         into smaller files and functions with better commenting; stopped abusing
         macros for things macros should not be used for; wrote macros for
@@ -82,6 +82,17 @@ TODO (for this assignment):
         src/ and include/ in the directory structure due to the large number
         of total source files
     - updated README
+- 3/18/21: new datatypes for TLD
+    - new AST types for "everything else" outside of expressions and
+        declarations: blocks, statements, function defs, translation unit
+        (top-level)
+    - updated parser with remaining syntax rules
+- 3/20/21: bug fixes and scopes
+    - fixed new shift/reduce conflicts
+    - fixed lineno off-by-one-error and removed bison %locations
+    - fixed struct not printing if predeclared
+    - fixed struct printing line where declared, not line where defined
+    - added scoping (compound statements trigger pushing and popping of scopes)
 
 ---
   
