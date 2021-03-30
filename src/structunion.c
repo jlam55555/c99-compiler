@@ -76,6 +76,7 @@ void structunion_set_name(char *ident, int begin_def)
 		// replace top of stack with found, set begin_def
 		free(su_decl_stack[su_decl_stack_pos]);
 		su_decl_stack[su_decl_stack_pos] = node;
+		su->is_being_defined = begin_def;
 	}
 	
 	// not already declared in symbol table

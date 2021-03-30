@@ -21,6 +21,7 @@ struct str4 {
 	int i;
 } s4;
 
+/*
 struct {
 	int y;
 } s5;
@@ -39,3 +40,4 @@ union u1 {
 	struct str3 str3;
 } u1;
 
+ */

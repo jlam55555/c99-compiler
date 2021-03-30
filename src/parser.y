@@ -1,6 +1,5 @@
 %debug
 %define parse.error verbose
-%locations
 %{
 #define YYDEBUG 0
 

@@ -21,9 +21,6 @@ void parse_lineno() {
 	while (*c >= '0' && *c <= '9')
 		lineno = lineno * 10 + (*c++ - '0');
 	
-	// add 1 to lineno so we have counting numbers
-	++lineno;
-
 	// discard extra characters
 	while (*c != '"')
 		++c;
