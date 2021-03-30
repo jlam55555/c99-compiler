@@ -1,7 +1,8 @@
 %debug
+%define parse.error verbose
+%locations
 %{
 #define YYDEBUG 0
-#define parse.error verbose
 
 #include <stdio.h>
 #include <unistd.h>
@@ -15,7 +16,6 @@
 #include "structunion.h"
 #include "decl.h"
 %}
-%locations
 
 %union {
 	// from lexer
@@ -91,8 +91,8 @@
 /* beware, the document gets wide here (rip 80 characters) */
 
 /* top level is translation unit (from 6.9 external definitions) */
-translnunit: 	externdecl 							{/*TODO*/}
-		| translnunit externdecl					{/*TODO*/}
+translnunit: 	externdecl 							{NYI(translnunit);}
+		| translnunit externdecl					{NYI(translnunit);}
 		;
 
 /* for assignment 3, only have expressions and statements*/
@@ -456,77 +456,78 @@ paramtypelistopt:	paramtypelist						{$$=$1;}
 /*		;*/
 
 /* 6.8 statements and blocks */
-stmt:		labeledstmt							{/*TODO*/}
-		| compoundstmt							{/*TODO*/}
-		| exprstmt							{/*TODO*/}
-		| selectionstmt							{/*TODO*/}
-		| iterationstmt							{/*TODO*/}
-		| jumpstmt							{/*TODO*/}
+stmt:		labeledstmt							{NYI(label statements);}
+		| compoundstmt							{NYI(compound statements);}
+		| exprstmt							{NYI(expression statements);}
+		| selectionstmt							{NYI(if/select statements);}
+		| iterationstmt							{NYI(iteration statements);}
+		| jumpstmt							{NYI(jump statements);}
 		;
 
 /* 6.8.1 labeled statements */
-labeledstmt:	IDENT ':' stmt							{/*TODO*/}
+labeledstmt:	IDENT ':' stmt							{NYI(labels);}
 		/*| CASE constexpr ':' stmt					{TODO}*/
-		| DEFAULT ':' stmt						{/*TODO*/}
+		| DEFAULT ':' stmt						{NYI(default labels);}
 		;
 
 /* 6.8.2 compound statement */
-compoundstmt:	'{' blockitemlist '}'						{/*TODO*/}
-		| '{' '}'							{/*TODO*/}
+compoundstmt:	'{' blockitemlist '}'						{NYI(compound statement);}
+		| '{' '}'							{NYI(empty compound statement);}
 		;
 
-blockitemlist:	blockitem							{/*TODO*/}
-		| blockitemlist blockitem					{/*TODO*/}
+blockitemlist:	blockitem							{NYI(block item list);}
+		| blockitemlist blockitem					{NYI(block item list);}
 		;
 
-blockitem:	decl								{/*TODO*/}
-		| stmt								{/*TODO*/}
+blockitem:	decl								{NYI(block item declaration);}
+		| stmt								{NYI(block item statement);}
 		;
 
 /* 6.8.3 expression and null statements */
-exprstmt:	expr								{/*TODO*/}
-		|								{/*empty*/}
+exprstmt:	expr ';'							{NYI(expression statement);}
+		| ';'								{/*empty*/}
 		;
 
 /* 6.8.4 selection statements */
-selectionstmt:	IF '(' expr ')' stmt %prec IF					{/*TODO*/}
-		| IF '(' expr ')' stmt ELSE stmt %prec ELSE			{/*TODO*/}
-		| SWITCH '(' expr ')' stmt					{/*TODO*/}
+selectionstmt:	IF '(' expr ')' stmt %prec IF					{NYI(if);}
+		| IF '(' expr ')' stmt ELSE stmt %prec ELSE			{NYI(if/else);}
+		| SWITCH '(' expr ')' stmt					{NYI(switch);}
 		;
 
 /* 6.8.5 Iteration statements */
 /* TODO: can we combine some of these cases? */
-iterationstmt:	WHILE '(' expr ')' stmt						{/*TODO*/}
-		| DO stmt WHILE '(' expr ')'					{/*TODO*/}
-		| FOR '(' expr ';' expr ';' expr ')' stmt			{/*TODO*/}
-		| FOR '(' ';' expr ';' expr ')' stmt				{/*TODO*/}
-		| FOR '(' expr ';' ';' expr ')' stmt				{/*TODO*/}
-		| FOR '(' expr ';' expr ';' ')' stmt				{/*TODO*/}
-		| FOR '(' ';' ';' expr ')' stmt					{/*TODO*/}
-		| FOR '(' expr ';'  ';' ')' stmt				{/*TODO*/}
-		| FOR '(' ';' expr ';' ')' stmt					{/*TODO*/}
-		| FOR '(' ';' ';' ')' stmt					{/*TODO*/}
-		| FOR '(' decl expr ';' expr ')' stmt				{/*TODO*/}
-		| FOR '(' decl ';' expr ')' stmt				{/*TODO*/}
-		| FOR '(' decl expr ';' ')' stmt				{/*TODO*/}
-		| FOR '(' decl ';' ')' stmt					{/*TODO*/}
+iterationstmt:	WHILE '(' expr ')' stmt						{NYI(while);}
+		| DO stmt WHILE '(' expr ')'					{NYI(do while);}
+		| FOR '(' expr ';' expr ';' expr ')' stmt			{NYI(for 1);}
+		| FOR '(' ';' expr ';' expr ')' stmt				{NYI(for 2);}
+		| FOR '(' expr ';' ';' expr ')' stmt				{NYI(for 3);}
+		| FOR '(' expr ';' expr ';' ')' stmt				{NYI(for 4);}
+		| FOR '(' ';' ';' expr ')' stmt					{NYI(for 5);}
+		| FOR '(' expr ';'  ';' ')' stmt				{NYI(for 6);}
+		| FOR '(' ';' expr ';' ')' stmt					{NYI(for 7);}
+		| FOR '(' ';' ';' ')' stmt					{NYI(for 8);}
+		| FOR '(' decl expr ';' expr ')' stmt				{NYI(for 9);}
+		| FOR '(' decl ';' expr ')' stmt				{NYI(for 10);}
+		| FOR '(' decl expr ';' ')' stmt				{NYI(for 11);}
+		| FOR '(' decl ';' ')' stmt					{NYI(for 12);}
 		;
 
 /* 6.8.6 Jump Statements */
-jumpstmt:	GOTO IDENT ';'							{/*TODO*/}
-		| CONTINUE ';'							{/*TODO*/}
-		| BREAK ';'							{/*TODO*/}
-		| RETURN expr ';'						{/*TODO*/}
-		| RETURN ';'							{/*TODO*/}
+jumpstmt:	GOTO IDENT ';'							{NYI(goto);}
+		| CONTINUE ';'							{NYI(continue);}
+		| BREAK ';'							{NYI(break);}
+		| RETURN expr ';'						{NYI(return expr);}
+		| RETURN ';'							{NYI(return empty);}
 		;
 
 /* 6.9 External Definitions */
-externdecl: 	funcdef								{/*TODO*/}
-		| decl								{/*TODO*/}
+externdecl: 	funcdef								{NYI(externdecl funcdef);}
+		| decl								{NYI(externdecl decl);}
 		;
 
 /* 6.9.1 Function definitions */
-funcdef:	declspec declarator compoundstmt				{/*TODO*/}
+funcdef:	declspeclist declarator compoundstmt				{/*note that this doesn't allow for old fndef syntax*/
+										 NYI(funcdef);}
 		;
 
 %%
@@ -545,7 +546,7 @@ int main()
 }
 
 static int is_fatal_error = 0;
-int yyerror(char *err)
+int yyerror(const char *err)
 {
 	char buf[1024];
 
@@ -566,7 +567,7 @@ int yyerror(char *err)
 	}
 }
 
-int yyerror_fatal(char *err)
+int yyerror_fatal(const char *err)
 {
 	is_fatal_error = 1;
 	yyerror(err);

@@ -5,7 +5,7 @@ CMAKE:=cmake
 # (or configure IDE to do the same)
 .PHONY:
 build:
-	mkdir $(BUILDDIR)
+	mkdir -p $(BUILDDIR)
 	$(CMAKE) -B$(BUILDDIR) -S.
 	$(MAKE) -C$(BUILDDIR)
 

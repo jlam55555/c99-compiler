@@ -11,8 +11,8 @@
 #define DEBUG 1		// our custom debugging
 
 extern int yylex();
-int yyerror(char *err);
-int yyerror_fatal(char *err);
+int yyerror(const char *err);
+int yyerror_fatal(const char *err);
 extern int yylineno;
 extern char *yytext;
 
