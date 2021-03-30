@@ -24,12 +24,54 @@ struct scope {
 	int lineno;
 };
 
+/**
+ * Push a new scope onto the stack. For ST_FILE, ST_FUNC, and ST_BLOCK, can
+ * set type to 0 and it will automatically be determined. For ST_STRUCTUNION
+ * and ST_PROTO it needs to be set explicitly.
+ *
+ * @param type		see notes above
+ */
 void scope_push(enum scope_type type);
+
+/**
+ * Pops the top scope.
+ */
 void scope_pop(void);
+
+/**
+ * Insert a symbol at the current scope (or at the nearest function scope, for
+ * labels)
+ *
+ * @param ident		symbol name
+ * @param ns		namespace to insert symbol
+ * @param node		astnode representing symbol
+ */
 void scope_insert(char *ident, enum name_space ns, union astnode *node);
+
+/**
+ * Recursive lookup of ident up the scope stack
+ *
+ * @param ident 	symbol name
+ * @param ns 		namespace to search in
+ * @return 		symbol if found, otherwise NULL
+ */
 union astnode *scope_lookup(char *ident, enum name_space ns);
+
+/**
+ * Recursive lookup of ident up the scope stack, returning the scope in which
+ * the symbol is found (or NULL if the symbol was not found)
+ *
+ * @param ident		symbol name
+ * @param ns		namespace to search in
+ * @return		scope containing symbol if symbol found, otherwise NULL
+ */
 struct scope *get_scope(char *ident, enum name_space ns);
 
+/**
+ * Returns a pointer to the current scope
+ *
+ * @return		pointer to current scope
+ */
 struct scope *get_current_scope();
 
 #endif	// SCOPEH

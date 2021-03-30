@@ -471,7 +471,8 @@ labeledstmt:	IDENT ':' stmt							{NYI(labels);}
 		;
 
 /* 6.8.2 compound statement */
-compoundstmt:	'{' blockitemlist '}'						{NYI(compound statement);}
+compoundstmt:	'{' {scope_push(0);} blockitemlist {scope_pop();} '}'		{/*have to be wary that since next token is seen by the time of the midrule action*/
+										 NYI(compound statement);}
 		| '{' '}'							{NYI(empty compound statement);}
 		;
 
@@ -539,7 +540,7 @@ int main()
 	#endif
 
 	// create default global scope
-	scope_push(ST_FILE);
+	scope_push(0);
 
 	// begin parsing
 	yyparse();

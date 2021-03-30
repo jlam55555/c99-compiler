@@ -11,6 +11,15 @@ static int scope_pos = -1, scope_stack_capacity = 0;
 void scope_push(enum scope_type type) {
 	int i;
 
+	// choose scope type if not specified
+	if (!type) {
+		switch (scope_pos) {
+		case -1:	type = ST_FILE; break;
+		case 0:		type = ST_FUNC; break;
+		default:	type = ST_BLOCK;
+		}
+	}
+
 	// grow scope_stack if necessary
 	if (scope_stack_capacity <= scope_pos + 1) {
 		// stack has never been initialized, give it an initial value
