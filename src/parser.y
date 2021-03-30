@@ -450,62 +450,63 @@ paramtypelistopt:	paramtypelist						{$$=$1;}
 /*		;*/
 
 /* 6.8 statements and blocks */
-stmt:		labeledstmt		{/*TODO*/}
-		| compoundstmt		{/*TODO*/}
-		| exprstmt		{/*TODO*/}
-		| selectionstmt		{/*TODO*/}
-		| iterationstmt		{/*TODO*/}
-		| jumpstmt		{/*TODO*/}
+stmt:		labeledstmt							{/*TODO*/}
+		| compoundstmt							{/*TODO*/}
+		| exprstmt							{/*TODO*/}
+		| selectionstmt							{/*TODO*/}
+		| iterationstmt							{/*TODO*/}
+		| jumpstmt							{/*TODO*/}
 		;
 
 /* 6.8.1 labeled statements */
-labeledstmt:	IDENT ':' stmt			{/*TODO*/}
-		/*| CASE constexpr ':' stmt		{TODO}*/
-		| DEFAULT ':' stmt				{/*TODO*/}
+labeledstmt:	IDENT ':' stmt							{/*TODO*/}
+		/*| CASE constexpr ':' stmt					{TODO}*/
+		| DEFAULT ':' stmt						{/*TODO*/}
 		;
 
 /* 6.8.2 compound statement */
-compoundstmt:	'{' blockitemlist '}'	{/*TODO*/}
-		| '{' '}'		{/*TODO*/}
+compoundstmt:	'{' blockitemlist '}'						{/*TODO*/}
+		| '{' '}'							{/*TODO*/}
 		;
 
-blockitemlist:	blockitem			{/*TODO*/}
-		| blockitemlist blockitem	{/*TODO*/}
+blockitemlist:	blockitem							{/*TODO*/}
+		| blockitemlist blockitem					{/*TODO*/}
 		;
 
-blockitem:	decl		{/*TODO*/}
-		| stmt		{/*TODO*/}
+blockitem:	decl								{/*TODO*/}
+		| stmt								{/*TODO*/}
 		;
 
 /* 6.8.4 selection statements */
-selectionstmt:	IF '(' expr ')' stmt %prec IF			{/*TODO*/}
-		| IF '(' expr ')' stmt ELSE stmt %prec ELSE	{/*TODO*/}
-		| SWITCH '(' expr ')' stmt			{/*TODO*/}
+selectionstmt:	IF '(' expr ')' stmt %prec IF					{/*TODO*/}
+		| IF '(' expr ')' stmt ELSE stmt %prec ELSE			{/*TODO*/}
+		| SWITCH '(' expr ')' stmt					{/*TODO*/}
 		;
 
 /* 6.8.5 Iteration statements */
-iterationstmt:	WHILE '(' expr ')' stmt							{/*TODO*/}
-		| DO stmt WHILE '(' expr ')'							{/*TODO*/}
-		| FOR '(' expr ';' expr ';' expr ')' stmt	{/*TODO*/}
-		| FOR '(' ';' expr ';' expr ')' stmt	{/*TODO*/}
-		| FOR '(' expr ';' ';' expr ')' stmt	{/*TODO*/}
-		| FOR '(' expr ';' expr ';' ')' stmt	{/*TODO*/}
-		| FOR '('';'';' expr ')' stmt	{/*TODO*/}
-		| FOR '(' expr ';'  ';' ')' stmt	{/*TODO*/}
-		| FOR '(' ';' expr ';' ')' stmt	{/*TODO*/}
-		| FOR '(' ';' ';' ')' stmt	{/*TODO*/}
+/* TODO: can we combine some of these cases? */
+iterationstmt:	WHILE '(' expr ')' stmt						{/*TODO*/}
+		| DO stmt WHILE '(' expr ')'					{/*TODO*/}
+		| FOR '(' expr ';' expr ';' expr ')' stmt			{/*TODO*/}
+		| FOR '(' ';' expr ';' expr ')' stmt				{/*TODO*/}
+		| FOR '(' expr ';' ';' expr ')' stmt				{/*TODO*/}
+		| FOR '(' expr ';' expr ';' ')' stmt				{/*TODO*/}
+		| FOR '(' ';' ';' expr ')' stmt					{/*TODO*/}
+		| FOR '(' expr ';'  ';' ')' stmt				{/*TODO*/}
+		| FOR '(' ';' expr ';' ')' stmt					{/*TODO*/}
+		| FOR '(' ';' ';' ')' stmt					{/*TODO*/}
 		| FOR '(' decl expr ';' expr ')' stmt				{/*TODO*/}
 		| FOR '(' decl ';' expr ')' stmt				{/*TODO*/}
 		| FOR '(' decl expr ';' ')' stmt				{/*TODO*/}
-		| FOR '(' decl ';' ')' stmt				{/*TODO*/}
+		| FOR '(' decl ';' ')' stmt					{/*TODO*/}
 		;
 
 /* 6.8.6 Jump Statements */
-jumpstmt:	GOTO IDENT ';'		{/*TODO*/}
-		| CONTINUE ';'		{/*TODO*/}
-		| BREAK ';'		{/*TODO*/}
-		| RETURN expr ';'	{/*TODO*/}
-		| RETURN ';'		{/*TODO*/}
+jumpstmt:	GOTO IDENT ';'							{/*TODO*/}
+		| CONTINUE ';'							{/*TODO*/}
+		| BREAK ';'							{/*TODO*/}
+		| RETURN expr ';'						{/*TODO*/}
+		| RETURN ';'							{/*TODO*/}
 		;
 
 
