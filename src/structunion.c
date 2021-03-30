@@ -38,10 +38,6 @@ void structunion_new(enum structunion_type type)
 	symtab_init(&su->members_ht);
 	su->is_complete = su->is_being_defined = 0;
 
-	// debugging info
-	su->def_filename = strdup(filename);
-	su->def_lineno = lineno;
-
 	// push onto stack
 	su_decl_stack[++su_decl_stack_pos] = node;
 }
@@ -90,6 +86,12 @@ void structunion_set_name(char *ident, int begin_def)
 
 		// insert into symtab
 		scope_insert(ident, NS_TAG, node);
+	}
+
+	// debugging info
+	if (begin_def) {
+		su->def_filename = strdup(filename);
+		su->def_lineno = lineno;
 	}
 }
 
