@@ -39,14 +39,13 @@ pointer to another AST node, so that each node can act as a linked list
 without a special linked-list type (e.g., for function argument lists or
 initializer lists).
 
-##### Declarations
+##### Declarations and Scopes
 The declaration parser handles the syntax from 6.5. (Abstract declarators
 and typenames are in 6.6 and are not currently implemented, but they should
 be for the next checkpoint.) This includes most regular declarations (variables
 and functions), struct/union tag declarations and definitions, arbitrarily
-complex declarators, and a basic symbol table and scope implementation.
-(In the absence of function definitions and blocks, the only scopes are
-currently the global scope and struct/union "scopes.")
+complex declarators, and a basic symbol table and scope implementation. Scopes
+can be arbitrarily nested.
 
 Not implemented:
 - enums
@@ -55,13 +54,18 @@ Not implemented:
 - initializers
 - most functionality related to type qualifiers and storage class specifiers
 
-TODO (for next checkpoint):
-- Check that declaration specifier combination is valid (recursively)
-    before inserting symbol (a lot of work to be done here)
-- Move extra printing in parser.y to printutils.c
-- Abstract declarators and typenames (should be a relatively trivial extension
-    to existing (regular) declarators)
-- Scoping (function, block, prototype)
+##### Statements
+The top-level non-terminal, the translation unit, is finally here!
+
+TODO (left over from previous assignment):
+- Recursive declaration validation
+- Move extra printing in parser.y to printutils.c (general code cleanup)
+- Abstract declarators and typenames
+- Prototype scopes
+- Allow bitfields/old K&R fn syntax, even if not interpreted correctly
+
+TODO (for this assignment):
+- Statements and control flow
 
 ---
 
