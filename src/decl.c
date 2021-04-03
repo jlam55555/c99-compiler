@@ -11,7 +11,11 @@ union astnode *decl_new(char *ident)
 	union astnode *decl;
 
 	ALLOC_TYPE(decl, NT_DECL);
-	decl->decl.ident = strdup(ident);
+
+	// ident can be NULL (abstract decl)
+	if (ident) {
+		decl->decl.ident = strdup(ident);
+	}
 
 	return decl;
 }

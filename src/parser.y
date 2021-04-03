@@ -372,7 +372,7 @@ dirdeclarator:	IDENT								{$$=decl_new($1);}
 		| dirdeclarator '[' STATIC asnmtexpr ']'			{$$=decl_append($1,decl_array_new($4,NULL));}
 		| dirdeclarator '[' STATIC typequallist ']'			{$$=decl_append($1,decl_array_new(NULL,$4));}
 		| dirdeclarator '[' STATIC ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
-		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'		{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'		{$$=decl_append($1,decl_array_new($5,$3));}
 		| dirdeclarator '[' typequallist '*' ']'			{/*ignore variable length array*/
 										 $$=decl_append($1,decl_array_new(NULL,$3));}
 		| dirdeclarator '['  '*' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
@@ -402,9 +402,9 @@ paramlist:	paramdecl							{$$=$1;}
 		| paramlist ',' paramdecl					{$$=$1;LL_APPEND($1,$3);}
 		;
 
-paramdecl:	declspeclist declarator						{decl_finalize($2,$1);$$=$2;/*ALLOC_PARAMDECL($$,$1,$2);*/}
-		| declspeclist absdeclarator					{decl_finalize($2,$1);$$=$2;/*ALLOC_PARAMDECL($$,$1,$2);*/}
-		| declspeclist 							{$$=decl_new("");decl_finalize($$,$1);/*ALLOC_PARAMDECL($$,$1,NULL);*/}
+paramdecl:	declspeclist declarator						{decl_finalize($2,$1);$$=$2;}
+		| declspeclist absdeclarator					{decl_finalize($2,$1);$$=$2;}
+		| declspeclist 							{$$=decl_new(NULL);decl_finalize($$,$1);}
 		;
 
 identlist:	IDENT								{/*NOT DEALING WITH THIS*/}
@@ -412,38 +412,40 @@ identlist:	IDENT								{/*NOT DEALING WITH THIS*/}
 		;
 
 /* 6.7.6: type names */
-typename:	specquallist absdeclarator					{/*ALLOC_TYPENAME($$,$1,$2);*/}
-		| specquallist							{/*ALLOC_TYPENAME($$,$1,NULL);*/}
+typename:	specquallist absdeclarator					{$$=$2;decl_finalize($$,$1);}
+		| specquallist							{$$=decl_new(NULL);decl_finalize($$,$1);}
 		;
 
-absdeclarator:	pointer								{/*ALLOC_DECLARATOR($$,NULL,$1,1);*/}
-		| pointer dirabsdeclarator					{/*ALLOC_DECLARATOR($$,$2,$1,1);*/}
-		| dirabsdeclarator						{/*ALLOC_DECLARATOR($$,$1,NULL,1);*/}
+absdeclarator:	pointer								{$$=decl_new(NULL);decl_append($$,$1);}
+		| pointer dirabsdeclarator					{$$=decl_append($2,$1);}
+		| dirabsdeclarator						{$$=$1;}
 		;
 
-dirabsdeclarator: '(' absdeclarator ')'						{/*$$=$2;*/}
-		| dirabsdeclarator '[' typequallist asnmtexpr ']'		{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,1);*/}
-		| dirabsdeclarator '[' asnmtexpr ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$3,1);*/}
-		| dirabsdeclarator '[' typequallist ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,1);*/}
-		| dirabsdeclarator '[' ']'					{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,1);*/}
-		| '[' typequallist asnmtexpr ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,$3,1);*/}
-		| '[' asnmtexpr ']'						{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,$2,1);*/}
-		| '[' typequallist ']'						{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,NULL,1);*/}
-		| '[' ']'							{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,NULL,1);*/}
-		| dirabsdeclarator '[' STATIC typequallist asnmtexpr ']'	{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,$5,1);*/}
-		| dirabsdeclarator '[' STATIC asnmtexpr ']'			{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$4,1);*/}
-		| dirabsdeclarator '[' STATIC typequallist ']'			{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,NULL,1);*/}
-		| dirabsdeclarator '[' STATIC ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,1);*/}
-		| '[' STATIC typequallist asnmtexpr ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,$4,1);*/}
-		| '[' STATIC asnmtexpr ']'					{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,$3,1);*/}
-		| '[' STATIC typequallist ']'					{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,NULL,1);*/}
-		| '[' STATIC ']'						{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,NULL,1);*/}
-		| dirabsdeclarator '[' typequallist STATIC asnmtexpr ']'	{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$5,1);*/}
-		| '[' typequallist STATIC asnmtexpr ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,$4,1);*/}
-		| dirabsdeclarator '[' '*' ']'					{/*ignore/throw error on VLA*/}
-		| '[' '*' ']'							{/*ignore/throw error on VLA*/}
-		| dirabsdeclarator '(' paramtypelistopt ')'			{/*ALLOC_FN_DIRDECLARATOR($$,$1,$3,1);*/}
-		| '(' paramtypelistopt ')'					{/*ALLOC_FN_DIRDECLARATOR($$,NULL,$2,1);*/}
+dirabsdeclarator: '(' absdeclarator ')'						{$$=$2;}
+		| dirabsdeclarator '[' typequallist asnmtexpr ']'		{$$=decl_append($1,decl_array_new($4,$3));}
+		| dirabsdeclarator '[' asnmtexpr ']'				{$$=decl_append($1,decl_array_new($3,NULL));}
+		| dirabsdeclarator '[' typequallist ']'				{$$=decl_append($1,decl_array_new(NULL,$3));}
+		| dirabsdeclarator '[' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| '[' typequallist asnmtexpr ']'				{$$=decl_new(NULL);decl_append($$,decl_array_new($3,$2));}
+		| '[' asnmtexpr ']'						{$$=decl_new(NULL);decl_append($$,decl_array_new($2,NULL));}
+		| '[' typequallist ']'						{$$=decl_new(NULL);decl_append($$,decl_array_new(NULL,$2));}
+		| '[' ']'							{$$=decl_new(NULL);decl_append($$,decl_array_new(NULL,NULL));}
+		| dirabsdeclarator '[' STATIC typequallist asnmtexpr ']'	{/*ignore static keyword*/
+										 $$=decl_append($1,decl_array_new($5,$4));}
+		| dirabsdeclarator '[' STATIC asnmtexpr ']'			{$$=decl_append($1,decl_array_new($4,NULL));}
+		| dirabsdeclarator '[' STATIC typequallist ']'			{$$=decl_append($1,decl_array_new(NULL,$4));}
+		| dirabsdeclarator '[' STATIC ']'				{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| '[' STATIC typequallist asnmtexpr ']'				{$$=decl_new(NULL);decl_append($$,decl_array_new($4,$3));}
+		| '[' STATIC asnmtexpr ']'					{$$=decl_new(NULL);decl_append($$,decl_array_new($3,NULL));}
+		| '[' STATIC typequallist ']'					{$$=decl_new(NULL);decl_append($$,decl_array_new(NULL,$3));}
+		| '[' STATIC ']'						{$$=decl_new(NULL);decl_append($$,decl_array_new(NULL,NULL));}
+		| dirabsdeclarator '[' typequallist STATIC asnmtexpr ']'	{$$=decl_new(NULL);decl_append($$,decl_array_new($5,$3));}
+		| '[' typequallist STATIC asnmtexpr ']'				{$$=decl_new(NULL);decl_append($$,decl_array_new($4,$2));}
+		| dirabsdeclarator '[' '*' ']'					{/*ignore/throw error on VLA*/
+										 yyerror("VLAs not supported");}
+		| '[' '*' ']'							{yyerror("VLAs not supported");}
+		| dirabsdeclarator '(' paramtypelistopt ')'			{$$=decl_append($1,decl_function_new($3));}
+		| '(' paramtypelistopt ')'					{$$=decl_new(NULL);decl_append($$,$2);}
 		;
 
 paramtypelistopt:	paramtypelist						{$$=$1;}

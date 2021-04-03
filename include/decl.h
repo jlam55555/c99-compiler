@@ -66,7 +66,12 @@ struct astnode_decl {
 	union astnode *declspec;
 };
 
-// create a new astnode_decl object; ident=NULL for abstract
+/**
+ * create a new astnode_decl object (for both regular and abstract declarators)
+ * 
+ * @param ident		identifier of declarator; set to NULL if abstract
+ * @return		new astnode_decl object
+ */
 union astnode *decl_new(char *ident);
 
 /**
@@ -75,7 +80,7 @@ union astnode *decl_new(char *ident);
  *
  * @param decl 		astnode_decl to add component to
  * @param components 	ll of astnode_decl_*
- * @return 		decl (for convenience)
+ * @return 		decl (redundant of first parameter for convenience)
  */
 union astnode *decl_append(union astnode *decl, union astnode *components);
 
