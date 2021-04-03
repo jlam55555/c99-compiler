@@ -1,0 +1,30 @@
+AST Dump for function
+ LIST {
+  SWITCH, EXPR:
+   stab_var name=i def @<stdin>:3
+  BODY:
+   LIST {
+    CASE
+     EXPR:
+      CONSTANT: (type=int)1
+     STMT:
+      FNCALL, 1 arguments
+       stab_fn name=printf def @<stdin>:6
+      arg #1=
+       STRING	one\n
+    BREAK
+    CASE
+     EXPR:
+      CONSTANT: (type=int)2
+     STMT:
+      FNCALL, 1 arguments
+       stab_fn name=printf def @<stdin>:6
+      arg #1=
+       STRING	two\n
+    DEFAULT
+     FNCALL, 1 arguments
+      stab_fn name=printf def @<stdin>:6
+     arg #1=
+      STRING	more\n
+   }
+ }

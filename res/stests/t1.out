@@ -1,0 +1,38 @@
+AST Dump for function
+ LIST {
+  FOR
+  INIT:
+   ASSIGNMENT
+    stab_var name=a def @<stdin>:4
+    BINARY OP +
+     stab_var name=b def @<stdin>:5
+     CONSTANT: (type=int)2
+  COND:
+   COMPARISON OP <
+    stab_var name=i def @<stdin>:1
+    stab_var name=a def @<stdin>:4
+  BODY:
+   LIST {
+    ASSIGNMENT
+     DEREF
+      BINARY OP +
+       stab_var name=y def @<stdin>:1
+       stab_var name=i def @<stdin>:1
+     TERNARY OP, IF:
+       DEREF
+       BINARY OP +
+        stab_var name=y def @<stdin>:1
+        BINARY OP -
+         stab_var name=i def @<stdin>:1
+         CONSTANT: (type=int)1
+     THEN:
+      stab_var name=a def @<stdin>:4
+     ELSE:
+      BINARY OP +
+       stab_var name=b def @<stdin>:5
+       stab_var name=i def @<stdin>:1
+   }
+  INCR:
+   UNARY OP POSTINC
+    stab_var name=i def @<stdin>:1
+ }
