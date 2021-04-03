@@ -7,16 +7,41 @@
 static struct scope *scope_stack = NULL;
 static int scope_pos = -1, scope_stack_capacity = 0;
 
+// special flag used for transferring prototype scopes to function scopes
+// if definition (function body) follows function declaration
+static int prototype_hold = 0;
+
 // scope begun, create namespaces/symbol tables for it
 void scope_push(enum scope_type type) {
 	int i;
 
-	// choose scope type if not specified
+	// if the next scope seen after a top-level prototype scope is not a
+	// block (function) scope (type=0), then pop the held prototype
+	if (prototype_hold && type) {
+		// have to change type so scope_pop will allow top-level scope
+		// to be popped
+		scope_stack[0].type = ST_FILE;
+		scope_pop();
+		prototype_hold = 0;
+	}
+
+	// decide what to do if scope type is not specified: used for
+	// file/function/block scopes (and not for proto/structunion scopes)
 	if (!type) {
-		switch (scope_pos) {
-		case -1:	type = ST_FILE; break;
-		case 0:		type = ST_FUNC; break;
-		default:	type = ST_BLOCK;
+		// no scope on stack
+		if (scope_pos < 0) {
+			type = ST_FILE;
+		}
+		// top-level function scope, promote existing prototype scope
+		else if (scope_pos == 1 && prototype_hold) {
+			scope_stack[1].type = ST_FUNC;
+			prototype_hold = 0;
+			// TODO: check that there are no abstract declarators?
+			return;
+		}
+		// everything else: block scope
+		else {
+			type = ST_BLOCK;
 		}
 	}
 
@@ -52,6 +77,14 @@ void scope_pop(void) {
 		yyerror_fatal("popping empty scope stack");
 	}
 
+	// prevent deleting top-level prototype scope right away, because
+	// it may need to be transferred to a function scope
+	if (scope_pos == 1 && scope_stack[scope_pos].type == ST_PROTO) {
+		prototype_hold = 1;
+		return;
+	}
+
+	// destroy scope
 	for (i = 0; i < 3; i++) {
 		symtab_destroy(&scope_stack[scope_pos].ns[i]);
 	}

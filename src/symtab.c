@@ -79,7 +79,7 @@ void symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 
 	// identifier already exists in this symbol table
 	if (st->bs[i] && !strcmp(ident, st->bs[i]->ident)) {
-		yyerror_fatal("symbol already exists in symtab");
+		yyerror_fatal("symbol already exists in symbol table");
 	}
 
 	// allocate symbol

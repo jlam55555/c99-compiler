@@ -12,6 +12,7 @@
 #include "scope.h"
 #include "structunion.h"
 #include "decl.h"
+#include "stmt.h"
 
 int yydebug;
 %}
@@ -79,7 +80,7 @@ int yydebug;
 %type<astnode>	paramlist paramtypelist paramdecl absdeclarator declspeclist
 %type<astnode>	specquallist typename dirabsdeclarator paramtypelistopt
 %type<astnode>	structunionspec structunion structdeclaratorlist
-%type<astnode>	structdeclarator specqual
+%type<astnode>	structdeclarator specqual exprstmt
 %type<astnode>	stmt compoundstmt selectionstmt iterationstmt jumpstmt
 %type<astnode>	blockitemlist blockitem translnunit externdecl funcdef
 %type<ident> 	IDENT
@@ -375,12 +376,13 @@ dirdeclarator:	IDENT								{$$=decl_new($1);}
 		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'		{$$=decl_append($1,decl_array_new($5,$3));}
 		| dirdeclarator '[' typequallist '*' ']'			{/*ignore variable length array*/
 										 $$=decl_append($1,decl_array_new(NULL,$3));}
-		| dirdeclarator '['  '*' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
-		| dirdeclarator '(' paramtypelist ')'				{/*TODO: implement prototype scope*/
-										 $$=decl_append($1,decl_function_new($3));}
+		| dirdeclarator '[' '*' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| dirdeclarator '(' {scope_push(ST_PROTO);} paramtypelist {scope_pop();} ')'
+										{/*TODO: implement prototype scope*/
+										 $$=decl_append($1,decl_function_new($4));}
 		| dirdeclarator '(' identlist ')'				{/*reject old C function syntax*/
 										 yyerror_fatal("old function declaration style not allowed");}
-		| dirdeclarator '(' ')'						{$$=decl_append($1,decl_function_new(NULL));}
+		| dirdeclarator '(' {scope_push(ST_PROTO);scope_pop();} ')'	{$$=decl_append($1,decl_function_new(NULL));}
 		;
 
 pointer:	'*' typequallist						{$$=decl_pointer_new($2);}
@@ -402,8 +404,8 @@ paramlist:	paramdecl							{$$=$1;}
 		| paramlist ',' paramdecl					{$$=$1;LL_APPEND($1,$3);}
 		;
 
-paramdecl:	declspeclist declarator						{decl_finalize($2,$1);$$=$2;}
-		| declspeclist absdeclarator					{decl_finalize($2,$1);$$=$2;}
+paramdecl:	declspeclist declarator						{$$=$2;decl_install($2,$1);}
+		| declspeclist absdeclarator					{$$=$2;decl_finalize($2,$1);}
 		| declspeclist 							{$$=decl_new(NULL);decl_finalize($$,$1);}
 		;
 
@@ -467,7 +469,7 @@ stmt:		labeledstmt							{NYI(label statements);}
 
 /* 6.8.1 labeled statements */
 labeledstmt:	IDENT ':' stmt							{NYI(labels);}
-		/*| CASE constexpr ':' stmt					{TODO}*/
+		| CASE condexpr ':' stmt					{NYI(case labels);}
 		| DEFAULT ':' stmt						{NYI(default labels);}
 		;
 
@@ -486,40 +488,40 @@ blockitem:	decl								{NYI(block item declaration);}
 		;
 
 /* 6.8.3 expression and null statements */
-exprstmt:	expr ';'							{NYI(expression statement);}
+exprstmt:	expr ';'							{$$=$1;}
 		| ';'								{/*empty*/}
 		;
 
 /* 6.8.4 selection statements */
-selectionstmt:	IF '(' expr ')' stmt %prec IF					{NYI(if);}
-		| IF '(' expr ')' stmt ELSE stmt %prec ELSE			{NYI(if/else);}
-		| SWITCH '(' expr ')' stmt					{NYI(switch);}
+selectionstmt:	IF '(' expr ')' stmt %prec IF					{ALLOC_STMT_IFELSE($$, $3, $5, NULL);}
+		| IF '(' expr ')' stmt ELSE stmt %prec ELSE			{ALLOC_STMT_IFELSE($$, $3, $5, $7);}
+		| SWITCH '(' expr ')' stmt					{ALLOC_STMT_SWITCH($$, $3, $5);}
 		;
 
 /* 6.8.5 Iteration statements */
 /* TODO: can we combine some of these cases? */
-iterationstmt:	WHILE '(' expr ')' stmt						{NYI(while);}
-		| DO stmt WHILE '(' expr ')'					{NYI(do while);}
-		| FOR '(' expr ';' expr ';' expr ')' stmt			{NYI(for 1);}
-		| FOR '(' ';' expr ';' expr ')' stmt				{NYI(for 2);}
-		| FOR '(' expr ';' ';' expr ')' stmt				{NYI(for 3);}
-		| FOR '(' expr ';' expr ';' ')' stmt				{NYI(for 4);}
-		| FOR '(' ';' ';' expr ')' stmt					{NYI(for 5);}
-		| FOR '(' expr ';'  ';' ')' stmt				{NYI(for 6);}
-		| FOR '(' ';' expr ';' ')' stmt					{NYI(for 7);}
-		| FOR '(' ';' ';' ')' stmt					{NYI(for 8);}
-		| FOR '(' decl expr ';' expr ')' stmt				{NYI(for 9);}
-		| FOR '(' decl ';' expr ')' stmt				{NYI(for 10);}
-		| FOR '(' decl expr ';' ')' stmt				{NYI(for 11);}
-		| FOR '(' decl ';' ')' stmt					{NYI(for 12);}
+iterationstmt:	WHILE '(' expr ')' stmt						{ALLOC_STMT_WHILE($$, $3, $5);}
+		| DO stmt WHILE '(' expr ')'					{ALLOC_STMT_DO_WHILE($$, $5, $2);}
+		| FOR '(' expr ';' expr ';' expr ')' stmt			{ALLOC_STMT_FOR($$, $3, $5, $7, $9);}
+		| FOR '(' ';' expr ';' expr ')' stmt				{ALLOC_STMT_FOR($$, NULL, $4, $6, $8);}
+		| FOR '(' expr ';' ';' expr ')' stmt				{ALLOC_STMT_FOR($$, $3, NULL, $6, $8);}
+		| FOR '(' expr ';' expr ';' ')' stmt				{ALLOC_STMT_FOR($$, $3, $5, NULL, $8);}
+		| FOR '(' ';' ';' expr ')' stmt					{ALLOC_STMT_FOR($$, NULL, NULL, $5, $7);}
+		| FOR '(' expr ';'  ';' ')' stmt				{ALLOC_STMT_FOR($$, $3, NULL, NULL, $7);}
+		| FOR '(' ';' expr ';' ')' stmt					{ALLOC_STMT_FOR($$, NULL, $4, NULL, $7);}
+		| FOR '(' ';' ';' ')' stmt					{ALLOC_STMT_FOR($$, NULL, NULL, NULL, $6);}
+		| FOR '(' decl expr ';' expr ')' stmt				{ALLOC_STMT_FOR($$, $3, $4, $6, $8);}
+		| FOR '(' decl ';' expr ')' stmt				{ALLOC_STMT_FOR($$, $3, NULL, $5, $7);}
+		| FOR '(' decl expr ';' ')' stmt				{ALLOC_STMT_FOR($$, $3, $4, NULL, $7);}
+		| FOR '(' decl ';' ')' stmt					{ALLOC_STMT_FOR($$, $3, NULL, NULL, $6);}
 		;
 
 /* 6.8.6 Jump Statements */
-jumpstmt:	GOTO IDENT ';'							{NYI(goto);}
-		| CONTINUE ';'							{NYI(continue);}
-		| BREAK ';'							{NYI(break);}
-		| RETURN expr ';'						{NYI(return expr);}
-		| RETURN ';'							{NYI(return empty);}
+jumpstmt:	GOTO IDENT ';'							{ALLOC_STMT_GOTO($$, $2);}
+		| CONTINUE ';'							{ALLOC_STMT_BREAK_CONT($$, NT_STMT_CONT);}
+		| BREAK ';'							{ALLOC_STMT_BREAK_CONT($$, NT_STMT_BREAK);}
+		| RETURN expr ';'						{ALLOC_STMT_RETURN($$, $2);}
+		| RETURN ';'							{ALLOC_STMT_RETURN($$, NULL);}
 		;
 
 /* 6.9 External Definitions */

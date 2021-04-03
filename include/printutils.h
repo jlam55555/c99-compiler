@@ -66,4 +66,12 @@ void print_scope(struct scope *scope);
  */
 void print_symbol(union astnode *node, int print_sc);
 
+/**
+ * print expression
+ * 
+ * @param node		astnode representation of expression
+ * @param depth		indenting depth
+ */
+void print_expr(union astnode *node, int depth);
+
 #endif	// PRINTUTILSH
