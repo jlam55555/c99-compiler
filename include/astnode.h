@@ -8,12 +8,12 @@
 
 #include <stdlib.h>	// for malloc in macro
 #include <string.h>	// for strdup in macro
-#include "lexerutils/numutils.h"
-#include "lexerutils/stringutils.h"
-#include "decl.h"
-#include "declspec.h"
-#include "structunion.h"
-#include "stmt.h"
+#include <lexerutils/numutils.h>
+#include <lexerutils/stringutils.h>
+#include <decl.h>
+#include <declspec.h>
+#include <structunion.h>
+#include <stmt.h>
 
 struct astnode_binop {
 	_ASTNODE
@@ -103,6 +103,7 @@ union astnode {
 
 	// statement types
 	struct astnode_stmt_label stmt_label;
+	struct astnode_stmt_compound stmt_compound;
 	struct astnode_stmt_case stmt_case;
 	struct astnode_stmt_if_else stmt_if_else;
 	struct astnode_stmt_switch stmt_switch;

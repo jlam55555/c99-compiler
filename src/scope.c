@@ -1,7 +1,7 @@
-#include "astnode.h"
-#include "scope.h"
-#include "parser.h"
-#include "lexerutils/errorutils.h"
+#include <astnode.h>
+#include <scope.h>
+#include <parser.h>
+#include <lexerutils/errorutils.h>
 #include <stdio.h>
 
 static struct scope *scope_stack = NULL;
@@ -9,18 +9,24 @@ static int scope_pos = -1, scope_stack_capacity = 0;
 
 // special flag used for transferring prototype scopes to function scopes
 // if definition (function body) follows function declaration
-static int prototype_hold = 0;
+static int prototype_hold = 0, is_fndef = 0;
+void scope_set_fndef() {
+	is_fndef = 1;
+}
 
 // scope begun, create namespaces/symbol tables for it
 void scope_push(enum scope_type type) {
 	int i;
 
-	// if the next scope seen after a top-level prototype scope is not a
-	// block (function) scope (type=0), then pop the held prototype
+	// if prototype_hold is set and a new non-function scpoe is created,
+	// then clear held prototype
 	if (prototype_hold && type) {
-		// have to change type so scope_pop will allow top-level scope
-		// to be popped
-		scope_stack[0].type = ST_FILE;
+		// shouldn't happen (prototype_hold should only be set when
+		// scope_pos==1), just a check
+		if (scope_pos != 1) {
+			yyerror_fatal("unexpected scope position");
+		}
+		scope_stack[1].type = ST_FILE;
 		scope_pop();
 		prototype_hold = 0;
 	}
@@ -93,7 +99,21 @@ void scope_pop(void) {
 
 // inserts symbol at enclosing scope (or at function scope for labels)
 void scope_insert(char *ident, enum name_space ns, union astnode *node) {
-	symtab_insert(&scope_stack[scope_pos].ns[ns], ident, node);
+
+	// declaration while holding means break holding
+	if (prototype_hold && !is_fndef) {
+		// shouldn't happen (prototype_hold should only be set when
+		// scope_pos==1), just a check
+		if (scope_pos != 1) {
+			yyerror_fatal("unexpected scope position");
+		}
+		scope_stack[1].type = ST_FILE;
+		scope_pop();
+		prototype_hold = 0;
+	}
+
+	symtab_insert(&scope_stack[is_fndef?0:scope_pos].ns[ns], ident, node);
+	is_fndef = 0;
 }
 
 // traverses up the stack to lookup a symbol

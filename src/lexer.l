@@ -4,10 +4,10 @@
 %{
 #include <stdlib.h>
 #include <stddef.h>
-#include "lexerutils/stringutils.h"
-#include "lexerutils/errorutils.h"
-#include "lexerutils/numutils.h"
-#include "parser.tab.h"
+#include <lexerutils/stringutils.h>
+#include <lexerutils/errorutils.h>
+#include <lexerutils/numutils.h>
+#include <parser.tab.h>
 
 //YYSTYPE yylval;
 

@@ -1,10 +1,10 @@
 #include <stdio.h>
-#include "common.h"
-#include "parser.h"
-#include "astnode.h"
-#include "decl.h"
-#include "scope.h"
-#include "printutils.h"
+#include <common.h>
+#include <parser.h>
+#include <astnode.h>
+#include <decl.h>
+#include <scope.h>
+#include <printutils.h>
 
 union astnode *decl_new(char *ident)
 {
@@ -178,15 +178,43 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	// get ident from declarator
 	ident = decl->decl.ident;
 
-	// fill in missing fields of declspec
-	declspec_fill_defaults(declspec);
-
 	// combine declspec and decl to make full declaration
 	decl_finalize(decl, declspec);
+
+	scope_insert(ident, NS_IDENT, decl);
+
+	// fill in missing fields of declspec; this has to go after
+	// scope_insert because it depends on which scope it gets inserted into
+	// (which may not be the current scope in the case of a function def)
+	declspec_fill_defaults(decl);
 
 #if DEBUG
 	print_symbol(decl, 1);
 #endif
+}
 
-	scope_insert(ident, NS_IDENT, decl);
+void decl_check_fndef(union astnode *decl)
+{
+	union astnode *iter, *param_iter;
+
+	// check that declarator is actually a function declarator;
+	// last element in component chain (before reversal) should be fn
+	LL_FOR_OF(decl->decl.components, iter) {
+		if (!iter->decl_component.of) {
+			if (NT(iter) != NT_DECLARATOR_FUNCTION) {
+				yyerror_fatal("expected function declarator"
+					" before function definition");
+			}
+			break;
+		}
+	}
+
+	// check that there are no abstract declarators
+	// can reuse iter, use second iter for sake of clarity
+	LL_FOR(iter->decl_function.paramlist, param_iter) {
+		if (!param_iter->decl.ident) {
+			yyerror_fatal("abstract declarator in parameter list"
+				" of function definition");
+		}
+	}
 }

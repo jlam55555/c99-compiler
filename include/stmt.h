@@ -1,8 +1,8 @@
 #ifndef STATEMENTH
 #define STATEMENTH
 
-#include "common.h"
-#include "astnode.h"
+#include <common.h>
+#include <astnode.h>
 //label statements
 struct astnode_stmt_label {
     _ASTNODE;
@@ -67,6 +67,10 @@ struct astnode_stmt_return {
     _ASTNODE;
     union astnode *rt;
 };
+
+#define ALLOC_STMT_COMPOUND(var, body_stmt)\
+    ALLOC_TYPE(var, NT_STMT_COMPOUND);\
+    var->stmt_compound.body = body_stmt;
 
 #define ALLOC_STMT_IFELSE(var, condition, if_stmt, else_stmt)\
     ALLOC_TYPE(var, NT_STMT_IFELSE);\

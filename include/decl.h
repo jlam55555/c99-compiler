@@ -15,7 +15,7 @@
 #ifndef DECLARATORH
 #define DECLARATORH
 
-#include "common.h"
+#include <common.h>
 
 // need a second linked-list pointer *of since the generic *next may be used
 // for linking declarators together (e.g., in parameter type list)
@@ -64,6 +64,9 @@ struct astnode_decl {
 
 	// declspec (to be added
 	union astnode *declspec;
+
+	// function body (for defined functions only)
+	union astnode *fn_body;
 };
 
 /**
@@ -114,5 +117,16 @@ union astnode *decl_function_new(union astnode *paramdecls);
  * @param declspec 	declspec
  */
 void decl_install(union astnode *decl, union astnode *declspec);
+
+/**
+ * check that the declarator of a function definition is valid:
+ * - no abstract parameters
+ * - declarator is indeed a function declarator
+ * 
+ * Will yyerror_fail on error.
+ * 
+ * @param decl		declarator of a function definition
+ */
+void decl_check_fndef(union astnode *decl);
 
 #endif // DECLARATORH

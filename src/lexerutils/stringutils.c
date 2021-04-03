@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include "lexerutils/stringutils.h"
-#include "lexerutils/unicodeutils.h"
+#include <lexerutils/stringutils.h>
+#include <lexerutils/unicodeutils.h>
 
 extern char *yytext;
 

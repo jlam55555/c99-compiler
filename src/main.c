@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <unistd.h>
-#include "lexerutils/numutils.h"
-#include "lexerutils/stringutils.h"
-#include "lexerutils/errorutils.h"
-#include "parser.h"
-#include "parser.tab.h"
-#include "astnode.h"
-#include "scope.h"
+#include <lexerutils/numutils.h>
+#include <lexerutils/stringutils.h>
+#include <lexerutils/errorutils.h>
+#include <parser.h>
+#include <parser.tab.h>
+#include <astnode.h>
+#include <scope.h>
 
 int main(void)
 {

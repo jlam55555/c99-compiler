@@ -10,7 +10,7 @@
 
 #ifndef SCOPEH
 #define SCOPEH
-#include "symtab.h"
+#include <symtab.h>
 
 enum name_space { NS_TAG, NS_LABEL, NS_IDENT };
 enum scope_type { ST_FILE, ST_FUNC, ST_BLOCK, ST_PROTO, ST_STRUCTUNION };
@@ -73,5 +73,7 @@ struct scope *get_scope(char *ident, enum name_space ns);
  * @return		pointer to current scope
  */
 struct scope *get_current_scope();
+
+void scope_set_fndef();
 
 #endif	// SCOPEH

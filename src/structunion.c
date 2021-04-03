@@ -1,11 +1,11 @@
-#include "astnode.h"
-#include "structunion.h"
-#include "symtab.h"
-#include "parser.h"
-#include "scope.h"
-#include "string.h"
-#include "printutils.h"
-#include "lexerutils/errorutils.h"
+#include <astnode.h>
+#include <structunion.h>
+#include <symtab.h>
+#include <parser.h>
+#include <scope.h>
+#include <string.h>
+#include <printutils.h>
+#include <lexerutils/errorutils.h>
 
 // stack of union astnodes currently being declared
 static union astnode **su_decl_stack = NULL;

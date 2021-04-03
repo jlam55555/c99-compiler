@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include "lexerutils/stringutils.h"
-#include "lexerutils/numutils.h"
-#include "parser.tab.h"
+#include <lexerutils/stringutils.h>
+#include <lexerutils/numutils.h>
+#include <parser.tab.h>
 
 int lineno = 1;
 char filename[255] = "<stdin>";

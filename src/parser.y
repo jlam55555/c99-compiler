@@ -3,16 +3,17 @@
 %{
 #define YYDEBUG 0
 
-#include "parser.h"
-#include "common.h"
-#include "lexerutils/errorutils.h"
-#include "lexerutils/numutils.h"
-#include "astnode.h"
-#include "symtab.h"
-#include "scope.h"
-#include "structunion.h"
-#include "decl.h"
-#include "stmt.h"
+#include <parser.h>
+#include <common.h>
+#include <lexerutils/errorutils.h>
+#include <lexerutils/numutils.h>
+#include <astnode.h>
+#include <symtab.h>
+#include <scope.h>
+#include <structunion.h>
+#include <decl.h>
+#include <stmt.h>
+#include <stdio.h>
 
 int yydebug;
 %}
@@ -91,18 +92,9 @@ int yydebug;
 /* beware, the document gets wide here (rip 80 characters) */
 
 /* top level is translation unit (from 6.9 external definitions) */
-translnunit: 	externdecl 							{NYI(translnunit);}
-		| translnunit externdecl					{NYI(translnunit);}
+translnunit: 	externdecl 							{print_astnode($1);}
+		| translnunit externdecl					{print_astnode($2);}
 		;
-
-/* for assignment 3, only have expressions and statements*/
-/* TODO: remove this part; translnunit is the new top level */
-/*exprstmt:	expr ';'							{print_astnode($1);}
-		| decl								{/*TODO}
-		| exprstmt expr ';'						{print_astnode($2);}
-		| exprstmt decl							{/*TODO}
-		| error ';'							{/*use yyerror() to recover; not fatal}
-		;*/
 
 /* 6.4.4.3 */
 /*enumconst:	IDENT								{/*not implementing enums} */
@@ -115,7 +107,8 @@ constant:	NUMBER								{ALLOC($$);$$->num=(struct astnode_number){NT_NUMBER,NUL
 		;
 
 /* primary expr: 6.5.1 */
-pexpr:		IDENT								{ALLOC_SET_IDENT($$,$1);}
+pexpr:		IDENT								{$$=scope_lookup($1,NS_IDENT);
+										 !$$ && yyerror_fatal("undeclared symbol");}
 		| constant							{$$=$1;}
 		| STRING							{ALLOC($$);$$->string=(struct astnode_string){NT_STRING,NULL,$1};}
 		| '(' expr ')'							{$$=$2;}
@@ -255,7 +248,7 @@ asnmtexpr:	condexpr							{$$=$1;}
 		;
 
 /*comma expression*/
-expr:		asnmtexpr								{$$=$1;}
+expr:		asnmtexpr							{$$=$1;}
 		| expr ',' asnmtexpr						{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
@@ -460,8 +453,8 @@ paramtypelistopt:	paramtypelist						{$$=$1;}
 
 /* 6.8 statements and blocks */
 stmt:		labeledstmt							{NYI(label statements);}
-		| compoundstmt							{NYI(compound statements);}
-		| exprstmt							{NYI(expression statements);}
+		| compoundstmt							{$$=$1;}
+		| exprstmt							{$$=$1;}
 		| selectionstmt							{NYI(if/select statements);}
 		| iterationstmt							{NYI(iteration statements);}
 		| jumpstmt							{NYI(jump statements);}
@@ -475,21 +468,23 @@ labeledstmt:	IDENT ':' stmt							{NYI(labels);}
 
 /* 6.8.2 compound statement */
 compoundstmt:	'{' {scope_push(0);} blockitemlist {scope_pop();} '}'		{/*have to be wary that since next token is seen by the time of the midrule action*/
-										 NYI(compound statement);}
-		| '{' '}'							{NYI(empty compound statement);}
+										 ALLOC_STMT_COMPOUND($$,$3);}
+		| '{' {scope_push(0);scope_pop();} '}'			{ALLOC_STMT_COMPOUND($$,NULL);}
 		;
 
-blockitemlist:	blockitem							{NYI(block item list);}
-		| blockitemlist blockitem					{NYI(block item list);}
+blockitemlist:	blockitem							{$$=$1;}
+		| blockitemlist blockitem					{if(!$1) {$$=$2;}
+										 else if(!$2) {$$=$1;}
+										 else {$$=$1;LL_APPEND($1,$2);}}
 		;
 
-blockitem:	decl								{NYI(block item declaration);}
-		| stmt								{NYI(block item statement);}
+blockitem:	decl								{/*don't need to do anything*/}
+		| stmt								{$$=$1;}
 		;
 
 /* 6.8.3 expression and null statements */
 exprstmt:	expr ';'							{$$=$1;}
-		| ';'								{/*empty*/}
+		| ';'								{$$=NULL;}
 		;
 
 /* 6.8.4 selection statements */
@@ -525,13 +520,14 @@ jumpstmt:	GOTO IDENT ';'							{ALLOC_STMT_GOTO($$, $2);}
 		;
 
 /* 6.9 External Definitions */
-externdecl: 	funcdef								{NYI(externdecl funcdef);}
-		| decl								{NYI(externdecl decl);}
+externdecl: 	funcdef								{$$=$1;}
+		| decl								{$$=$1;}
 		;
 
 /* 6.9.1 Function definitions */
-funcdef:	declspeclist declarator compoundstmt				{/*note that this doesn't allow for old fndef syntax*/
-										 NYI(funcdef);}
+funcdef:	declspeclist declarator {decl_check_fndef($2);scope_set_fndef();decl_install($2,$1);} compoundstmt
+										{/*note that this doesn't allow for old fndef syntax*/
+										 $$=$2;$2->decl.fn_body=$4;}
 		;
 
 %%

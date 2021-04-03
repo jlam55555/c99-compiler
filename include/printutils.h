@@ -61,10 +61,11 @@ void print_scope(struct scope *scope);
  * print variable: declaration specifiers, scope, and declarator
  *
  * @param node 		astnode_decl (declaration) object
- * @param print_sc	boolean indicating whether to print storage class
- * 			(e.g., don't print for struct/union fields)
+ * @param is_not_member	boolean indicating whether is not struct union member
+ * 			(e.g., for struct/union don't print storage class,
+ * 			 don't lookup scope)
  */
-void print_symbol(union astnode *node, int print_sc);
+void print_symbol(union astnode *node, int is_not_member);
 
 /**
  * print expression
