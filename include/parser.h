@@ -13,7 +13,7 @@
 extern int yylex();
 int yyerror(const char *err);
 int yyerror_fatal(const char *err);
-extern int yylineno;
+extern int yylineno, yydebug;
 extern char *yytext;
 
 #endif

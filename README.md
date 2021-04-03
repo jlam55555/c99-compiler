@@ -12,6 +12,9 @@ $ make build run
 $ make clean
 ```
 
+If using an IDE with cmake plugin support (e.g., cmake-tools in vscode), set
+the build directory to the `target` directory.
+
 ---
 
 ### Implementation details
@@ -93,6 +96,9 @@ TODO (for this assignment):
     - fixed struct not printing if predeclared
     - fixed struct printing line where declared, not line where defined
     - added scoping (compound statements trigger pushing and popping of scopes)
+- 4/3/21: finishing assignment 3, doing assignment 4
+    - implemented abstract declarators and typenames
+    - moved C code away from parser.y into main.c
 
 ---
   
