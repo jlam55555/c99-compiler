@@ -181,6 +181,11 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	// combine declspec and decl to make full declaration
 	decl_finalize(decl, declspec);
 
+	// set lineno, filename
+	decl->decl.lineno = lineno;
+	decl->decl.filename = filename;
+
+	// insert into symbol table
 	scope_insert(ident, NS_IDENT, decl);
 
 	// fill in missing fields of declspec; this has to go after

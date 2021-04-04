@@ -16,6 +16,7 @@
 #define DECLARATORH
 
 #include <common.h>
+#include <lexerutils/errorutils.h>
 
 // need a second linked-list pointer *of since the generic *next may be used
 // for linking declarators together (e.g., in parameter type list)
@@ -67,6 +68,10 @@ struct astnode_decl {
 
 	// function body (for defined functions only)
 	union astnode *fn_body;
+
+	// for debugging purposes
+	char *filename;
+	int lineno;
 };
 
 /**

@@ -471,7 +471,7 @@ labeledstmt:	IDENT ':' stmt							{NYI(labels);}
 /* 6.8.2 compound statement */
 compoundstmt:	'{' {scope_push(0);} blockitemlist {scope_pop();} '}'		{/*have to be wary that since next token is seen by the time of the midrule action*/
 										 ALLOC_STMT_COMPOUND($$,$3);}
-		| '{' {scope_push(0);scope_pop();} '}'			{ALLOC_STMT_COMPOUND($$,NULL);}
+		| '{' {scope_push(0);scope_pop();} '}'				{ALLOC_STMT_COMPOUND($$,NULL);}
 		;
 
 blockitemlist:	blockitem							{$$=$1;}
@@ -485,7 +485,7 @@ blockitem:	decl								{/*don't need to do anything*/}
 		;
 
 /* 6.8.3 expression and null statements */
-exprstmt:	expr ';'							{$$=$1;}
+exprstmt:	expr ';'							{ALLOC_STMT_EXPR($$,$1);}
 		| ';'								{$$=NULL;}
 		;
 

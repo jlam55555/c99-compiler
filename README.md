@@ -68,6 +68,12 @@ TODO (left over from previous assignment):
 - Recursive declaration validation
 - Statements and control flow
 - Finish the printing function
+- Allow redeclaration of compatible extern variables (will require a recursive
+    "compatibility checker")
+- Allow void abstract fn parameter in function def (and then only void)
+- Labels
+- Convert array to pointers in function parameter lists
+- Forward declarations of functions
 
 ---
 

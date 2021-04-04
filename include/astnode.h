@@ -102,6 +102,7 @@ union astnode {
 	struct astnode_decl decl;
 
 	// statement types
+	struct astnode_stmt_expr stmt_expr;
 	struct astnode_stmt_label stmt_label;
 	struct astnode_stmt_compound stmt_compound;
 	struct astnode_stmt_case stmt_case;

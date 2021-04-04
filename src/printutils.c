@@ -246,8 +246,18 @@ void print_symbol(union astnode *node, int is_not_member)
 
 void print_expr(union astnode *node, int depth)
 {
+	FILE *fp = stdout;
+
 	INDENT(depth);
 	switch (node->generic.type) {
+	case NT_DECL:
+		fprintf(fp, "stab_%s name=%s def @%s:%d\n",
+			NT(node->decl.components) == NT_DECLARATOR_FUNCTION
+				? "fn" : "var",
+			node->decl.ident,
+			node->decl.filename, node->decl.lineno);
+		break;
+	
 	case NT_NUMBER:;
 		char *numstring = print_number(node->num.num);
 		fprintf(stdout, "CONSTANT:  %s\n", numstring);
@@ -264,10 +274,6 @@ void print_expr(union astnode *node, int depth)
 		print_char(node->charlit.charlit.value.none, chrstring);
 		// assumes single-width character literal
 		fprintf(stdout, "CHARLIT  %s\n", chrstring);
-		break;
-	case NT_IDENT:
-		// fprintf(stdout, "IDENT  %s\n", node->ident.ident);
-		// TODO: change
 		break;
 	case NT_BINOP:;
 		int printsym = 1;
@@ -367,111 +373,136 @@ void print_expr(union astnode *node, int depth)
 void print_stmt(union astnode *node, int depth)
 {
 	FILE *fp = stdout;
-	switch(node->generic.type)
-	{
-		case NT_STMT_LABEL:
-			break;
-		case NT_STMT_CASE:
-			break;
-		case NT_STMT_COMPOUND:
-			break;
-		case NT_STMT_IFELSE:
-			fprintf(fp, "IF:\n");
-			print_expr(node->stmt_if_else.cond, depth+1);
+	union astnode *iter;
 
-			INDENT(depth)
-			fprintf(fp, "THEN:\n");
-			print_stmt(node->stmt_if_else.ifstmt, depth+1);
+	if (!node) {
+		return;
+	}
 
-			if(node->stmt_if_else.elsestmt)
-			{
-				INDENT(depth);
-				fprintf(fp, "ELSe:\n");
-				print_stmt(node->stmt_if_else.elsestmt, depth+1);
-			}
+	switch(node->generic.type) {
+	case NT_STMT_EXPR:
+		INDENT(depth);
+		fprintf(fp, "EXPR:\n");
 
-			break;
-		case NT_STMT_SWITCH:
-			fprintf(fp, "SWITCH, EXPR:\n");
-			print_expr(node->stmt_switch.cond, depth+1);
+		print_expr(node->stmt_expr.expr, depth+1);
+		break;
 
+	case NT_STMT_LABEL:
+		break;
+
+	case NT_STMT_CASE:
+		break;
+
+	case NT_STMT_COMPOUND:
+		INDENT(depth);
+		fprintf(fp, "BLOCK {\n");
+
+		LL_FOR(node->stmt_compound.body, iter) {
+			print_stmt(iter, depth+1);
+		}
+
+		INDENT(depth);
+		fprintf(fp, "}\n");
+		break;
+
+	case NT_STMT_IFELSE:
+		fprintf(fp, "IF:\n");
+		print_expr(node->stmt_if_else.cond, depth+1);
+
+		INDENT(depth)
+		fprintf(fp, "THEN:\n");
+		print_stmt(node->stmt_if_else.ifstmt, depth+1);
+
+		if(node->stmt_if_else.elsestmt)
+		{
 			INDENT(depth);
-			fprintf(fp, "BODY:\n");
-			print_stmt(node->stmt_switch.body, depth+1);
+			fprintf(fp, "ELSE:\n");
+			print_stmt(node->stmt_if_else.elsestmt, depth+1);
+		}
 
-			break;
+		break;
+	case NT_STMT_SWITCH:
+		fprintf(fp, "SWITCH, EXPR:\n");
+		print_expr(node->stmt_switch.cond, depth+1);
 
-		case NT_STMT_DO_WHILE:
-			fprintf(fp, "DO-WHILE\n");
-			INDENT(depth);
-			
-			fprintf(fp, "BODY:\n");
-			print_stmt(node->stmt_do_while.body, depth+1);
+		INDENT(depth);
+		fprintf(fp, "BODY:\n");
+		print_stmt(node->stmt_switch.body, depth+1);
 
-			INDENT(depth);
-			fprintf(fp, "COND\n");
-			print_expr(node->stmt_do_while.cond, depth+1);
+		break;
 
-			break;
+	case NT_STMT_DO_WHILE:
+		fprintf(fp, "DO-WHILE\n");
+		INDENT(depth);
+		
+		fprintf(fp, "BODY:\n");
+		print_stmt(node->stmt_do_while.body, depth+1);
 
-		case NT_STMT_WHILE:
-			fprintf(fp, "WHILE\n");
-			INDENT(depth);
-			fprintf(fp, "COND\n");
-			print_expr(node->stmt_while.cond, depth+1);
-			
-			INDENT(depth);
-			fprintf(fp, "BODY:\n");
-			print_stmt(node->stmt_while.body, depth+1);
+		INDENT(depth);
+		fprintf(fp, "COND\n");
+		print_expr(node->stmt_do_while.cond, depth+1);
+
+		break;
+
+	case NT_STMT_WHILE:
+		fprintf(fp, "WHILE\n");
+		INDENT(depth);
+		fprintf(fp, "COND\n");
+		print_expr(node->stmt_while.cond, depth+1);
+		
+		INDENT(depth);
+		fprintf(fp, "BODY:\n");
+		print_stmt(node->stmt_while.body, depth+1);
 
 
-			break;
+		break;
 
 
-		case NT_STMT_FOR:
-			fprintf(fp, "FOR\n");
-			INDENT(depth);
-			fprintf(fp, "INIT:\n");
-			print_expr(node->stmt_for.init, depth+1);
+	case NT_STMT_FOR:
+		fprintf(fp, "FOR\n");
+		INDENT(depth);
+		fprintf(fp, "INIT:\n");
+		print_expr(node->stmt_for.init, depth+1);
 
-			INDENT(depth)
-			fprintf(fp, "COND:\n");
-			print_expr(node->stmt_for.cond, depth+1);
+		INDENT(depth)
+		fprintf(fp, "COND:\n");
+		print_expr(node->stmt_for.cond, depth+1);
 
-			INDENT(depth)
-			fprintf(fp, "BODY:\n");
-			print_stmt(node->stmt_for.body, depth+1);
+		INDENT(depth)
+		fprintf(fp, "BODY:\n");
+		print_stmt(node->stmt_for.body, depth+1);
 
-			INDENT(depth)
-			fprintf(fp, "INCR:\n");
-			print_expr(node->stmt_for.update, depth+1);
-			
-			break;
+		INDENT(depth)
+		fprintf(fp, "INCR:\n");
+		print_expr(node->stmt_for.update, depth+1);
+		
+		break;
 
-		case NT_STMT_GOTO:
-			//if(node->stmt_goto.label->ident)
-			break;
-		case NT_STMT_CONT:
-			fprintf(fp, "CONTINUE\n");
-			break;
-		case NT_STMT_BREAK:
-			fprintf(fp, "BREAK\n");
-			break;
-		case NT_STMT_RETURN:
-			fprintf(fp, "RETURN\n");
-			break;
+	case NT_STMT_GOTO:
+		//if(node->stmt_goto.label->ident)
+		break;
+	case NT_STMT_CONT:
+		fprintf(fp, "CONTINUE\n");
+		break;
+	case NT_STMT_BREAK:
+		fprintf(fp, "BREAK\n");
+		break;
+	case NT_STMT_RETURN:
+		fprintf(fp, "RETURN\n");
+		break;
 	}
 	
 }
 
 void print_astnode(union astnode *node)
 {
-	switch(node->generic.type)
-	{
-		case 1:
-			break;
-		
+	FILE *fp = stdout;
+
+	// top-level only has declarators and function defs (which are also
+	// implemented as declarators with bodies). Declarations are already
+	// printed as they are occur, so just print function bodies
+	if (node->decl.fn_body) {
+		fprintf(fp, "AST Dump for function\n");
+		print_stmt(node->decl.fn_body, 0);
 	}
-
-
 }

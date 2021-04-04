@@ -37,6 +37,7 @@ enum astnode_type {
 	NT_DECL,
 
 	// statement types
+	NT_STMT_EXPR,
 	NT_STMT_LABEL,
 	NT_STMT_CASE,
 	NT_STMT_COMPOUND,
