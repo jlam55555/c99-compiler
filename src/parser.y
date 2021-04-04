@@ -253,7 +253,9 @@ expr:		asnmtexpr							{$$=$1;}
 		;
 
 /* 6.7 DECLARATIONS */
-decl:		declspeclist ';'						{/*nothing to do here*/}
+decl:		declspeclist ';'						{/*potential tag forward declaration;
+										 see structunion.c and decl.h*/
+										 declspec_check_empty($1);}
 		| declspeclist initdecllist ';'					{/*nothing to do here*/}
 		;
 

@@ -77,4 +77,21 @@ void structunion_install_member(union astnode *decl, union astnode *declspec);
  */
 union astnode *structunion_done(int is_complete);
 
+/**
+ * forward declaration of a struct
+ * 
+ * semantics: this is a necessary (?) correction because a struct declaration
+ * that is not a definition, and which has been previously defined in an
+ * outside scope may either be referencing the outer struct or a forward
+ * declaration; the decision is contingent on whether the declaration is
+ * empty, which comes later. In the case that the struct has already been
+ * defined in the current scope, does not overwrite previous definition.
+ * 
+ * Knowing that it is a forward declaration essentially replaces the
+ * structunion_set_name() action.
+ * 
+ * @param tag		tag to forward declare
+ */
+void structunion_forward_declare(char *tag, enum structunion_type type);
+
 #endif

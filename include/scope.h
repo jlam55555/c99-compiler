@@ -74,6 +74,11 @@ struct scope *get_scope(char *ident, enum name_space ns);
  */
 struct scope *get_current_scope();
 
+/**
+ * sets a flag to indicate that the current function declaration is a function
+ * definition so the prototype should be promoted and not discarded after the
+ * current function declarator (somewhat kludgey)
+ */
 void scope_set_fndef();
 
 #endif	// SCOPEH

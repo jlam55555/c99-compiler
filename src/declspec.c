@@ -197,3 +197,23 @@ void declspec_fill_defaults(union astnode *decl)
 		ALLOC_SET_TQSPEC(declspec->tq, 0u);
 	}
 }
+
+void declspec_check_empty(union astnode *declspec_node)
+{
+	struct astnode_declspec *declspec = &declspec_node->declspec;
+
+	// check if any type qualifier/storage spec
+	if (declspec->sc) {
+		yyerror("useless storage class specifier in empty declaration");
+	} else if (declspec->tq) {
+		yyerror("useless type qualifier in empty declaration");
+	} else if (declspec->ts && NT(declspec->ts) == NT_TS_SCALAR) {
+		yyerror("useless type name in empty declaration");
+	}
+	
+	// forward declaration
+	else if (declspec->ts && NT(declspec->ts) == NT_TS_STRUCT_UNION) {
+		structunion_forward_declare(declspec->ts->ts_structunion.ident,
+			declspec->ts->ts_structunion.su_type);
+	}
+}

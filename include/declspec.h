@@ -73,4 +73,12 @@ union astnode *merge_declspec(union astnode *ds1, union astnode *ds2);
  */
 void declspec_fill_defaults(union astnode *declspec);
 
+/**
+ * check if an empty declaration is a tag forward declaration (and throw
+ * useless warnings if it is not)
+ * 
+ * @param declspec	declspec to check
+ */
+void declspec_check_empty(union astnode *declspec);
+
 #endif // DECLSPECH

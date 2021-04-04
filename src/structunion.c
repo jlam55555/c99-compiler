@@ -75,17 +75,29 @@ void structunion_set_name(char *ident, int begin_def)
 		su->is_being_defined = begin_def;
 	}
 	
-	// not already declared in symbol table
+	// not already declared in the current scope
 	else {
-		node = su_decl_stack[su_decl_stack_pos];
-		su = &node->ts_structunion;
+		// already defined in another scope, one of two possibilities:
+		// - this is a forward declaration (if no declarator)
+		// - they want to use the existing tag (if declarator)
+		// haven't seen declarator yet so have to correct it later; for
+		// now decide to use existing tag
+		if (node && !begin_def) {
+			su_decl_stack[su_decl_stack_pos] = node;
+		}
+		// not previously defined or currently defining a new tag,
+		// create a new node
+		else {
+			node = su_decl_stack[su_decl_stack_pos];
+			su = &node->ts_structunion;
 
-		// set name, is_being_defined
-		su->ident = strdup(ident);
-		su->is_being_defined = begin_def;
+			// set name, is_being_defined
+			su->ident = strdup(ident);
+			su->is_being_defined = begin_def;
 
-		// insert into symtab
-		scope_insert(ident, NS_TAG, node);
+			// insert into symtab
+			scope_insert(ident, NS_TAG, node);
+		}
 	}
 
 	// debugging info
@@ -95,8 +107,7 @@ void structunion_set_name(char *ident, int begin_def)
 	}
 }
 
-void structunion_install_member(union astnode *decl,
-	union astnode *declspec)
+void structunion_install_member(union astnode *decl, union astnode *declspec)
 {
 	union astnode *node, *search;
 	struct astnode_typespec_structunion *su;
@@ -167,4 +178,28 @@ union astnode *structunion_done(int is_complete)
 	--su_decl_stack_pos;
 
 	return node;
+}
+
+void structunion_forward_declare(char *tag, enum structunion_type type)
+{
+	union astnode *search, *node;
+	struct astnode_typespec_structunion *su;
+
+	// check if previously declared in the current scope
+	search = scope_lookup(tag, NS_TAG);
+	if (search && get_scope(tag, NS_TAG) == get_current_scope()) {
+		// nothing to do
+		return;
+	}
+
+	structunion_new(type);
+
+	// from structunion_set_name()
+	node = su_decl_stack[su_decl_stack_pos];
+	su = &node->ts_structunion;
+	su->ident = strdup(tag);
+	su->is_being_defined = 0;
+	scope_insert(tag, NS_TAG, node);
+
+	structunion_done(0);
 }
