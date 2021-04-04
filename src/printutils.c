@@ -462,7 +462,10 @@ void print_stmt(union astnode *node, int depth)
 		fprintf(fp, "FOR\n");
 		INDENT(depth);
 		fprintf(fp, "INIT:\n");
-		print_expr(node->stmt_for.init, depth+1);
+		if (node->stmt_for.init == NULL)
+			print_declarator(node->stmt_for.init, depth+1);
+		else 
+			print_expr(node->stmt_for.init, depth+1);
 
 		INDENT(depth)
 		fprintf(fp, "COND:\n");

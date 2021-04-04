@@ -81,7 +81,7 @@ int yydebug;
 %type<astnode>	paramlist paramtypelist paramdecl absdeclarator declspeclist
 %type<astnode>	specquallist typename dirabsdeclarator paramtypelistopt
 %type<astnode>	structunionspec structunion structdeclaratorlist
-%type<astnode>	structdeclarator specqual exprstmt
+%type<astnode>	structdeclarator specqual exprstmt fordecl
 %type<astnode>	stmt compoundstmt selectionstmt iterationstmt jumpstmt
 %type<astnode>	blockitemlist blockitem translnunit externdecl funcdef
 %type<ident> 	IDENT
@@ -150,14 +150,14 @@ uexpr:		pofexpr								{$$=$1;}
 										 union astnode *one, *inner;
 										 ALLOC(one);
 										 one->num=(struct astnode_number){NT_NUMBER,NULL,
-										 	(struct number){INT_T,UNSIGNED_T,1}};
+										 	(struct number){INT_T,SIGNED_T,1}};
 										 ALLOC_SET_BINOP(inner,'+',$2,one);
 										 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| MINUSMINUS uexpr						{/*replace --a with a=a-1*/
 										 union astnode *one, *inner;
 										 ALLOC(one);
 										 one->num=(struct astnode_number){NT_NUMBER,NULL,
-										 	(struct number){INT_T,UNSIGNED_T,1}};
+										 	(struct number){INT_T,SIGNED_T,1}};
 										 ALLOC_SET_BINOP(inner,'-',$2,one);
 										 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| uop castexpr							{ALLOC_SET_UNOP($$,$1,$2);}
@@ -253,10 +253,10 @@ expr:		asnmtexpr							{$$=$1;}
 		;
 
 /* 6.7 DECLARATIONS */
-decl:		declspeclist ';'						{/*potential tag forward declaration;
+decl:		declspeclist ';'						{$$=NULL;/*potential tag forward declaration;
 										 see structunion.c and decl.h*/
 										 declspec_check_empty($1);}
-		| declspeclist initdecllist ';'					{/*nothing to do here*/}
+		| declspeclist initdecllist ';'					{$$=NULL;/*nothing to do here*/}
 		;
 
 /* declaration specifier */
@@ -463,7 +463,7 @@ stmt:		labeledstmt							{NYI(label statements);}
 		;
 
 /* 6.8.1 labeled statements */
-labeledstmt:	IDENT ':' stmt							{NYI(labels);}
+labeledstmt:	IDENT ':' stmt							{}
 		| CASE condexpr ':' stmt					{NYI(case labels);}
 		| DEFAULT ':' stmt						{NYI(default labels);}
 		;
@@ -496,7 +496,6 @@ selectionstmt:	IF '(' expr ')' stmt %prec IF					{ALLOC_STMT_IFELSE($$, $3, $5, 
 		;
 
 /* 6.8.5 Iteration statements */
-/* TODO: can we combine some of these cases? */
 iterationstmt:	WHILE '(' expr ')' stmt						{ALLOC_STMT_WHILE($$, $3, $5);}
 		| DO stmt WHILE '(' expr ')'					{ALLOC_STMT_DO_WHILE($$, $5, $2);}
 		| FOR '(' expr ';' expr ';' expr ')' stmt			{ALLOC_STMT_FOR($$, $3, $5, $7, $9);}
@@ -507,10 +506,15 @@ iterationstmt:	WHILE '(' expr ')' stmt						{ALLOC_STMT_WHILE($$, $3, $5);}
 		| FOR '(' expr ';'  ';' ')' stmt				{ALLOC_STMT_FOR($$, $3, NULL, NULL, $7);}
 		| FOR '(' ';' expr ';' ')' stmt					{ALLOC_STMT_FOR($$, NULL, $4, NULL, $7);}
 		| FOR '(' ';' ';' ')' stmt					{ALLOC_STMT_FOR($$, NULL, NULL, NULL, $6);}
-		| FOR '(' decl expr ';' expr ')' stmt				{ALLOC_STMT_FOR($$, $3, $4, $6, $8);}
-		| FOR '(' decl ';' expr ')' stmt				{ALLOC_STMT_FOR($$, $3, NULL, $5, $7);}
-		| FOR '(' decl expr ';' ')' stmt				{ALLOC_STMT_FOR($$, $3, $4, NULL, $7);}
-		| FOR '(' decl ';' ')' stmt					{ALLOC_STMT_FOR($$, $3, NULL, NULL, $6);}
+		| FOR '(' {scope_push(0);} decl fordecl ')' stmt		{$$=$5;$$->stmt_for.init=$4;$$->stmt_for.body=$7;
+										 scope_pop();}
+		;
+
+/* have to add this nonterminal to get rid of shift-reduce conflicts*/
+fordecl:	expr ';' expr							{ALLOC_STMT_FOR($$,NULL,$1,$3,NULL);}
+		| ';' expr							{ALLOC_STMT_FOR($$,NULL,NULL,$2,NULL);}
+		| expr ';'							{ALLOC_STMT_FOR($$,NULL,$1,NULL,NULL);}
+		| ';'								{ALLOC_STMT_FOR($$,NULL,NULL,NULL,NULL);}
 		;
 
 /* 6.8.6 Jump Statements */

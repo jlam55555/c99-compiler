@@ -20,6 +20,11 @@ struct astnode_stmt_label {
 
 struct astnode_stmt_case {
 	_ASTNODE;
+	union astnode *expr;
+};
+
+struct astnode_stmt_default {
+	_ASTNODE;
 };
 
 struct astnode_stmt_compound {
@@ -75,6 +80,14 @@ struct astnode_stmt_return {
 	_ASTNODE;
 	union astnode *rt;
 };
+
+#define ALLOC_STMT_LABEL(var, name, statement)\
+	ALLOC_TYPE(var, NT_STMT_LABEL);\
+	var->stmt_label.label = name;\
+	var->stmt_label.body = statement;
+
+#define ALLOC_STMT_CASE(var, )
+	
 
 #define ALLOC_STMT_COMPOUND(var, body_stmt)\
 	ALLOC_TYPE(var, NT_STMT_COMPOUND);\
