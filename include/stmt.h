@@ -12,19 +12,13 @@ struct astnode_stmt_expr {
 };
 
 //label statements
+enum LABEL_TYPE{LABEL_NAMED, LABEL_CASE, LABEL_DEFAULT};
 struct astnode_stmt_label {
 	_ASTNODE;
-	union astnode *label;
-	union astnode *body;
-};
-
-struct astnode_stmt_case {
-	_ASTNODE;
+	enum LABEL_TYPE label_type;
+	char *label;
 	union astnode *expr;
-};
-
-struct astnode_stmt_default {
-	_ASTNODE;
+	union astnode *body;
 };
 
 struct astnode_stmt_compound {
@@ -81,13 +75,12 @@ struct astnode_stmt_return {
 	union astnode *rt;
 };
 
-#define ALLOC_STMT_LABEL(var, name, statement)\
+#define ALLOC_STMT_LABEL(var, lbl_type, name, condexpr, statement)\
 	ALLOC_TYPE(var, NT_STMT_LABEL);\
+	var->stmt_label.label_type = lbl_type;\
 	var->stmt_label.label = name;\
+	var->stmt_label.expr = condexpr;\
 	var->stmt_label.body = statement;
-
-#define ALLOC_STMT_CASE(var, )
-	
 
 #define ALLOC_STMT_COMPOUND(var, body_stmt)\
 	ALLOC_TYPE(var, NT_STMT_COMPOUND);\

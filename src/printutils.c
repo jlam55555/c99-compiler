@@ -250,6 +250,8 @@ void print_expr(union astnode *node, int depth)
 
 	INDENT(depth);
 	switch (node->generic.type) {
+
+	// for symbols
 	case NT_DECL:
 		fprintf(fp, "stab_%s name=%s def @%s:%d\n",
 			NT(node->decl.components) == NT_DECLARATOR_FUNCTION
@@ -257,95 +259,123 @@ void print_expr(union astnode *node, int depth)
 			node->decl.ident,
 			node->decl.filename, node->decl.lineno);
 		break;
+
+	// for members of structs/unions
+	case NT_IDENT:
+		fprintf(fp, "member %s\n", node->ident.ident);
+		break;
 	
 	case NT_NUMBER:;
 		char *numstring = print_number(node->num.num);
-		fprintf(stdout, "CONSTANT:  %s\n", numstring);
+		fprintf(fp, "CONSTANT:  %s\n", numstring);
 		free(numstring);
 		break;
+
 	case NT_STRING:;
 		char *strstring = print_string(&node->string.string);
 		// assumes single-width, null-terminated strings
-		fprintf(stdout, "STRING  %s\n", strstring);
+		fprintf(fp, "STRING  %s\n", strstring);
 		free(strstring);
 		break;
+
 	case NT_CHARLIT:;
 		char chrstring[5];
 		print_char(node->charlit.charlit.value.none, chrstring);
 		// assumes single-width character literal
-		fprintf(stdout, "CHARLIT  %s\n", chrstring);
+		fprintf(fp, "CHARLIT  %s\n", chrstring);
 		break;
+
 	case NT_BINOP:;
 		int printsym = 1;
 		switch (node->binop.op) {
+
 		// these are differentiated in Hak's output
 		case '=':
-			fprintf(stdout, "ASSIGNMENT\n");
+			fprintf(fp, "ASSIGNMENT\n");
 			printsym = 0;
 			break;
 		case '.':
-			fprintf(stdout, "SELECT\n");
+			fprintf(fp, "SELECT\n");
 			printsym = 0;
 			break;
 		case EQEQ: case NOTEQ: case '>': case '<': case LTEQ: case GTEQ:
-			fprintf(stdout, "COMPARISON  OP  ");
+			fprintf(fp, "COMPARISON  OP  ");
 			break;
+
+		// cast operator
+		case 'c':
+			fprintf(fp, "CAST\n");
+			print_declarator(node->binop.left, depth+1);
+			print_expr(node->binop.right, depth+1);
+			return;
+
 		// logical operators are differentiated in hak's output
 		case LOGAND: case LOGOR:
-			fprintf(stdout, "LOGICAL  OP  ");
+			fprintf(fp, "LOGICAL  OP  ");
 			break;
 		default:
-			fprintf(stdout, "BINARY  OP  ");
+			fprintf(fp, "BINARY  OP  ");
 		}
 		if (node->binop.op <= 0xff && printsym) {
-			fprintf(stdout, "%c\n", node->binop.op);
+			fprintf(fp, "%c\n", node->binop.op);
 		} else if (printsym) {
-			fprintf(stdout, "%s\n",
+			fprintf(fp, "%s\n",
 				toktostr(node->binop.op));
 		}
 		print_expr(node->binop.left, depth+1);
 		print_expr(node->binop.right, depth+1);
 		break;
+
 	case NT_UNOP:
 		switch (node->unop.op) {
+
 		// these are differentiated in Hak's output
 		case '*':
-			fprintf(stdout, "DEREF\n");
+			fprintf(fp, "DEREF\n");
 			break;
 		case '&':
-			fprintf(stdout, "ADDRESSOF\n");
+			fprintf(fp, "ADDRESSOF\n");
 			break;
 		case SIZEOF:
-			fprintf(stdout, "SIZEOF\n");
+			fprintf(fp, "SIZEOF\n");
 			break;
+
+		// special operator
+		case 's':	// sizeof with abstract argument
+			fprintf(fp, "SIZEOF (abstract)\n");
+			print_declarator(node->unop.arg, depth+1);
+			return;
+
 		// ++ and -- are special cases: prefix forms
 		// get rewritten, so these are specifically
 		// postfix forms
 		case PLUSPLUS: case MINUSMINUS:
-			fprintf(stdout, "UNARY  OP  POST%s\n",
+			fprintf(fp, "UNARY  OP  POST%s\n",
 				node->unop.op==PLUSPLUS ? "INC" : "DEC");
 			break;
 		default:
-			fprintf(stdout, "UNARY  OP  ");
+			fprintf(fp, "UNARY  OP  ");
 			if (node->unop.op <= 0xff) {
-				fprintf(stdout, "%c\n", node->unop.op);
+				fprintf(fp, "%c\n", node->unop.op);
 			} else {
-				fprintf(stdout, "%s\n",
+				fprintf(fp, "%s\n",
 					toktostr(node->unop.op));
 			}
 		}
 		print_expr(node->unop.arg, depth+1);
 		break;
+
 	case NT_TERNOP:
-		fprintf(stdout, "TERNARY  OP,  IF:\n");
+		fprintf(fp, "TERNARY  OP,  IF:\n");
 		print_expr(node->ternop.first, depth+1);
 		INDENT(depth);
-		fprintf(stdout, "THEN:\n");
+		fprintf(fp, "THEN:\n");
 		print_expr(node->ternop.second, depth+1);
 		INDENT(depth);
-		fprintf(stdout, "ELSE:\n");
+		fprintf(fp, "ELSE:\n");
 		print_expr(node->ternop.third, depth+1);
 		break;
+
 	case NT_FNCALL:;
 		// count number of arguments
 		int argc = 0;
@@ -354,7 +384,7 @@ void print_expr(union astnode *node, int depth)
 			++argc;
 			argnode = argnode->generic.next;
 		}
-		fprintf(stdout, "FNCALL,  %d  arguments\n", argc);
+		fprintf(fp, "FNCALL,  %d  arguments\n", argc);
 
 		// print function declarator
 		print_expr(node->fncall.fnname, depth+1);
@@ -363,7 +393,7 @@ void print_expr(union astnode *node, int depth)
 		for (argc=0, argnode=node->fncall.arglist; argnode;
 			++argc, argnode = argnode->generic.next) {
 			INDENT(depth);
-			fprintf(stdout, "arg  #%d=\n", argc+1);
+			fprintf(fp, "arg  #%d=\n", argc+1);
 			print_expr(argnode, depth+1);
 		}
 		break;
@@ -388,10 +418,22 @@ void print_stmt(union astnode *node, int depth)
 		break;
 
 	case NT_STMT_LABEL:
+		switch(node->stmt_label.label_type)
+		{
+			case LABEL_NAMED:
+				fprintf(fp, "LABEL(%s):\n", node->stmt_label.label);
+				break;
+			case LABEL_CASE:
+				fprintf(fp, "CASE \n EXPR:\n");
+				INDENT(depth)
+				print_expr(node->stmt_label.expr, depth+1);
+				break;
+			case LABEL_DEFAULT:
+				fprintf(fp, "DEFAULT:\n");
+				break;
+		}
 		break;
 
-	case NT_STMT_CASE:
-		break;
 
 	case NT_STMT_COMPOUND:
 		INDENT(depth);
@@ -504,7 +546,10 @@ void print_astnode(union astnode *node)
 	// top-level only has declarators and function defs (which are also
 	// implemented as declarators with bodies). Declarations are already
 	// printed as they are occur, so just print function bodies
-	if (node->decl.fn_body) {
+
+	// Declarators don't return anything, so this can be used to filter out
+	// the top-level nodes
+	if (node) {
 		fprintf(fp, "AST Dump for function\n");
 		print_stmt(node->decl.fn_body, 0);
 	}

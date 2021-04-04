@@ -64,16 +64,14 @@ function can print the entire AST statement tree (declarations are printed
 separately, as they are being declared). Statements (expression statements,
 block statements, and control flow) have been implemented.
 
-TODO (left over from previous assignment):
+TODO
+- Finish the printing function (almost done)
+- Labels (almost done)
 - Recursive declaration validation
-- Statements and control flow
-- Finish the printing function
 - Allow redeclaration of compatible extern variables (will require a recursive
     "compatibility checker")
 - Allow void abstract fn parameter in function def (and then only void)
-- Labels
 - Convert array to pointers in function parameter lists
-- Forward declarations of functions
 
 ---
 
@@ -101,7 +99,8 @@ TODO (left over from previous assignment):
     - fixed struct printing line where declared, not line where defined
     - added scoping (compound statements trigger pushing and popping of scopes)
 - 4/3/21: finishing assignment 3, doing assignment 4
-    - implemented abstract declarators and typenames
+    - implemented abstract declarators and typenames, and the casting and sizeof
+        (with typenames) operators
     - moved C code away from parser.y into main.c
     - fixed struct declarations that unintentionally behaved like forward
         declarations
@@ -110,6 +109,7 @@ TODO (left over from previous assignment):
     - implemented a printing function for statements/blocks
     - identifiers in expressions now point to their symbol table entries, and
         throw an error if undeclared
+    - implemented labels
 
 ---
   

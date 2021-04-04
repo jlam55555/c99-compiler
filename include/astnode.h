@@ -105,7 +105,6 @@ union astnode {
 	struct astnode_stmt_expr stmt_expr;
 	struct astnode_stmt_label stmt_label;
 	struct astnode_stmt_compound stmt_compound;
-	struct astnode_stmt_case stmt_case;
 	struct astnode_stmt_if_else stmt_if_else;
 	struct astnode_stmt_switch stmt_switch;
 	struct astnode_stmt_do_while stmt_do_while;

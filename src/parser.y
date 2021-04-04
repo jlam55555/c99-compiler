@@ -81,7 +81,7 @@ int yydebug;
 %type<astnode>	paramlist paramtypelist paramdecl absdeclarator declspeclist
 %type<astnode>	specquallist typename dirabsdeclarator paramtypelistopt
 %type<astnode>	structunionspec structunion structdeclaratorlist
-%type<astnode>	structdeclarator specqual exprstmt fordecl
+%type<astnode>	structdeclarator specqual exprstmt fordecl labeledstmt
 %type<astnode>	stmt compoundstmt selectionstmt iterationstmt jumpstmt
 %type<astnode>	blockitemlist blockitem translnunit externdecl funcdef
 %type<ident> 	IDENT
@@ -163,8 +163,8 @@ uexpr:		pofexpr								{$$=$1;}
 		| uop castexpr							{ALLOC_SET_UNOP($$,$1,$2);}
 		| SIZEOF uexpr							{ALLOC_SET_UNOP($$,$1,$2);}
 		| SIZEOF '(' typename ')'
-										{/*use '-' to indicate sizeof with a type*/
-										 ALLOC_SET_UNOP($$,'-',$3);}
+										{/*use 's' to indicate sizeof with a type*/
+										 ALLOC_SET_UNOP($$,'s',$3);}
 		;
 
 uop:		'&'								{$$=$1;}
@@ -176,8 +176,8 @@ uop:		'&'								{$$=$1;}
 		;
 
 castexpr:	uexpr								{$$=$1;}
-		| '(' typename ')' castexpr					{/*use '_' to indicate cast*/
-										 ALLOC_SET_BINOP($$,'_',$2,$4);}
+		| '(' typename ')' castexpr					{/*use 'c' to indicate cast*/
+										 ALLOC_SET_BINOP($$,'c',$2,$4);}
 		;
 
 multexpr:	castexpr							{$$=$1;}
@@ -463,9 +463,9 @@ stmt:		labeledstmt							{NYI(label statements);}
 		;
 
 /* 6.8.1 labeled statements */
-labeledstmt:	IDENT ':' stmt							{}
-		| CASE condexpr ':' stmt					{NYI(case labels);}
-		| DEFAULT ':' stmt						{NYI(default labels);}
+labeledstmt:	IDENT ':' stmt							{ALLOC_STMT_LABEL($$, LABEL_NAMED, $1, NULL, $3);}
+		| CASE condexpr ':' stmt					{ALLOC_STMT_LABEL($$, LABEL_CASE,  NULL, $2, $4);}
+		| DEFAULT ':' stmt						{ALLOC_STMT_LABEL($$, LABEL_DEFAULT,  NULL, NULL, $3);}
 		;
 
 /* 6.8.2 compound statement */
