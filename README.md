@@ -58,17 +58,16 @@ Not implemented:
 - most functionality related to type qualifiers and storage class specifiers
 
 ##### Statements
-The top-level non-terminal, the translation unit, is finally here!
+The top-level non-terminal, the translation unit, is finally here! Function
+definitions and prototype scopes are implemented. A universal AST node print
+function can print the entire AST statement tree (declarations are printed
+separately, as they are being declared). Statements (expression statements,
+block statements, and control flow) have been implemented.
 
 TODO (left over from previous assignment):
 - Recursive declaration validation
-- Move extra printing in parser.y to printutils.c (general code cleanup)
-- Abstract declarators and typenames
-- Prototype scopes
-- Allow bitfields/old K&R fn syntax, even if not interpreted correctly
-
-TODO (for this assignment):
 - Statements and control flow
+- Finish the printing function
 
 ---
 
@@ -84,7 +83,6 @@ TODO (for this assignment):
     - changed build system from custom Makefile to cmake, as well as separating
         src/ and include/ in the directory structure due to the large number
         of total source files
-    - updated README
 - 3/18/21: new datatypes for TLD
     - new AST types for "everything else" outside of expressions and
         declarations: blocks, statements, function defs, translation unit
@@ -99,6 +97,13 @@ TODO (for this assignment):
 - 4/3/21: finishing assignment 3, doing assignment 4
     - implemented abstract declarators and typenames
     - moved C code away from parser.y into main.c
+    - fixed struct declarations that unintentionally behaved like forward
+        declarations
+    - implemented prototype scopes, which automatically promote to function
+        scopes in a function definition
+    - implemented a printing function for statements/blocks
+    - identifiers in expressions now point to their symbol table entries, and
+        throw an error if undeclared
 
 ---
   
