@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include <scope.h>
-#include <lexerutils/errorutils.h>
-#include <astnode.h>
-#include <structunion.h>
-#include <printutils.h>
+#include <parser/scope.h>
+#include <lexer/errorutils.h>
+#include <parser/astnode.h>
+#include <parser/structunion.h>
+#include <parser/printutils.h>
 #include <parser.tab.h>
 
 void print_typespec(union astnode *node)

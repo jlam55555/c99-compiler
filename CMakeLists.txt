@@ -5,10 +5,10 @@ set(CMAKE_C_STANDARD 11)
 # bison/flex
 find_package(BISON)
 find_package(FLEX)
-BISON_TARGET(parser ${CMAKE_SOURCE_DIR}/src/parser.y
+BISON_TARGET(parser ${CMAKE_SOURCE_DIR}/src/parser/parser.y
         ${CMAKE_BINARY_DIR}/parser.tab.c VERBOSE
         COMPILE_FLAGS --defines=${CMAKE_BINARY_DIR}/parser.tab.h)
-FLEX_TARGET(lexer ${CMAKE_SOURCE_DIR}/src/lexer.l
+FLEX_TARGET(lexer ${CMAKE_SOURCE_DIR}/src/lexer/lexer.l
         ${CMAKE_BINARY_DIR}/lex.yy.c
         COMPILE_FLAGS --header-file=${CMAKE_BINARY_DIR}/lex.yy.h)
 

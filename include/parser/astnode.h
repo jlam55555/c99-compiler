@@ -8,12 +8,12 @@
 
 #include <stdlib.h>	// for malloc in macro
 #include <string.h>	// for strdup in macro
-#include <lexerutils/numutils.h>
-#include <lexerutils/stringutils.h>
-#include <decl.h>
-#include <declspec.h>
-#include <structunion.h>
-#include <stmt.h>
+#include <lexer/numutils.h>
+#include <lexer/stringutils.h>
+#include <parser/decl.h>
+#include <parser/declspec.h>
+#include <parser/structunion.h>
+#include <parser/stmt.h>
 
 struct astnode_binop {
 	_ASTNODE

@@ -2,7 +2,7 @@
 #define STATEMENTH
 
 #include <common.h>
-#include <astnode.h>
+#include <parser/astnode.h>
 
 // wrapper around an expression
 struct astnode_stmt_expr {

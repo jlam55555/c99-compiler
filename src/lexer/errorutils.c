@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <lexerutils/stringutils.h>
-#include <lexerutils/numutils.h>
+#include <lexer/stringutils.h>
+#include <lexer/numutils.h>
 #include <parser.tab.h>
 
 int lineno = 1;

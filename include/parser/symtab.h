@@ -12,7 +12,7 @@
 #ifndef SYMTABH
 #define SYMTABH
 
-#include <parser.h>
+#include <parser/parser.h>
 
 // an entry in the symbol table; basically a key-value pair; this is a plain
 // C struct and not an astnode because it doesn't have to be

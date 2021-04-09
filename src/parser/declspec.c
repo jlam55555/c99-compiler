@@ -1,6 +1,6 @@
-#include <scope.h>
-#include <declspec.h>
-#include <astnode.h>
+#include <parser/scope.h>
+#include <parser/declspec.h>
+#include <parser/astnode.h>
 
 static void merge_typespec(struct astnode_typespec_scalar *ats1,
 	struct astnode_typespec_scalar *ats2)

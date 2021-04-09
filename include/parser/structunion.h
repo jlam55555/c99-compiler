@@ -9,8 +9,8 @@
 #ifndef STRUCTUNIONH
 #define STRUCTUNIONH
 
-#include <declspec.h>
-#include <symtab.h>
+#include <parser/declspec.h>
+#include <parser/symtab.h>
 
 enum structunion_type { SU_STRUCT, SU_UNION };
 

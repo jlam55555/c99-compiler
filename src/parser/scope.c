@@ -1,7 +1,7 @@
-#include <astnode.h>
-#include <scope.h>
-#include <parser.h>
-#include <lexerutils/errorutils.h>
+#include <parser/astnode.h>
+#include <parser/scope.h>
+#include <parser/parser.h>
+#include <lexer/errorutils.h>
 #include <stdio.h>
 
 static struct scope *scope_stack = NULL;

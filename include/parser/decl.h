@@ -16,7 +16,7 @@
 #define DECLARATORH
 
 #include <common.h>
-#include <lexerutils/errorutils.h>
+#include <lexer/errorutils.h>
 
 // need a second linked-list pointer *of since the generic *next may be used
 // for linking declarators together (e.g., in parameter type list)

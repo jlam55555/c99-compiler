@@ -3,17 +3,17 @@
 %{
 #define YYDEBUG 0
 
-#include <parser.h>
+#include <parser/parser.h>
 #include <common.h>
-#include <lexerutils/errorutils.h>
-#include <lexerutils/numutils.h>
-#include <astnode.h>
-#include <symtab.h>
-#include <scope.h>
-#include <structunion.h>
-#include <decl.h>
-#include <stmt.h>
-#include <quads.h>
+#include <lexer/errorutils.h>
+#include <lexer/numutils.h>
+#include <parser/astnode.h>
+#include <parser/symtab.h>
+#include <parser/scope.h>
+#include <parser/structunion.h>
+#include <parser/decl.h>
+#include <parser/stmt.h>
+#include <quads/quads.h>
 #include <stdio.h>
 
 int yydebug;

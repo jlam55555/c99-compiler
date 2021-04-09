@@ -1,4 +1,4 @@
-#include <quads.h>
+#include <quads/quads.h>
 #include <string.h>
 
 // current function name and basic block number

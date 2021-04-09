@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <common.h>
-#include <parser.h>
-#include <astnode.h>
-#include <decl.h>
-#include <scope.h>
-#include <printutils.h>
+#include <parser/parser.h>
+#include <parser/astnode.h>
+#include <parser/decl.h>
+#include <parser/scope.h>
+#include <parser/printutils.h>
 
 union astnode *decl_new(char *ident)
 {

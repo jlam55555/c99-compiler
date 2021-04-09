@@ -5,7 +5,7 @@
 #ifndef QUADSH
 #define QUADSH
 
-#include <astnode.h>
+#include <parser/astnode.h>
 
 /**
  * TODO: desc

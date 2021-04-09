@@ -7,7 +7,7 @@
 #define DECLSPECH
 
 #include <common.h>
-#include <decl.h>
+#include <parser/decl.h>
 
 // typespec: scalar types
 #define TS_SCALAR_SIGNED	0x4u

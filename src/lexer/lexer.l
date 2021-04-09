@@ -4,9 +4,9 @@
 %{
 #include <stdlib.h>
 #include <stddef.h>
-#include <lexerutils/stringutils.h>
-#include <lexerutils/errorutils.h>
-#include <lexerutils/numutils.h>
+#include <lexer/stringutils.h>
+#include <lexer/errorutils.h>
+#include <lexer/numutils.h>
 #include <parser.tab.h>
 
 //YYSTYPE yylval;

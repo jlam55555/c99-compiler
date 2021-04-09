@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <lexerutils/numutils.h>
+#include <lexer/numutils.h>
 
 extern char *yytext;
 

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <lexerutils/unicodeutils.h>
+#include <lexer/unicodeutils.h>
 
 // detects unicode characters by looking at the first bits of
 // each byte; see https://stackoverflow.com/a/1543616/2397327
