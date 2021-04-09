@@ -1,8 +1,9 @@
 int i,y[5];
 
-int f(a,b)
-int a;
-double b;
+// int f(a,b)
+// int a;
+// double b;
+int f(int a, double b)
 {
  for(a=b+2;i<a;i++)
  {

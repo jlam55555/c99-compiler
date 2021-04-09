@@ -542,17 +542,21 @@ void print_stmt(union astnode *node, int depth)
 		INDENT(depth);
 		fprintf(fp, "GOTO %s\n", node->stmt_goto.label);
 		break;
+
 	case NT_STMT_CONT:
 		INDENT(depth);
 		fprintf(fp, "CONTINUE\n");
 		break;
+
 	case NT_STMT_BREAK:
 		INDENT(depth);
 		fprintf(fp, "BREAK\n");
 		break;
+		
 	case NT_STMT_RETURN:
 		INDENT(depth);
 		fprintf(fp, "RETURN\n");
+		print_expr(node->stmt_return.rt, depth+1);
 		break;
 	}
 	
