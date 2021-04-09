@@ -124,9 +124,26 @@ union astnode *decl_function_new(union astnode *paramdecls);
 void decl_install(union astnode *decl, union astnode *declspec);
 
 /**
+ * check that the declarator of a function (declaration or definition) is valid,
+ * and perform appropriate transformations. Will not have any effect if decl
+ * is not a function declaration/definition
+ * 
+ * will perform the following checks:
+ * - doesn't return an array type
+ * 
+ * will perform the following transformations:
+ * - arrays in fn parameter list will be converted to pointers
+ * 
+ * @param decl		declarator of a function (declaration or definition)
+ */
+void decl_check_fndecl(union astnode *decl);
+
+/**
  * check that the declarator of a function definition is valid:
  * - no abstract parameters
  * - declarator is indeed a function declarator
+ * 
+ * Will call decl_check_fndecl to also perform those checks.
  * 
  * Will yyerror_fail on error.
  * 

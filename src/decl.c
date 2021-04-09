@@ -193,15 +193,51 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	// (which may not be the current scope in the case of a function def)
 	declspec_fill_defaults(decl);
 
+	// check fndecl (will have no effect if not a function declaration)
+	decl_check_fndecl(decl);
+
 #if DEBUG
 	print_symbol(decl, 1, 0);
 #endif
+}
+
+void decl_check_fndecl(union astnode *decl)
+{
+	union astnode *iter;
+
+	// check that function doesn't return an array type;
+	// check penultimate element in component chain (before reversal)
+	LL_FOR_OF(decl->decl.components, iter) {
+		if (!iter->decl_component.of) {
+			// not a function
+			return;
+		}
+
+		// reached penultimate element
+		if (!iter->decl_component.of->decl_component.of) {
+			if (NT(iter->decl_component.of)
+				!= NT_DECLARATOR_FUNCTION) {
+				// not a function
+				return;
+			}
+
+			if (NT(iter) == NT_DECLARATOR_ARRAY) {
+				yyerror_fatal("function returning array");
+			}
+			break;
+		}
+	}
+
+	// convert any arrays in parameter list to pointers
+	// TODO
 }
 
 void decl_check_fndef(union astnode *decl)
 {
 	union astnode *iter, *param_iter, *param_ts;
 	int paramlist_void = 0, param_count = 0;
+
+	decl_check_fndecl(decl);
 
 	// check that declarator is actually a function declarator;
 	// last element in component chain (before reversal) should be fn
@@ -230,6 +266,7 @@ void decl_check_fndef(union astnode *decl)
 		}
 	}
 
+	// if void parameter, should be only parameter
 	if (param_count > 1 && paramlist_void) {
 		yyerror_fatal("void must be the only parameter");
 	}

@@ -10,12 +10,14 @@ static int scope_pos = -1, scope_stack_capacity = 0;
 // special flag used for transferring prototype scopes to function scopes
 // if definition (function body) follows function declaration
 static int prototype_hold = 0, is_fndef = 0;
-void scope_set_fndef() {
+void scope_set_fndef()
+{
 	is_fndef = 1;
 }
 
 // scope begun, create namespaces/symbol tables for it
-void scope_push(enum scope_type type) {
+void scope_push(enum scope_type type)
+{
 	int i;
 
 	// if prototype_hold is set and a new non-function scpoe is created,
@@ -76,7 +78,8 @@ void scope_push(enum scope_type type) {
 }
 
 // scope ended, destroy it
-void scope_pop(void) {
+void scope_pop(void)
+{
 	int i;
 
 	if (!scope_pos) {
@@ -97,8 +100,46 @@ void scope_pop(void) {
 	--scope_pos;
 }
 
+// helper function to shorten scope_insert(); allows redeclaration of
+// (compatible) variables/functions of extern storage class
+//
+// this is done before declspec_fill_defaults() (called in scope_insert), 
+// so need to explicitly check that the variable is extern here, or infer that
+// it is extern if in global scope
+//
+// TODO: see TODO's
+static int extern_redeclaration(char *ident, enum name_space ns,
+	union astnode *node)
+{
+	union astnode *search;
+
+	if (!(search = symtab_lookup(&scope_stack[is_fndef?0:scope_pos].ns[ns],
+			ident))) {
+		// not already defined, this wouldn't be a redeclaration
+		return 0;
+	}
+		
+	// shouldn't be a warning but here for debugging
+#ifdef DEBUG
+	yyerror("previously-declared extern variable");
+#endif
+	
+	// TODO: check that types are compatible
+
+	// TODO: should also "narrow type" if applicable
+	// (i.e., if specifies narrower fn params)
+
+	// replace input decl with old declaration
+	// TODO: discard new declaration
+	*node = *search;
+
+	// redeclaration
+	return 1;
+}
+
 // inserts symbol at enclosing scope (or at function scope for labels)
-void scope_insert(char *ident, enum name_space ns, union astnode *node) {
+void scope_insert(char *ident, enum name_space ns, union astnode *node)
+{
 
 	// declaration while holding means break holding
 	if (prototype_hold && !is_fndef) {
@@ -112,40 +153,17 @@ void scope_insert(char *ident, enum name_space ns, union astnode *node) {
 		prototype_hold = 0;
 	}
 
-	// special check: if extern storage class and compatible declarations,
-	// then allow redeclaration
-	//
-	// this is done before declspec_fill_defaults(), so need to explicitly
-	// check that the variable is extern here, or infer that it is extern
-	// if in global scope
-	//
-	// TODO: make it so that declspec_fill_defaults can happen before this?
-	// TODO: clean this up; this is very messy
-	//
+	// allow for redeclaration of extern function; see extern_redeclaration
 	// check if ident type (in "everything else" namespace)
 	if (ns == NS_IDENT && NT(node) == NT_DECL) {
 		union astnode *sc = node->decl.declspec->declspec.sc;
+
 		// check if extern
 		if ((sc && sc->sc.scspec == SC_EXTERN)
 			|| (!sc && (!scope_pos || is_fndef))) {
 
-			union astnode *search;
-
-			// check if previously defined
-			if (search = symtab_lookup(
-				&scope_stack[is_fndef?0:scope_pos].ns[ns],
-					ident)) {
-				
-				// shouldn't be a warning but here for debugging
-				#ifdef DEBUG
-				yyerror("previously-declared extern variable");
-				#endif
-				
-				// TODO: check that types are compatible
-
-				// TODO: should also "narrow type" if applicable
-				// (i.e., if specifies narrower fn params)
-
+			// allow for redeclaration if already defined
+			if (extern_redeclaration(ident, ns, node)) {
 				is_fndef = 0;
 				return;
 			}
@@ -157,7 +175,8 @@ void scope_insert(char *ident, enum name_space ns, union astnode *node) {
 }
 
 // traverses up the stack to lookup a symbol
-union astnode *scope_lookup(char *ident, enum name_space ns) {
+union astnode *scope_lookup(char *ident, enum name_space ns)
+{
 	int current_scope;
 	union astnode *search = NULL;
 
@@ -170,7 +189,8 @@ union astnode *scope_lookup(char *ident, enum name_space ns) {
 }
 
 // do same as above but return scope object
-struct scope *get_scope(char *ident, enum name_space ns) {
+struct scope *get_scope(char *ident, enum name_space ns)
+{
 	int current_scope;
 	union astnode *search = NULL;
 
