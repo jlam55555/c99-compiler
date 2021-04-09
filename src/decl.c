@@ -194,7 +194,7 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	declspec_fill_defaults(decl);
 
 #if DEBUG
-	print_symbol(decl, 1);
+	print_symbol(decl, 1, 0);
 #endif
 }
 

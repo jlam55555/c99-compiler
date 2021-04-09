@@ -84,7 +84,7 @@ void print_structunion_def(union astnode *node)
 	// loop through fields
 	iter = su->members;
 	while (iter) {
-		print_symbol(iter, 0);
+		print_symbol(iter, 0, 1);
 		iter = iter->generic.next;
 	}
 
@@ -223,7 +223,7 @@ void print_scope(struct scope *scope)
 		type, scope->filename, scope->lineno);
 }
 
-void print_symbol(union astnode *node, int is_not_member)
+void print_symbol(union astnode *node, int is_not_member, int depth)
 {
 	FILE *fp = stdout;
 
@@ -231,20 +231,21 @@ void print_symbol(union astnode *node, int is_not_member)
 		return;
 	}
 
+	INDENT(depth);
 	fprintf(fp, "%s is defined ", node->decl.ident);
 	if (is_not_member) {
 		fprintf(fp, "with storage class ");
 		print_storageclass(node->decl.declspec->declspec.sc);
 	}
 	fprintf(fp, "\n");
-	INDENT(1);
+	INDENT(depth+1);
 	fprintf(fp, "at %s:%d [in ", filename, lineno);
 	print_scope(is_not_member ? get_scope(node->decl.ident, NS_IDENT)
 		: get_current_scope());
 	fprintf(fp, "] as a\n");
 
 	// print declarator and type
-	print_declarator(node->decl.components, 2);
+	print_declarator(node->decl.components, depth+2);
 }
 
 void print_expr(union astnode *node, int depth)

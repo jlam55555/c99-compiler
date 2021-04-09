@@ -64,8 +64,9 @@ void print_scope(struct scope *scope);
  * @param is_not_member	boolean indicating whether is not struct union member
  * 			(e.g., for struct/union don't print storage class,
  * 			 don't lookup scope)
+ * @param depth		indenting depth
  */
-void print_symbol(union astnode *node, int is_not_member);
+void print_symbol(union astnode *node, int is_not_member, int depth);
 
 /**
  * print expression
