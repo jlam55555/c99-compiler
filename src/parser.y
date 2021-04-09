@@ -108,7 +108,8 @@ constant:	NUMBER								{ALLOC($$);$$->num=(struct astnode_number){NT_NUMBER,NUL
 
 /* primary expr: 6.5.1 */
 pexpr:		IDENT								{$$=scope_lookup($1,NS_IDENT);
-										 !$$ && yyerror_fatal("undeclared symbol");}
+										 /*if not found indicate it with dummy pexpr*/
+										 if(!$$){ALLOC_IMPL_FN($$,$1);}}
 		| constant							{$$=$1;}
 		| STRING							{ALLOC($$);$$->string=(struct astnode_string){NT_STRING,NULL,$1};}
 		| '(' expr ')'							{$$=$2;}
@@ -118,20 +119,27 @@ pexpr:		IDENT								{$$=scope_lookup($1,NS_IDENT);
 pofexpr:	pexpr								{$$=$1;}
 		| pofexpr '[' expr ']'						{/* rewrite a[b] <=> *(a+b) */
 										 union astnode *inner;
+										 CHECK_SYM_FOUND($1);
 										 ALLOC_SET_BINOP(inner,'+',$1,$3);
 										 ALLOC_SET_UNOP($$,'*',inner);}
 		| pofexpr '(' arglistopt ')'					{ALLOC($$);
+										 /*implicit declaration warning*/
+										 CHECK_SYM_FOUND_WARN($1);
 										 $$->fncall=(struct astnode_fncall){NT_FNCALL,NULL,$1,$3};}
 		| pofexpr '.' IDENT						{union astnode *ident;
+										 CHECK_SYM_FOUND($1);
 										 ALLOC_SET_IDENT(ident,$3);
 										 ALLOC_SET_BINOP($$,$2,$1,ident);}
 		| pofexpr INDSEL IDENT						{/* rewrite a->b <=> (*a).b */
 										 union astnode *ident, *deref;
+										 CHECK_SYM_FOUND($1);
 										 ALLOC_SET_IDENT(ident,$3);
 										 ALLOC_SET_UNOP(deref,'*',$1);
 										 ALLOC_SET_BINOP($$,'.',deref,ident);}
-		| pofexpr PLUSPLUS						{/*a++ <=> */ALLOC_SET_UNOP($$,$2,$1);}
-		| pofexpr MINUSMINUS						{ALLOC_SET_UNOP($$,$2,$1);}
+		| pofexpr PLUSPLUS						{CHECK_SYM_FOUND($1);
+										 ALLOC_SET_UNOP($$,$2,$1);}
+		| pofexpr MINUSMINUS						{CHECK_SYM_FOUND($1);
+										 ALLOC_SET_UNOP($$,$2,$1);}
 		/*| '(' typename ')' '{' initlist '}'				{not implementing compound literals}
 		| '(' typename ')' '{' initlist ',' '}'				{not implementing compound literals}*/
 		;
@@ -455,12 +463,12 @@ paramtypelistopt:	paramtypelist						{$$=$1;}
 /*		;*/
 
 /* 6.8 statements and blocks */
-stmt:		labeledstmt							{NYI(label statements);}
+stmt:		labeledstmt							{$$=$1;}
 		| compoundstmt							{$$=$1;}
 		| exprstmt							{$$=$1;}
-		| selectionstmt							{NYI(if/select statements);}
-		| iterationstmt							{NYI(iteration statements);}
-		| jumpstmt							{NYI(jump statements);}
+		| selectionstmt							{$$=$1;}
+		| iterationstmt							{$$=$1;}
+		| jumpstmt							{$$=$1;}
 		;
 
 /* 6.8.1 labeled statements */

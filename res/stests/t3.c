@@ -7,4 +7,5 @@ int s()
 	 case 2:printf("two\n");
 	 default:printf("more\n");
 	}
+
 }

@@ -256,12 +256,14 @@ void print_expr(union astnode *node, int depth)
 	switch (node->generic.type) {
 
 	// for symbols
-	case NT_DECL:
+	case NT_DECL:;
+		int is_implicit = node->decl.is_implicit;
 		fprintf(fp, "stab_%s name=%s def @%s:%d\n",
 			NT(node->decl.components) == NT_DECLARATOR_FUNCTION
 				? "fn" : "var",
 			node->decl.ident,
-			node->decl.filename, node->decl.lineno);
+			is_implicit ? "(implicit)" : node->decl.filename,
+			is_implicit ? 0 : node->decl.lineno);
 		break;
 
 	// for members of structs/unions
@@ -426,14 +428,20 @@ void print_stmt(union astnode *node, int depth)
 		{
 			case LABEL_NAMED:
 				fprintf(fp, "LABEL(%s):\n", node->stmt_label.label);
+				INDENT(depth);
+				print_stmt(node->stmt_label.body, depth+1);
 				break;
 			case LABEL_CASE:
 				fprintf(fp, "CASE \n EXPR:\n");
-				INDENT(depth)
+				INDENT(depth);
 				print_expr(node->stmt_label.expr, depth+1);
+				INDENT(depth);
+				print_stmt(node->stmt_label.body, depth+1);
 				break;
 			case LABEL_DEFAULT:
 				fprintf(fp, "DEFAULT:\n");
+				INDENT(depth);
+				print_stmt(node->stmt_label.body, depth+1);
 				break;
 		}
 		break;

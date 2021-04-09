@@ -63,7 +63,7 @@ struct astnode_stmt_for {
 //jump statement
 struct astnode_stmt_goto {
 	_ASTNODE;
-	union astnode *label;
+	char *label;
 };
 
 struct astnode_stmt_break_cont {
@@ -117,10 +117,10 @@ struct astnode_stmt_return {
 #define ALLOC_STMT_GOTO(var, lbl)\
 	ALLOC_TYPE(var, NT_STMT_GOTO);\
 	/*TODO: have to look up label in symbol table*/\
-	/*var->stmt_goto.label = lbl;*/
+	var->stmt_goto.label = lbl;
 
 #define ALLOC_STMT_BREAK_CONT(var, break_cont)\
-	ALLOC_TYPE(var, NT_STMT_BREAK);
+	ALLOC_TYPE(var, break_cont);
 
 #define ALLOC_STMT_EXPR(var, expression)\
 	ALLOC_TYPE(var, NT_STMT_EXPR);\

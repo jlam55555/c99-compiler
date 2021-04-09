@@ -72,6 +72,9 @@ struct astnode_decl {
 	// for debugging purposes
 	char *filename;
 	int lineno;
+
+	// indicates whether it is an implicit declaration
+	int is_implicit;
 };
 
 /**

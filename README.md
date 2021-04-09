@@ -55,6 +55,7 @@ Not implemented:
 - bitfields
 - typedefs
 - initializers
+- old function definition syntax
 - most functionality related to type qualifiers and storage class specifiers
 
 ##### Statements
@@ -62,16 +63,18 @@ The top-level non-terminal, the translation unit, is finally here! Function
 definitions and prototype scopes are implemented. A universal AST node print
 function can print the entire AST statement tree (declarations are printed
 separately, as they are being declared). Statements (expression statements,
-block statements, and control flow) have been implemented.
+block statements, and control flow), labels have been implemented.
 
 TODO
-- Finish the printing function (almost done)
-- Labels (almost done)
+- Redeclaration of extern variables is allowed, but need to check for
+    compatibility and narrow type to strictest intersection of the two types
+    (for now redeclaration of extern variable with any type is allowed (BAD))
 - Recursive declaration validation
-- Allow redeclaration of compatible extern variables (will require a recursive
-    "compatibility checker")
-- Allow void abstract fn parameter in function def (and then only void)
 - Convert array to pointers in function parameter lists
+
+##### Quad Generation
+TODO
+- Everything
 
 ---
 
@@ -110,6 +113,13 @@ TODO
     - identifiers in expressions now point to their symbol table entries, and
         throw an error if undeclared
     - implemented labels
+- 4/9/21: finishing assignments 3/4, beginning assignment 5
+    - allow void as (only) parameter in param list for function definition
+    - allow redeclaration of extern variables (need to check if types are
+        compatible and create the strict intersection of the types)
+    - fix unions being printed as structs
+    - fix unnamed unions not being assigned a filename/lineno location
+    - implementing labels
 
 ---
   

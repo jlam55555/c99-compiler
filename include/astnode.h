@@ -171,4 +171,10 @@ void print_astnode(union astnode *);
 	(var)->ts_scalar.modifiers.lls = longlongshort;\
 	(var)->ts_scalar.modifiers.sign = signunsign;
 
+#define ALLOC_IMPL_FN(var, idt)\
+	ALLOC_TYPE(var, NT_DECL);\
+	(var)->decl.ident=idt;\
+	(var)->decl.is_implicit=1;\
+	ALLOC_TYPE((var)->decl.components, NT_DECLARATOR_FUNCTION);
+
 #endif
