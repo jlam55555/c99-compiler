@@ -200,7 +200,8 @@ void decl_install(union astnode *decl, union astnode *declspec)
 
 void decl_check_fndef(union astnode *decl)
 {
-	union astnode *iter, *param_iter;
+	union astnode *iter, *param_iter, *param_ts;
+	int paramlist_void = 0, param_count = 0;
 
 	// check that declarator is actually a function declarator;
 	// last element in component chain (before reversal) should be fn
@@ -217,9 +218,19 @@ void decl_check_fndef(union astnode *decl)
 	// check that there are no abstract declarators
 	// can reuse iter, use second iter for sake of clarity
 	LL_FOR(iter->decl_function.paramlist, param_iter) {
-		if (!param_iter->decl.ident) {
+		++param_count;
+		if (NT(param_ts = param_iter->decl.declspec->declspec.ts)
+			== NT_TS_SCALAR
+			&& param_ts->ts_scalar.basetype == BT_VOID) {
+
+			paramlist_void = 1;
+		} else if (!param_iter->decl.ident) {
 			yyerror_fatal("abstract declarator in parameter list"
 				" of function definition");
 		}
+	}
+
+	if (param_count > 1 && paramlist_void) {
+		yyerror_fatal("void must be the only parameter");
 	}
 }
