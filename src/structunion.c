@@ -53,7 +53,7 @@ void structunion_set_name(char *ident, int begin_def)
 	}
 
 	// check if ident exists in the current tag namespace
-	node = scope_lookup(ident, NS_TAG);
+	node = ident ? scope_lookup(ident, NS_TAG) : NULL;
 
 	// already declared in symbol table (in the current scope)
 	if (node && (get_scope(ident, NS_TAG) == get_current_scope())) {
@@ -75,7 +75,7 @@ void structunion_set_name(char *ident, int begin_def)
 		su->is_being_defined = begin_def;
 	}
 	
-	// not already declared in the current scope
+	// not already declared in the current scope, or NULL (untagged) ident
 	else {
 		// already defined in another scope, one of two possibilities:
 		// - this is a forward declaration (if no declarator)
@@ -92,11 +92,13 @@ void structunion_set_name(char *ident, int begin_def)
 			su = &node->ts_structunion;
 
 			// set name, is_being_defined
-			su->ident = strdup(ident);
+			su->ident = ident ? strdup(ident) : "(untagged)";
 			su->is_being_defined = begin_def;
 
 			// insert into symtab
-			scope_insert(ident, NS_TAG, node);
+			if (ident) {
+				scope_insert(ident, NS_TAG, node);
+			}
 		}
 	}
 

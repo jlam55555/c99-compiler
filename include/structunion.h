@@ -43,6 +43,7 @@ void structunion_new(enum structunion_type type);
  * set the name of the current struct/union
  *
  * semantic notes (this function is dangerously innoculous):
+ * - if ident is NULL, creates a new untagged struct, doesn't insert into symtab
  * - if ident is already declared in the current namespace, then the current
  *   struct/union is freed and replaced with the existing one
  * - begin_def indicates whether this begins a definition or not.

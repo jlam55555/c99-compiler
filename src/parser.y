@@ -304,7 +304,8 @@ typespec:	VOID								{ALLOC_SET_SCALAR($$,BT_VOID,LLS_UNSPEC,SIGN_UNSPEC);}
 		;
 
 /* 6.7.2.1 structure and union specifiers */
-structunionspec:structunion '{' structdecllist '}'				{$$=structunion_done(1);}
+structunionspec:structunion {structunion_set_name(NULL,1);} '{' structdecllist '}'
+										{$$=structunion_done(1);}
 		| structunion IDENT {structunion_set_name($2,1);} '{' structdecllist '}'
 										{$$=structunion_done(1);}
 		| structunion IDENT						{structunion_set_name($2,0);
