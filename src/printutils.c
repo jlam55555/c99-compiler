@@ -427,20 +427,21 @@ void print_stmt(union astnode *node, int depth)
 		switch(node->stmt_label.label_type)
 		{
 			case LABEL_NAMED:
-				fprintf(fp, "LABEL(%s):\n", node->stmt_label.label);
 				INDENT(depth);
+				fprintf(fp, "LABEL(%s):\n", node->stmt_label.label);
 				print_stmt(node->stmt_label.body, depth+1);
 				break;
 			case LABEL_CASE:
-				fprintf(fp, "CASE \n EXPR:\n");
 				INDENT(depth);
+				fprintf(fp, "CASE \n");
+				INDENT(depth);
+				fprintf(fp, "EXPR:\n");
 				print_expr(node->stmt_label.expr, depth+1);
-				INDENT(depth);
 				print_stmt(node->stmt_label.body, depth+1);
 				break;
 			case LABEL_DEFAULT:
-				fprintf(fp, "DEFAULT:\n");
 				INDENT(depth);
+				fprintf(fp, "DEFAULT:\n");
 				print_stmt(node->stmt_label.body, depth+1);
 				break;
 		}
@@ -460,6 +461,7 @@ void print_stmt(union astnode *node, int depth)
 		break;
 
 	case NT_STMT_IFELSE:
+		INDENT(depth);
 		fprintf(fp, "IF:\n");
 		print_expr(node->stmt_if_else.cond, depth+1);
 
@@ -476,6 +478,7 @@ void print_stmt(union astnode *node, int depth)
 
 		break;
 	case NT_STMT_SWITCH:
+		INDENT(depth);
 		fprintf(fp, "SWITCH, EXPR:\n");
 		print_expr(node->stmt_switch.cond, depth+1);
 
@@ -486,9 +489,10 @@ void print_stmt(union astnode *node, int depth)
 		break;
 
 	case NT_STMT_DO_WHILE:
-		fprintf(fp, "DO-WHILE\n");
 		INDENT(depth);
+		fprintf(fp, "DO-WHILE\n");
 		
+		INDENT(depth);
 		fprintf(fp, "BODY:\n");
 		print_stmt(node->stmt_do_while.body, depth+1);
 
@@ -499,6 +503,7 @@ void print_stmt(union astnode *node, int depth)
 		break;
 
 	case NT_STMT_WHILE:
+		INDENT(depth);
 		fprintf(fp, "WHILE\n");
 		INDENT(depth);
 		fprintf(fp, "COND\n");
@@ -507,12 +512,10 @@ void print_stmt(union astnode *node, int depth)
 		INDENT(depth);
 		fprintf(fp, "BODY:\n");
 		print_stmt(node->stmt_while.body, depth+1);
-
-
 		break;
 
-
 	case NT_STMT_FOR:
+		INDENT(depth);
 		fprintf(fp, "FOR\n");
 		INDENT(depth);
 		fprintf(fp, "INIT:\n");
@@ -536,15 +539,19 @@ void print_stmt(union astnode *node, int depth)
 		break;
 
 	case NT_STMT_GOTO:
+		INDENT(depth);
 		fprintf(fp, "GOTO %s\n", node->stmt_goto.label);
 		break;
 	case NT_STMT_CONT:
+		INDENT(depth);
 		fprintf(fp, "CONTINUE\n");
 		break;
 	case NT_STMT_BREAK:
+		INDENT(depth);
 		fprintf(fp, "BREAK\n");
 		break;
 	case NT_STMT_RETURN:
+		INDENT(depth);
 		fprintf(fp, "RETURN\n");
 		break;
 	}
