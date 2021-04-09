@@ -112,6 +112,46 @@ void scope_insert(char *ident, enum name_space ns, union astnode *node) {
 		prototype_hold = 0;
 	}
 
+	// special check: if extern storage class and compatible declarations,
+	// then allow redeclaration
+	//
+	// this is done before declspec_fill_defaults(), so need to explicitly
+	// check that the variable is extern here, or infer that it is extern
+	// if in global scope
+	//
+	// TODO: make it so that declspec_fill_defaults can happen before this?
+	// TODO: clean this up; this is very messy
+	//
+	// check if ident type (in "everything else" namespace)
+	if (ns == NS_IDENT && NT(node) == NT_DECL) {
+		union astnode *sc = node->decl.declspec->declspec.sc;
+		// check if extern
+		if ((sc && sc->sc.scspec == SC_EXTERN)
+			|| (!sc && (!scope_pos || is_fndef))) {
+
+			union astnode *search;
+
+			// check if previously defined
+			if (search = symtab_lookup(
+				&scope_stack[is_fndef?0:scope_pos].ns[ns],
+					ident)) {
+				
+				// shouldn't be a warning but here for debugging
+				#ifdef DEBUG
+				yyerror("previously-declared extern variable");
+				#endif
+				
+				// TODO: check that types are compatible
+
+				// TODO: should also "narrow type" if applicable
+				// (i.e., if specifies narrower fn params)
+
+				is_fndef = 0;
+				return;
+			}
+		}
+	}
+
 	symtab_insert(&scope_stack[is_fndef?0:scope_pos].ns[ns], ident, node);
 	is_fndef = 0;
 }
