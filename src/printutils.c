@@ -53,7 +53,9 @@ void print_typespec(union astnode *node)
 	// struct types: only need to print tag and where it was defined
 	case NT_TS_STRUCT_UNION:
 		su = &node->ts_structunion;
-		fprintf(fp, "struct %s ", su->ident);
+		fprintf(fp, "%s %s ",
+			su->su_type == SU_STRUCT ? "struct" : "union",
+			su->ident);
 		if (su->is_complete) {
 			fprintf(fp, "(defined at %s:%d)",
 				su->def_filename, su->def_lineno);
@@ -75,7 +77,8 @@ void print_structunion_def(union astnode *node)
 
 	su = &node->ts_structunion;
 
-	fprintf(fp, "struct %s definition at %s:%d{\n",
+	fprintf(fp, "%s %s definition at %s:%d{\n",
+		su->su_type == SU_STRUCT ? "struct" : "union",
 		su->ident, su->def_filename, su->def_lineno);
 
 	// loop through fields
@@ -524,7 +527,7 @@ void print_stmt(union astnode *node, int depth)
 		break;
 
 	case NT_STMT_GOTO:
-		//if(node->stmt_goto.label->ident)
+		fprintf(fp, "GOTO %s\n", node->stmt_goto.label);
 		break;
 	case NT_STMT_CONT:
 		fprintf(fp, "CONTINUE\n");
