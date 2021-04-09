@@ -9,8 +9,8 @@
 #ifndef STRUCTUNIONH
 #define STRUCTUNIONH
 
-#include "declspec.h"
-#include "symtab.h"
+#include <declspec.h>
+#include <symtab.h>
 
 enum structunion_type { SU_STRUCT, SU_UNION };
 
@@ -43,6 +43,7 @@ void structunion_new(enum structunion_type type);
  * set the name of the current struct/union
  *
  * semantic notes (this function is dangerously innoculous):
+ * - if ident is NULL, creates a new untagged struct, doesn't insert into symtab
  * - if ident is already declared in the current namespace, then the current
  *   struct/union is freed and replaced with the existing one
  * - begin_def indicates whether this begins a definition or not.
@@ -76,5 +77,22 @@ void structunion_install_member(union astnode *decl, union astnode *declspec);
  * @return		current struct/union type
  */
 union astnode *structunion_done(int is_complete);
+
+/**
+ * forward declaration of a struct
+ * 
+ * semantics: this is a necessary (?) correction because a struct declaration
+ * that is not a definition, and which has been previously defined in an
+ * outside scope may either be referencing the outer struct or a forward
+ * declaration; the decision is contingent on whether the declaration is
+ * empty, which comes later. In the case that the struct has already been
+ * defined in the current scope, does not overwrite previous definition.
+ * 
+ * Knowing that it is a forward declaration essentially replaces the
+ * structunion_set_name() action.
+ * 
+ * @param tag		tag to forward declare
+ */
+void structunion_forward_declare(char *tag, enum structunion_type type);
 
 #endif

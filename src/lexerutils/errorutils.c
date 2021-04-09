@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include "lexerutils/stringutils.h"
-#include "lexerutils/numutils.h"
-#include "parser.tab.h"
+#include <lexerutils/stringutils.h>
+#include <lexerutils/numutils.h>
+#include <parser.tab.h>
 
 int lineno = 1;
 char filename[255] = "<stdin>";
@@ -21,9 +21,6 @@ void parse_lineno() {
 	while (*c >= '0' && *c <= '9')
 		lineno = lineno * 10 + (*c++ - '0');
 	
-	// add 1 to lineno so we have counting numbers
-	++lineno;
-
 	// discard extra characters
 	while (*c != '"')
 		++c;

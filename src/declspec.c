@@ -1,6 +1,6 @@
 #include <scope.h>
-#include "declspec.h"
-#include "astnode.h"
+#include <declspec.h>
+#include <astnode.h>
 
 static void merge_typespec(struct astnode_typespec_scalar *ats1,
 	struct astnode_typespec_scalar *ats2)
@@ -157,8 +157,10 @@ union astnode *merge_declspec(union astnode *spec1, union astnode *spec2) {
 	return spec1;
 }
 
-void declspec_fill_defaults(union astnode *declspec_node)
+void declspec_fill_defaults(union astnode *decl)
 {
+	union astnode *declspec_node = decl->decl.declspec;
+	char *ident = decl->decl.ident;
 	struct astnode_declspec *declspec;
 
 	if (!declspec_node) {
@@ -183,7 +185,7 @@ void declspec_fill_defaults(union astnode *declspec_node)
 	// storage class
 	if (!declspec->sc) {
 		// check if global scope, set default to extern
-		if(get_current_scope()->type == ST_FILE) {
+		if(get_scope(ident, NS_IDENT)->type == ST_FILE) {
 			ALLOC_SET_SCSPEC(declspec->sc, SC_EXTERN);
 		} else {
 			ALLOC_SET_SCSPEC(declspec->sc, SC_AUTO);
@@ -193,5 +195,25 @@ void declspec_fill_defaults(union astnode *declspec_node)
 	// type qualifiers
 	if (!declspec->tq) {
 		ALLOC_SET_TQSPEC(declspec->tq, 0u);
+	}
+}
+
+void declspec_check_empty(union astnode *declspec_node)
+{
+	struct astnode_declspec *declspec = &declspec_node->declspec;
+
+	// check if any type qualifier/storage spec
+	if (declspec->sc) {
+		yyerror("useless storage class specifier in empty declaration");
+	} else if (declspec->tq) {
+		yyerror("useless type qualifier in empty declaration");
+	} else if (declspec->ts && NT(declspec->ts) == NT_TS_SCALAR) {
+		yyerror("useless type name in empty declaration");
+	}
+	
+	// forward declaration
+	else if (declspec->ts && NT(declspec->ts) == NT_TS_STRUCT_UNION) {
+		structunion_forward_declare(declspec->ts->ts_structunion.ident,
+			declspec->ts->ts_structunion.su_type);
 	}
 }

@@ -1,0 +1,21 @@
+AST Dump for function
+ LIST {
+  UNARY OP POSTINC
+   stab_var name=a def @<stdin>:5
+  GOTO future (DEF)
+  ASSIGNMENT
+   stab_var name=e def @<stdin>:1
+   BINARY OP -
+    stab_var name=e def @<stdin>:1
+    CONSTANT: (type=int)1
+  LABEL(future):
+   LABEL(past):
+    IF:
+     stab_var name=a def @<stdin>:5
+    THEN:
+     ASSIGNMENT
+      stab_var name=e def @<stdin>:1
+      BINARY OP /
+       stab_var name=e def @<stdin>:1
+       CONSTANT: (type=int)3
+ }

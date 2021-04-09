@@ -198,7 +198,7 @@ blockitemlist:	blockitem			{/*TODO*/}
 		;
 
 blockitem:	declaration		{/*TODO*/}
-		| statement		{/*TODO*/}
+		| stmt		{/*TODO*/}
 		;
 
 /* 6.8.3 expression and null statements */

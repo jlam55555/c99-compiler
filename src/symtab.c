@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "symtab.h"
+#include <symtab.h>
 
 // good hash primes: https://planetmath.org/goodhashtableprimes
 static int ghp[] = {53, 97, 193, 389, 769, 1533, 3079, 6151, 12289, 24593};
@@ -79,7 +79,7 @@ void symtab_insert(struct symtab *st, char *ident, union astnode *node) {
 
 	// identifier already exists in this symbol table
 	if (st->bs[i] && !strcmp(ident, st->bs[i]->ident)) {
-		yyerror_fatal("symbol already exists in symtab");
+		yyerror_fatal("symbol already exists in symbol table");
 	}
 
 	// allocate symbol

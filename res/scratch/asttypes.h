@@ -1,8 +1,8 @@
 #ifndef ASTTYPESH
 #define ASTTYPESH
 
-#include "astnodegeneric.h"
-#include "symtab.h"
+#include <astnodegeneric.h>
+#include <symtab.h>
 
 /*
 each entry in symbol table (for each declaration or label):

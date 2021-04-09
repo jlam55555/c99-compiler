@@ -1,21 +1,22 @@
 %debug
+%define parse.error verbose
 %{
 #define YYDEBUG 0
-#define parse.error verbose
 
+#include <parser.h>
+#include <common.h>
+#include <lexerutils/errorutils.h>
+#include <lexerutils/numutils.h>
+#include <astnode.h>
+#include <symtab.h>
+#include <scope.h>
+#include <structunion.h>
+#include <decl.h>
+#include <stmt.h>
 #include <stdio.h>
-#include <unistd.h>
-#include "parser.h"
-#include "common.h"
-#include "lexerutils/errorutils.h"
-#include "lexerutils/numutils.h"
-#include "astnode.h"
-#include "symtab.h"
-#include "scope.h"
-#include "structunion.h"
-#include "decl.h"
+
+int yydebug;
 %}
-%locations
 
 %union {
 	// from lexer
@@ -80,7 +81,9 @@
 %type<astnode>	paramlist paramtypelist paramdecl absdeclarator declspeclist
 %type<astnode>	specquallist typename dirabsdeclarator paramtypelistopt
 %type<astnode>	structunionspec structunion structdeclaratorlist
-%type<astnode>	structdeclarator specqual
+%type<astnode>	structdeclarator specqual exprstmt fordecl labeledstmt
+%type<astnode>	stmt compoundstmt selectionstmt iterationstmt jumpstmt
+%type<astnode>	blockitemlist blockitem translnunit externdecl funcdef
 %type<ident> 	IDENT
 %type<string>	STRING
 %type<charlit>	CHARLIT
@@ -88,12 +91,9 @@
 %%
 /* beware, the document gets wide here (rip 80 characters) */
 
-/* for assignment 3, only have expressions and statements*/
-exprstmt:	expr ';'							{print_astnode($1);}
-		| decl								{/*TODO*/}
-		| exprstmt expr ';'						{print_astnode($2);}
-		| exprstmt decl							{/*TODO*/}
-		| error ';'							{/*use yyerror() to recover; not fatal*/}
+/* top level is translation unit (from 6.9 external definitions) */
+translnunit: 	externdecl 							{print_astnode($1);}
+		| translnunit externdecl					{print_astnode($2);}
 		;
 
 /* 6.4.4.3 */
@@ -107,7 +107,9 @@ constant:	NUMBER								{ALLOC($$);$$->num=(struct astnode_number){NT_NUMBER,NUL
 		;
 
 /* primary expr: 6.5.1 */
-pexpr:		IDENT								{ALLOC_SET_IDENT($$,$1);}
+pexpr:		IDENT								{$$=scope_lookup($1,NS_IDENT);
+										 /*if not found indicate it with dummy pexpr*/
+										 if(!$$){ALLOC_IMPL_FN($$,$1);}}
 		| constant							{$$=$1;}
 		| STRING							{ALLOC($$);$$->string=(struct astnode_string){NT_STRING,NULL,$1};}
 		| '(' expr ')'							{$$=$2;}
@@ -117,20 +119,27 @@ pexpr:		IDENT								{ALLOC_SET_IDENT($$,$1);}
 pofexpr:	pexpr								{$$=$1;}
 		| pofexpr '[' expr ']'						{/* rewrite a[b] <=> *(a+b) */
 										 union astnode *inner;
+										 CHECK_SYM_FOUND($1);
 										 ALLOC_SET_BINOP(inner,'+',$1,$3);
 										 ALLOC_SET_UNOP($$,'*',inner);}
 		| pofexpr '(' arglistopt ')'					{ALLOC($$);
+										 /*implicit declaration warning*/
+										 CHECK_SYM_FOUND_WARN($1);
 										 $$->fncall=(struct astnode_fncall){NT_FNCALL,NULL,$1,$3};}
 		| pofexpr '.' IDENT						{union astnode *ident;
+										 CHECK_SYM_FOUND($1);
 										 ALLOC_SET_IDENT(ident,$3);
 										 ALLOC_SET_BINOP($$,$2,$1,ident);}
 		| pofexpr INDSEL IDENT						{/* rewrite a->b <=> (*a).b */
 										 union astnode *ident, *deref;
+										 CHECK_SYM_FOUND($1);
 										 ALLOC_SET_IDENT(ident,$3);
 										 ALLOC_SET_UNOP(deref,'*',$1);
 										 ALLOC_SET_BINOP($$,'.',deref,ident);}
-		| pofexpr PLUSPLUS						{/*a++ <=> */ALLOC_SET_UNOP($$,$2,$1);}
-		| pofexpr MINUSMINUS						{ALLOC_SET_UNOP($$,$2,$1);}
+		| pofexpr PLUSPLUS						{CHECK_SYM_FOUND($1);
+										 ALLOC_SET_UNOP($$,$2,$1);}
+		| pofexpr MINUSMINUS						{CHECK_SYM_FOUND($1);
+										 ALLOC_SET_UNOP($$,$2,$1);}
 		/*| '(' typename ')' '{' initlist '}'				{not implementing compound literals}
 		| '(' typename ')' '{' initlist ',' '}'				{not implementing compound literals}*/
 		;
@@ -149,21 +158,21 @@ uexpr:		pofexpr								{$$=$1;}
 										 union astnode *one, *inner;
 										 ALLOC(one);
 										 one->num=(struct astnode_number){NT_NUMBER,NULL,
-										 	(struct number){INT_T,UNSIGNED_T,1}};
+										 	(struct number){INT_T,SIGNED_T,1}};
 										 ALLOC_SET_BINOP(inner,'+',$2,one);
 										 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| MINUSMINUS uexpr						{/*replace --a with a=a-1*/
 										 union astnode *one, *inner;
 										 ALLOC(one);
 										 one->num=(struct astnode_number){NT_NUMBER,NULL,
-										 	(struct number){INT_T,UNSIGNED_T,1}};
+										 	(struct number){INT_T,SIGNED_T,1}};
 										 ALLOC_SET_BINOP(inner,'-',$2,one);
 										 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| uop castexpr							{ALLOC_SET_UNOP($$,$1,$2);}
 		| SIZEOF uexpr							{ALLOC_SET_UNOP($$,$1,$2);}
 		| SIZEOF '(' typename ')'
-										{/*use '-' to indicate sizeof with a type*/
-										 ALLOC_SET_UNOP($$,'-',$3);}
+										{/*use 's' to indicate sizeof with a type*/
+										 ALLOC_SET_UNOP($$,'s',$3);}
 		;
 
 uop:		'&'								{$$=$1;}
@@ -175,8 +184,8 @@ uop:		'&'								{$$=$1;}
 		;
 
 castexpr:	uexpr								{$$=$1;}
-		| '(' typename ')' castexpr					{/*use '_' to indicate cast*/
-										 ALLOC_SET_BINOP($$,'_',$2,$4);}
+		| '(' typename ')' castexpr					{/*use 'c' to indicate cast*/
+										 ALLOC_SET_BINOP($$,'c',$2,$4);}
 		;
 
 multexpr:	castexpr							{$$=$1;}
@@ -247,13 +256,15 @@ asnmtexpr:	condexpr							{$$=$1;}
 		;
 
 /*comma expression*/
-expr:	asnmtexpr								{$$=$1;}
+expr:		asnmtexpr							{$$=$1;}
 		| expr ',' asnmtexpr						{ALLOC_SET_BINOP($$,$2,$1,$3);}
 		;
 
 /* 6.7 DECLARATIONS */
-decl:		declspeclist ';'						{/*nothing to do here*/}
-		| declspeclist initdecllist ';'					{/*nothing to do here*/}
+decl:		declspeclist ';'						{$$=NULL;/*potential tag forward declaration;
+										 see structunion.c and decl.h*/
+										 declspec_check_empty($1);}
+		| declspeclist initdecllist ';'					{$$=NULL;/*nothing to do here*/}
 		;
 
 /* declaration specifier */
@@ -301,7 +312,8 @@ typespec:	VOID								{ALLOC_SET_SCALAR($$,BT_VOID,LLS_UNSPEC,SIGN_UNSPEC);}
 		;
 
 /* 6.7.2.1 structure and union specifiers */
-structunionspec:structunion '{' structdecllist '}'				{$$=structunion_done(1);}
+structunionspec:structunion {structunion_set_name(NULL,1);} '{' structdecllist '}'
+										{$$=structunion_done(1);}
 		| structunion IDENT {structunion_set_name($2,1);} '{' structdecllist '}'
 										{$$=structunion_done(1);}
 		| structunion IDENT						{structunion_set_name($2,0);
@@ -365,15 +377,16 @@ dirdeclarator:	IDENT								{$$=decl_new($1);}
 		| dirdeclarator '[' STATIC asnmtexpr ']'			{$$=decl_append($1,decl_array_new($4,NULL));}
 		| dirdeclarator '[' STATIC typequallist ']'			{$$=decl_append($1,decl_array_new(NULL,$4));}
 		| dirdeclarator '[' STATIC ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
-		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'		{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| dirdeclarator '[' typequallist STATIC asnmtexpr ']'		{$$=decl_append($1,decl_array_new($5,$3));}
 		| dirdeclarator '[' typequallist '*' ']'			{/*ignore variable length array*/
 										 $$=decl_append($1,decl_array_new(NULL,$3));}
-		| dirdeclarator '['  '*' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
-		| dirdeclarator '(' paramtypelist ')'				{/*TODO: implement prototype scope*/
-										 $$=decl_append($1,decl_function_new($3));}
+		| dirdeclarator '[' '*' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| dirdeclarator '(' {scope_push(ST_PROTO);} paramtypelist {scope_pop();} ')'
+										{/*TODO: implement prototype scope*/
+										 $$=decl_append($1,decl_function_new($4));}
 		| dirdeclarator '(' identlist ')'				{/*reject old C function syntax*/
 										 yyerror_fatal("old function declaration style not allowed");}
-		| dirdeclarator '(' ')'						{$$=decl_append($1,decl_function_new(NULL));}
+		| dirdeclarator '(' {scope_push(ST_PROTO);scope_pop();} ')'	{$$=decl_append($1,decl_function_new(NULL));}
 		;
 
 pointer:	'*' typequallist						{$$=decl_pointer_new($2);}
@@ -395,9 +408,9 @@ paramlist:	paramdecl							{$$=$1;}
 		| paramlist ',' paramdecl					{$$=$1;LL_APPEND($1,$3);}
 		;
 
-paramdecl:	declspeclist declarator						{decl_finalize($2,$1);$$=$2;/*ALLOC_PARAMDECL($$,$1,$2);*/}
-		| declspeclist absdeclarator					{decl_finalize($2,$1);$$=$2;/*ALLOC_PARAMDECL($$,$1,$2);*/}
-		| declspeclist 							{$$=decl_new("");decl_finalize($$,$1);/*ALLOC_PARAMDECL($$,$1,NULL);*/}
+paramdecl:	declspeclist declarator						{$$=$2;decl_install($2,$1);}
+		| declspeclist absdeclarator					{$$=$2;decl_finalize($2,$1);}
+		| declspeclist 							{$$=decl_new(NULL);decl_finalize($$,$1);}
 		;
 
 identlist:	IDENT								{/*NOT DEALING WITH THIS*/}
@@ -405,38 +418,40 @@ identlist:	IDENT								{/*NOT DEALING WITH THIS*/}
 		;
 
 /* 6.7.6: type names */
-typename:	specquallist absdeclarator					{/*ALLOC_TYPENAME($$,$1,$2);*/}
-		| specquallist							{/*ALLOC_TYPENAME($$,$1,NULL);*/}
+typename:	specquallist absdeclarator					{$$=$2;decl_finalize($$,$1);}
+		| specquallist							{$$=decl_new(NULL);decl_finalize($$,$1);}
 		;
 
-absdeclarator:	pointer								{/*ALLOC_DECLARATOR($$,NULL,$1,1);*/}
-		| pointer dirabsdeclarator					{/*ALLOC_DECLARATOR($$,$2,$1,1);*/}
-		| dirabsdeclarator						{/*ALLOC_DECLARATOR($$,$1,NULL,1);*/}
+absdeclarator:	pointer								{$$=decl_new(NULL);decl_append($$,$1);}
+		| pointer dirabsdeclarator					{$$=decl_append($2,$1);}
+		| dirabsdeclarator						{$$=$1;}
 		;
 
-dirabsdeclarator: '(' absdeclarator ')'						{/*$$=$2;*/}
-		| dirabsdeclarator '[' typequallist asnmtexpr ']'		{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$4,1);*/}
-		| dirabsdeclarator '[' asnmtexpr ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$3,1);*/}
-		| dirabsdeclarator '[' typequallist ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,NULL,1);*/}
-		| dirabsdeclarator '[' ']'					{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,1);*/}
-		| '[' typequallist asnmtexpr ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,$3,1);*/}
-		| '[' asnmtexpr ']'						{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,$2,1);*/}
-		| '[' typequallist ']'						{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,NULL,1);*/}
-		| '[' ']'							{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,NULL,1);*/}
-		| dirabsdeclarator '[' STATIC typequallist asnmtexpr ']'	{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,$5,1);*/}
-		| dirabsdeclarator '[' STATIC asnmtexpr ']'			{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,$4,1);*/}
-		| dirabsdeclarator '[' STATIC typequallist ']'			{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$4,NULL,1);*/}
-		| dirabsdeclarator '[' STATIC ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,NULL,NULL,1);*/}
-		| '[' STATIC typequallist asnmtexpr ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,$4,1);*/}
-		| '[' STATIC asnmtexpr ']'					{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,$3,1);*/}
-		| '[' STATIC typequallist ']'					{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$3,NULL,1);*/}
-		| '[' STATIC ']'						{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,NULL,NULL,1);*/}
-		| dirabsdeclarator '[' typequallist STATIC asnmtexpr ']'	{/*ALLOC_ARRAY_DIRDECLARATOR($$,$1,$3,$5,1);*/}
-		| '[' typequallist STATIC asnmtexpr ']'				{/*ALLOC_ARRAY_DIRDECLARATOR($$,NULL,$2,$4,1);*/}
-		| dirabsdeclarator '[' '*' ']'					{/*ignore/throw error on VLA*/}
-		| '[' '*' ']'							{/*ignore/throw error on VLA*/}
-		| dirabsdeclarator '(' paramtypelistopt ')'			{/*ALLOC_FN_DIRDECLARATOR($$,$1,$3,1);*/}
-		| '(' paramtypelistopt ')'					{/*ALLOC_FN_DIRDECLARATOR($$,NULL,$2,1);*/}
+dirabsdeclarator: '(' absdeclarator ')'						{$$=$2;}
+		| dirabsdeclarator '[' typequallist asnmtexpr ']'		{$$=decl_append($1,decl_array_new($4,$3));}
+		| dirabsdeclarator '[' asnmtexpr ']'				{$$=decl_append($1,decl_array_new($3,NULL));}
+		| dirabsdeclarator '[' typequallist ']'				{$$=decl_append($1,decl_array_new(NULL,$3));}
+		| dirabsdeclarator '[' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| '[' typequallist asnmtexpr ']'				{$$=decl_new(NULL);decl_append($$,decl_array_new($3,$2));}
+		| '[' asnmtexpr ']'						{$$=decl_new(NULL);decl_append($$,decl_array_new($2,NULL));}
+		| '[' typequallist ']'						{$$=decl_new(NULL);decl_append($$,decl_array_new(NULL,$2));}
+		| '[' ']'							{$$=decl_new(NULL);decl_append($$,decl_array_new(NULL,NULL));}
+		| dirabsdeclarator '[' STATIC typequallist asnmtexpr ']'	{/*ignore static keyword*/
+										 $$=decl_append($1,decl_array_new($5,$4));}
+		| dirabsdeclarator '[' STATIC asnmtexpr ']'			{$$=decl_append($1,decl_array_new($4,NULL));}
+		| dirabsdeclarator '[' STATIC typequallist ']'			{$$=decl_append($1,decl_array_new(NULL,$4));}
+		| dirabsdeclarator '[' STATIC ']'				{$$=decl_append($1,decl_array_new(NULL,NULL));}
+		| '[' STATIC typequallist asnmtexpr ']'				{$$=decl_new(NULL);decl_append($$,decl_array_new($4,$3));}
+		| '[' STATIC asnmtexpr ']'					{$$=decl_new(NULL);decl_append($$,decl_array_new($3,NULL));}
+		| '[' STATIC typequallist ']'					{$$=decl_new(NULL);decl_append($$,decl_array_new(NULL,$3));}
+		| '[' STATIC ']'						{$$=decl_new(NULL);decl_append($$,decl_array_new(NULL,NULL));}
+		| dirabsdeclarator '[' typequallist STATIC asnmtexpr ']'	{$$=decl_new(NULL);decl_append($$,decl_array_new($5,$3));}
+		| '[' typequallist STATIC asnmtexpr ']'				{$$=decl_new(NULL);decl_append($$,decl_array_new($4,$2));}
+		| dirabsdeclarator '[' '*' ']'					{/*ignore/throw error on VLA*/
+										 yyerror("VLAs not supported");}
+		| '[' '*' ']'							{yyerror("VLAs not supported");}
+		| dirabsdeclarator '(' paramtypelistopt ')'			{$$=decl_append($1,decl_function_new($3));}
+		| '(' paramtypelistopt ')'					{$$=decl_new(NULL);decl_append($$,decl_function_new($2));}
 		;
 
 paramtypelistopt:	paramtypelist						{$$=$1;}
@@ -447,173 +462,87 @@ paramtypelistopt:	paramtypelist						{$$=$1;}
 /*typedefname:	IDENT								{/*not implementing typedefs}*/
 /*		;*/
 
+/* 6.8 statements and blocks */
+stmt:		labeledstmt							{$$=$1;}
+		| compoundstmt							{$$=$1;}
+		| exprstmt							{$$=$1;}
+		| selectionstmt							{$$=$1;}
+		| iterationstmt							{$$=$1;}
+		| jumpstmt							{$$=$1;}
+		;
+
+/* 6.8.1 labeled statements */
+labeledstmt:	IDENT ':' stmt							{ALLOC_STMT_LABEL($$, LABEL_NAMED, $1, NULL, $3);}
+		| CASE condexpr ':' stmt					{ALLOC_STMT_LABEL($$, LABEL_CASE,  NULL, $2, $4);}
+		| DEFAULT ':' stmt						{ALLOC_STMT_LABEL($$, LABEL_DEFAULT,  NULL, NULL, $3);}
+		;
+
+/* 6.8.2 compound statement */
+compoundstmt:	'{' {scope_push(0);} blockitemlist {scope_pop();} '}'		{/*have to be wary that since next token is seen by the time of the midrule action*/
+										 ALLOC_STMT_COMPOUND($$,$3);}
+		| '{' {scope_push(0);scope_pop();} '}'				{ALLOC_STMT_COMPOUND($$,NULL);}
+		;
+
+blockitemlist:	blockitem							{$$=$1;}
+		| blockitemlist blockitem					{if(!$1) {$$=$2;}
+										 else if(!$2) {$$=$1;}
+										 else {$$=$1;LL_APPEND($1,$2);}}
+		;
+
+blockitem:	decl								{/*don't need to do anything*/}
+		| stmt								{$$=$1;}
+		;
+
+/* 6.8.3 expression and null statements */
+exprstmt:	expr ';'							{ALLOC_STMT_EXPR($$,$1);}
+		| ';'								{$$=NULL;}
+		;
+
+/* 6.8.4 selection statements */
+selectionstmt:	IF '(' expr ')' stmt %prec IF					{ALLOC_STMT_IFELSE($$, $3, $5, NULL);}
+		| IF '(' expr ')' stmt ELSE stmt %prec ELSE			{ALLOC_STMT_IFELSE($$, $3, $5, $7);}
+		| SWITCH '(' expr ')' stmt					{ALLOC_STMT_SWITCH($$, $3, $5);}
+		;
+
+/* 6.8.5 Iteration statements */
+iterationstmt:	WHILE '(' expr ')' stmt						{ALLOC_STMT_WHILE($$, $3, $5);}
+		| DO stmt WHILE '(' expr ')'					{ALLOC_STMT_DO_WHILE($$, $5, $2);}
+		| FOR '(' expr ';' expr ';' expr ')' stmt			{ALLOC_STMT_FOR($$, $3, $5, $7, $9);}
+		| FOR '(' ';' expr ';' expr ')' stmt				{ALLOC_STMT_FOR($$, NULL, $4, $6, $8);}
+		| FOR '(' expr ';' ';' expr ')' stmt				{ALLOC_STMT_FOR($$, $3, NULL, $6, $8);}
+		| FOR '(' expr ';' expr ';' ')' stmt				{ALLOC_STMT_FOR($$, $3, $5, NULL, $8);}
+		| FOR '(' ';' ';' expr ')' stmt					{ALLOC_STMT_FOR($$, NULL, NULL, $5, $7);}
+		| FOR '(' expr ';'  ';' ')' stmt				{ALLOC_STMT_FOR($$, $3, NULL, NULL, $7);}
+		| FOR '(' ';' expr ';' ')' stmt					{ALLOC_STMT_FOR($$, NULL, $4, NULL, $7);}
+		| FOR '(' ';' ';' ')' stmt					{ALLOC_STMT_FOR($$, NULL, NULL, NULL, $6);}
+		| FOR '(' {scope_push(0);} decl fordecl ')' stmt		{$$=$5;$$->stmt_for.init=$4;$$->stmt_for.body=$7;
+										 scope_pop();}
+		;
+
+/* have to add this nonterminal to get rid of shift-reduce conflicts*/
+fordecl:	expr ';' expr							{ALLOC_STMT_FOR($$,NULL,$1,$3,NULL);}
+		| ';' expr							{ALLOC_STMT_FOR($$,NULL,NULL,$2,NULL);}
+		| expr ';'							{ALLOC_STMT_FOR($$,NULL,$1,NULL,NULL);}
+		| ';'								{ALLOC_STMT_FOR($$,NULL,NULL,NULL,NULL);}
+		;
+
+/* 6.8.6 Jump Statements */
+jumpstmt:	GOTO IDENT ';'							{ALLOC_STMT_GOTO($$, $2);}
+		| CONTINUE ';'							{ALLOC_STMT_BREAK_CONT($$, NT_STMT_CONT);}
+		| BREAK ';'							{ALLOC_STMT_BREAK_CONT($$, NT_STMT_BREAK);}
+		| RETURN expr ';'						{ALLOC_STMT_RETURN($$, $2);}
+		| RETURN ';'							{ALLOC_STMT_RETURN($$, NULL);}
+		;
+
+/* 6.9 External Definitions */
+externdecl: 	funcdef								{$$=$1;}
+		| decl								{$$=$1;}
+		;
+
+/* 6.9.1 Function definitions */
+funcdef:	declspeclist declarator {decl_check_fndef($2);scope_set_fndef();decl_install($2,$1);} compoundstmt
+										{/*note that this doesn't allow for old fndef syntax*/
+										 $$=$2;$2->decl.fn_body=$4;}
+		;
+
 %%
-
-int main()
-{
-	#if YYDEBUG
-	yydebug = 1;
-	#endif
-
-	// create default global scope
-	scope_push(ST_FILE);
-
-	// begin parsing
-	yyparse();
-}
-
-static int is_fatal_error = 0;
-int yyerror(char *err)
-{
-	char buf[1024];
-
-	// TODO: also get column number
-
-	// replace default syntax error message
-	if (!strcmp(err, "syntax error")) {
-		is_fatal_error = 1;
-		snprintf(buf, sizeof(buf), "unexpected token \"%s\"\n", yytext);
-		err = buf;
-	}
-
-	fprintf(stderr, "%s:%d: %s: %s\n", filename, yylineno,
-		is_fatal_error ? "error" : "warning", err);
-
-	if (is_fatal_error) {
-		_exit(-1);
-	}
-}
-
-int yyerror_fatal(char *err)
-{
-	is_fatal_error = 1;
-	yyerror(err);
-}
-
-void print_astnode_rec(union astnode *node, int depth)
-{
-	INDENT(depth);
-	switch (node->generic.type) {
-	case NT_NUMBER:;
-		char *numstring = print_number(node->num.num);
-		fprintf(stdout, "CONSTANT:  %s\n", numstring);
-		free(numstring);
-		break;
-	case NT_STRING:;
-		char *strstring = print_string(&node->string.string);
-		// assumes single-width, null-terminated strings
-		fprintf(stdout, "STRING  %s\n", strstring);
-		free(strstring);
-		break;
-	case NT_CHARLIT:;
-		char chrstring[5];
-		print_char(node->charlit.charlit.value.none, chrstring);
-		// assumes single-width character literal
-		fprintf(stdout, "CHARLIT  %s\n", chrstring);
-		break;
-	case NT_IDENT:
-		fprintf(stdout, "IDENT  %s\n", node->ident.ident);
-		break;
-	case NT_BINOP:;
-		int printsym = 1;
-		switch (node->binop.op) {
-		// these are differentiated in Hak's output
-		case '=':
-			fprintf(stdout, "ASSIGNMENT\n");
-			printsym = 0;
-			break;
-		case '.':
-			fprintf(stdout, "SELECT\n");
-			printsym = 0;
-			break;
-		case EQEQ: case NOTEQ: case '>': case '<': case LTEQ: case GTEQ:
-			fprintf(stdout, "COMPARISON  OP  ");
-			break;
-		// logical operators are differentiated in hak's output
-		case LOGAND: case LOGOR:
-			fprintf(stdout, "LOGICAL  OP  ");
-			break;
-		default:
-			fprintf(stdout, "BINARY  OP  ");
-		}
-		if (node->binop.op <= 0xff && printsym) {
-			fprintf(stdout, "%c\n", node->binop.op);
-		} else if (printsym) {
-			fprintf(stdout, "%s\n",
-				toktostr(node->binop.op));
-		}
-		print_astnode_rec(node->binop.left, depth+1);
-		print_astnode_rec(node->binop.right, depth+1);
-		break;
-	case NT_UNOP:
-		switch (node->unop.op) {
-		// these are differentiated in Hak's output
-		case '*':
-			fprintf(stdout, "DEREF\n");
-			break;
-		case '&':
-			fprintf(stdout, "ADDRESSOF\n");
-			break;
-		case SIZEOF:
-			fprintf(stdout, "SIZEOF\n");
-			break;
-		// ++ and -- are special cases: prefix forms
-		// get rewritten, so these are specifically
-		// postfix forms
-		case PLUSPLUS: case MINUSMINUS:
-			fprintf(stdout, "UNARY  OP  POST%s\n",
-				node->unop.op==PLUSPLUS ? "INC" : "DEC");
-			break;
-		default:
-			fprintf(stdout, "UNARY  OP  ");
-			if (node->unop.op <= 0xff) {
-				fprintf(stdout, "%c\n", node->unop.op);
-			} else {
-				fprintf(stdout, "%s\n",
-					toktostr(node->unop.op));
-			}
-		}
-		print_astnode_rec(node->unop.arg, depth+1);
-		break;
-	case NT_TERNOP:
-		fprintf(stdout, "TERNARY  OP,  IF:\n");
-		print_astnode_rec(node->ternop.first, depth+1);
-		INDENT(depth);
-		fprintf(stdout, "THEN:\n");
-		print_astnode_rec(node->ternop.second, depth+1);
-		INDENT(depth);
-		fprintf(stdout, "ELSE:\n");
-		print_astnode_rec(node->ternop.third, depth+1);
-		break;
-	case NT_FNCALL:;
-		// count number of arguments
-		int argc = 0;
-		union astnode *argnode = node->fncall.arglist;
-		while (argnode) {
-			++argc;
-			argnode = argnode->generic.next;
-		}
-		fprintf(stdout, "FNCALL,  %d  arguments\n", argc);
-
-		// print function declarator
-		print_astnode_rec(node->fncall.fnname, depth+1);
-
-		// print arglist
-		for (argc=0, argnode=node->fncall.arglist; argnode;
-			++argc, argnode = argnode->generic.next) {
-			INDENT(depth);
-			fprintf(stdout, "arg  #%d=\n", argc+1);
-			print_astnode_rec(argnode, depth+1);
-		}
-		break;
-	default:
-		fprintf(stdout, "AST type %d not implemented yet.\n",
-			node->generic.type);
-	}
-}
-
-void print_astnode(union astnode *node)
-{
-	print_astnode_rec(node, 0);
-	fprintf(stdout, "\n");
-}

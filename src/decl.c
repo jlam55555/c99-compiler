@@ -1,17 +1,21 @@
 #include <stdio.h>
-#include "common.h"
-#include "parser.h"
-#include "astnode.h"
-#include "decl.h"
-#include "scope.h"
-#include "printutils.h"
+#include <common.h>
+#include <parser.h>
+#include <astnode.h>
+#include <decl.h>
+#include <scope.h>
+#include <printutils.h>
 
 union astnode *decl_new(char *ident)
 {
 	union astnode *decl;
 
 	ALLOC_TYPE(decl, NT_DECL);
-	decl->decl.ident = strdup(ident);
+
+	// ident can be NULL (abstract decl)
+	if (ident) {
+		decl->decl.ident = strdup(ident);
+	}
 
 	return decl;
 }
@@ -174,15 +178,96 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	// get ident from declarator
 	ident = decl->decl.ident;
 
-	// fill in missing fields of declspec
-	declspec_fill_defaults(declspec);
-
 	// combine declspec and decl to make full declaration
 	decl_finalize(decl, declspec);
 
-#if DEBUG
-	print_symbol(decl, 1);
-#endif
+	// set lineno, filename
+	decl->decl.lineno = lineno;
+	decl->decl.filename = filename;
 
+	// insert into symbol table
 	scope_insert(ident, NS_IDENT, decl);
+
+	// fill in missing fields of declspec; this has to go after
+	// scope_insert because it depends on which scope it gets inserted into
+	// (which may not be the current scope in the case of a function def)
+	declspec_fill_defaults(decl);
+
+	// check fndecl (will have no effect if not a function declaration)
+	decl_check_fndecl(decl);
+
+#if DEBUG
+	print_symbol(decl, 1, 0);
+#endif
+}
+
+void decl_check_fndecl(union astnode *decl)
+{
+	union astnode *iter;
+
+	// check that function doesn't return an array type;
+	// check penultimate element in component chain (before reversal)
+	LL_FOR_OF(decl->decl.components, iter) {
+		if (!iter->decl_component.of) {
+			// not a function
+			return;
+		}
+
+		// reached penultimate element
+		if (!iter->decl_component.of->decl_component.of) {
+			if (NT(iter->decl_component.of)
+				!= NT_DECLARATOR_FUNCTION) {
+				// not a function
+				return;
+			}
+
+			if (NT(iter) == NT_DECLARATOR_ARRAY) {
+				yyerror_fatal("function returning array");
+			}
+			break;
+		}
+	}
+
+	// convert any arrays in parameter list to pointers
+	// TODO
+}
+
+void decl_check_fndef(union astnode *decl)
+{
+	union astnode *iter, *param_iter, *param_ts;
+	int paramlist_void = 0, param_count = 0;
+
+	decl_check_fndecl(decl);
+
+	// check that declarator is actually a function declarator;
+	// last element in component chain (before reversal) should be fn
+	LL_FOR_OF(decl->decl.components, iter) {
+		if (!iter->decl_component.of) {
+			if (NT(iter) != NT_DECLARATOR_FUNCTION) {
+				yyerror_fatal("expected function declarator"
+					" before function definition");
+			}
+			break;
+		}
+	}
+
+	// check that there are no abstract declarators
+	// can reuse iter, use second iter for sake of clarity
+	LL_FOR(iter->decl_function.paramlist, param_iter) {
+		++param_count;
+		if (NT(param_ts = param_iter->decl.declspec->declspec.ts)
+			== NT_TS_SCALAR
+			&& param_ts->ts_scalar.basetype == BT_VOID) {
+
+			paramlist_void = 1;
+		} else if (!param_iter->decl.ident) {
+			yyerror_fatal("abstract declarator in parameter list"
+				" of function definition");
+		}
+	}
+
+	// if void parameter, should be only parameter
+	if (param_count > 1 && paramlist_void) {
+		yyerror_fatal("void must be the only parameter");
+	}
 }

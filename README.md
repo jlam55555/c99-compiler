@@ -12,6 +12,9 @@ $ make build run
 $ make clean
 ```
 
+If using an IDE with cmake plugin support (e.g., cmake-tools in vscode), set
+the build directory to the `target` directory.
+
 ---
 
 ### Implementation details
@@ -39,34 +42,44 @@ pointer to another AST node, so that each node can act as a linked list
 without a special linked-list type (e.g., for function argument lists or
 initializer lists).
 
-##### Declarations
+##### Declarations and Scopes
 The declaration parser handles the syntax from 6.5. (Abstract declarators
 and typenames are in 6.6 and are not currently implemented, but they should
 be for the next checkpoint.) This includes most regular declarations (variables
 and functions), struct/union tag declarations and definitions, arbitrarily
-complex declarators, and a basic symbol table and scope implementation.
-(In the absence of function definitions and blocks, the only scopes are
-currently the global scope and struct/union "scopes.")
+complex declarators, and a basic symbol table and scope implementation. Scopes
+can be arbitrarily nested.
 
 Not implemented:
 - enums
 - bitfields
 - typedefs
 - initializers
+- old function definition syntax
 - most functionality related to type qualifiers and storage class specifiers
 
-TODO (for next checkpoint):
-- Check that declaration specifier combination is valid (recursively)
-    before inserting symbol (a lot of work to be done here)
-- Move extra printing in parser.y to printutils.c
-- Abstract declarators and typenames (should be a relatively trivial extension
-    to existing (regular) declarators)
-- Scoping (function, block, prototype)
+##### Statements
+The top-level non-terminal, the translation unit, is finally here! Function
+definitions and prototype scopes are implemented. A universal AST node print
+function can print the entire AST statement tree (declarations are printed
+separately, as they are being declared). Statements (expression statements,
+block statements, and control flow), labels have been implemented.
+
+TODO
+- Redeclaration of extern variables is allowed, but need to check for
+    compatibility and narrow type to strictest intersection of the two types
+    (for now redeclaration of extern variable with any type is allowed (BAD))
+- Recursive declaration validation
+- Convert array to pointers in function parameter lists
+
+##### Quad Generation
+TODO
+- Everything
 
 ---
 
 ### Changelog
- - 3/17/21: start of changelog, submission of assignment 3 (declarations)
+- 3/17/21: start of changelog, submission of assignment 3 (declarations)
     - refactored a large part of the codebase to clean up code: split asttypes.c
         into smaller files and functions with better commenting; stopped abusing
         macros for things macros should not be used for; wrote macros for
@@ -77,7 +90,36 @@ TODO (for next checkpoint):
     - changed build system from custom Makefile to cmake, as well as separating
         src/ and include/ in the directory structure due to the large number
         of total source files
-    - updated README
+- 3/18/21: new datatypes for TLD
+    - new AST types for "everything else" outside of expressions and
+        declarations: blocks, statements, function defs, translation unit
+        (top-level)
+    - updated parser with remaining syntax rules
+- 3/20/21: bug fixes and scopes
+    - fixed new shift/reduce conflicts
+    - fixed lineno off-by-one-error and removed bison %locations
+    - fixed struct not printing if predeclared
+    - fixed struct printing line where declared, not line where defined
+    - added scoping (compound statements trigger pushing and popping of scopes)
+- 4/3/21: finishing assignment 3, doing assignment 4
+    - implemented abstract declarators and typenames, and the casting and sizeof
+        (with typenames) operators
+    - moved C code away from parser.y into main.c
+    - fixed struct declarations that unintentionally behaved like forward
+        declarations
+    - implemented prototype scopes, which automatically promote to function
+        scopes in a function definition
+    - implemented a printing function for statements/blocks
+    - identifiers in expressions now point to their symbol table entries, and
+        throw an error if undeclared
+    - implemented labels
+- 4/9/21: finishing assignments 3/4, beginning assignment 5
+    - allow void as (only) parameter in param list for function definition
+    - allow redeclaration of extern variables (need to check if types are
+        compatible and create the strict intersection of the types)
+    - fix unions being printed as structs
+    - fix unnamed unions not being assigned a filename/lineno location
+    - implementing labels
 
 ---
   

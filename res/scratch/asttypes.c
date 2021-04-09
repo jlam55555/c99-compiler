@@ -3,12 +3,12 @@
  *	comfortably in a macro.
  */
 
-#include "astnode.h"
-#include "asttypes.h"
-#include "scope.h"
-#include "parser.h"
-#include "decl.h"
-#include "lexerutils/errorutils.h"
+#include <astnode.h>
+#include <asttypes.h>
+#include <scope.h>
+#include <parser.h>
+#include <decl.h>
+#include <lexerutils/errorutils.h>
 #include <stdio.h>
 
 // declare constant ellipsis for use; this is declared in asttypes.c

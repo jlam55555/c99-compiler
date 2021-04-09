@@ -35,6 +35,21 @@ enum astnode_type {
 	NT_DECLARATOR_FUNCTION,
 	NT_DECLARATOR_ARRAY,
 	NT_DECL,
+
+	// statement types
+	NT_STMT_EXPR,
+	NT_STMT_LABEL,
+	NT_STMT_CASE,
+	NT_STMT_COMPOUND,
+	NT_STMT_IFELSE,
+	NT_STMT_SWITCH,
+	NT_STMT_DO_WHILE,
+	NT_STMT_WHILE,
+	NT_STMT_FOR,
+	NT_STMT_GOTO,
+	NT_STMT_CONT,
+	NT_STMT_BREAK,
+	NT_STMT_RETURN,
 };
 
 // any astnode union type can be used as a linked list without a container type
@@ -80,5 +95,9 @@ extern int indi;
 #define INDENT(depth)\
 	for (indi = 0; indi < (depth); indi++) \
 		fprintf(stdout, "  ");
+
+// indicates a feature is not yet implemented; somewhat equivalent to a TODO
+// (not that it will not be implemented)
+#define NYI(what) yyerror(#what " not yet implemented");
 
 #endif	// COMMONH

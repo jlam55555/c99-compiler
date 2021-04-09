@@ -8,11 +8,12 @@
 
 #include <stdlib.h>	// for malloc in macro
 #include <string.h>	// for strdup in macro
-#include "lexerutils/numutils.h"
-#include "lexerutils/stringutils.h"
-#include "decl.h"
-#include "declspec.h"
-#include "structunion.h"
+#include <lexerutils/numutils.h>
+#include <lexerutils/stringutils.h>
+#include <decl.h>
+#include <declspec.h>
+#include <structunion.h>
+#include <stmt.h>
 
 struct astnode_binop {
 	_ASTNODE
@@ -99,6 +100,20 @@ union astnode {
 	struct astnode_decl_function decl_function;
 	struct astnode_decl_array decl_array;
 	struct astnode_decl decl;
+
+	// statement types
+	struct astnode_stmt_expr stmt_expr;
+	struct astnode_stmt_label stmt_label;
+	struct astnode_stmt_compound stmt_compound;
+	struct astnode_stmt_if_else stmt_if_else;
+	struct astnode_stmt_switch stmt_switch;
+	struct astnode_stmt_do_while stmt_do_while;
+	struct astnode_stmt_while stmt_while;
+	struct astnode_stmt_for stmt_for;
+	struct astnode_stmt_goto stmt_goto;
+	struct astnode_stmt_break_cont stmt_bc;
+	struct astnode_stmt_return stmt_return;
+
 };
 
 // helper to print an astnode
@@ -155,5 +170,11 @@ void print_astnode(union astnode *);
 	(var)->ts_scalar.basetype = scalartype;\
 	(var)->ts_scalar.modifiers.lls = longlongshort;\
 	(var)->ts_scalar.modifiers.sign = signunsign;
+
+#define ALLOC_IMPL_FN(var, idt)\
+	ALLOC_TYPE(var, NT_DECL);\
+	(var)->decl.ident=idt;\
+	(var)->decl.is_implicit=1;\
+	ALLOC_TYPE((var)->decl.components, NT_DECLARATOR_FUNCTION);
 
 #endif

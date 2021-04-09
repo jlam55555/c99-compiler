@@ -15,7 +15,8 @@
 #ifndef DECLARATORH
 #define DECLARATORH
 
-#include "common.h"
+#include <common.h>
+#include <lexerutils/errorutils.h>
 
 // need a second linked-list pointer *of since the generic *next may be used
 // for linking declarators together (e.g., in parameter type list)
@@ -64,9 +65,24 @@ struct astnode_decl {
 
 	// declspec (to be added
 	union astnode *declspec;
+
+	// function body (for defined functions only)
+	union astnode *fn_body;
+
+	// for debugging purposes
+	char *filename;
+	int lineno;
+
+	// indicates whether it is an implicit declaration
+	int is_implicit;
 };
 
-// create a new astnode_decl object; ident=NULL for abstract
+/**
+ * create a new astnode_decl object (for both regular and abstract declarators)
+ * 
+ * @param ident		identifier of declarator; set to NULL if abstract
+ * @return		new astnode_decl object
+ */
 union astnode *decl_new(char *ident);
 
 /**
@@ -75,7 +91,7 @@ union astnode *decl_new(char *ident);
  *
  * @param decl 		astnode_decl to add component to
  * @param components 	ll of astnode_decl_*
- * @return 		decl (for convenience)
+ * @return 		decl (redundant of first parameter for convenience)
  */
 union astnode *decl_append(union astnode *decl, union astnode *components);
 
@@ -109,5 +125,33 @@ union astnode *decl_function_new(union astnode *paramdecls);
  * @param declspec 	declspec
  */
 void decl_install(union astnode *decl, union astnode *declspec);
+
+/**
+ * check that the declarator of a function (declaration or definition) is valid,
+ * and perform appropriate transformations. Will not have any effect if decl
+ * is not a function declaration/definition
+ * 
+ * will perform the following checks:
+ * - doesn't return an array type
+ * 
+ * will perform the following transformations:
+ * - arrays in fn parameter list will be converted to pointers
+ * 
+ * @param decl		declarator of a function (declaration or definition)
+ */
+void decl_check_fndecl(union astnode *decl);
+
+/**
+ * check that the declarator of a function definition is valid:
+ * - no abstract parameters
+ * - declarator is indeed a function declarator
+ * 
+ * Will call decl_check_fndecl to also perform those checks.
+ * 
+ * Will yyerror_fail on error.
+ * 
+ * @param decl		declarator of a function definition
+ */
+void decl_check_fndef(union astnode *decl);
 
 #endif // DECLARATORH

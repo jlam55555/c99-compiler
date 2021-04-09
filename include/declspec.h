@@ -6,8 +6,8 @@
 #ifndef DECLSPECH
 #define DECLSPECH
 
-#include "common.h"
-#include "decl.h"
+#include <common.h>
+#include <decl.h>
 
 // typespec: scalar types
 #define TS_SCALAR_SIGNED	0x4u
@@ -72,5 +72,13 @@ union astnode *merge_declspec(union astnode *ds1, union astnode *ds2);
  * @param declspec	declspec to fill in defaults for
  */
 void declspec_fill_defaults(union astnode *declspec);
+
+/**
+ * check if an empty declaration is a tag forward declaration (and throw
+ * useless warnings if it is not)
+ * 
+ * @param declspec	declspec to check
+ */
+void declspec_check_empty(union astnode *declspec);
 
 #endif // DECLSPECH

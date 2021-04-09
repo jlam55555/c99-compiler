@@ -1,4 +1,4 @@
-#include "common.h"
+#include <common.h>
 
 union astnode *ELLIPSIS_DECLARATOR;
 

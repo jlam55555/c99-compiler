@@ -12,7 +12,7 @@
 #ifndef SYMTABH
 #define SYMTABH
 
-#include "parser.h"
+#include <parser.h>
 
 // an entry in the symbol table; basically a key-value pair; this is a plain
 // C struct and not an astnode because it doesn't have to be
@@ -52,5 +52,19 @@ void symtab_insert(struct symtab *st, char *ident, union astnode *node);
  * @return	pointer to symbol if found, otherwise NULL
  */
 union astnode *symtab_lookup(struct symtab *st, char *ident);
+
+/**
+ * for parser: throws fatal error if symbol not found
+ */
+#define CHECK_SYM_FOUND(var)\
+	NT(var) == NT_DECL && var->decl.is_implicit \
+	&& yyerror_fatal("undeclared symbol")
+
+/**
+ * for parser: throws fatal error if symbol not found
+ */
+#define CHECK_SYM_FOUND_WARN(var)\
+	NT(var) == NT_DECL && var->decl.is_implicit \
+	&& yyerror("implicit declaration of symbol")
 
 #endif // SYMTABH
