@@ -562,6 +562,7 @@ void print_stmt(union astnode *node, int depth)
 	
 }
 
+// TODO: rename this print_fnbody
 void print_astnode(union astnode *node)
 {
 	FILE *fp = stdout;

@@ -1,2 +1,34 @@
-make hashtable ds into its own file
-make stack ds into its own file
+Leftovers from assignment 4:
+- convert arrays in fn param list to pointers
+- stricter compatibility checking when redeclaring extern variables
+
+Assignment 5:
+- Need a basic-block constructor function (that also generates BB naming)
+- When function gets defined, begin generating quads for function
+- For each statement, generate quads
+	- For each labeled stmt: generate BB
+	- For each expr stmt:
+		- Do primitives (recursive with subexpressions):
+			- sizeof
+			- arithmetic
+		- Break up each expression into subexpressions,
+			create a bunch of temporaries
+		- For function calls, may have an arbitrary number of
+			operands
+	- For each block stmt:
+		- Don't need to do anything new, just continue generating
+			quads for statements within it
+	- For each cond stmt (ternary expr):
+		- Generate basic blocks for each branch
+	- For each loop stmt:
+		- Generate necessary basic blocks
+		- Hold necessary "cursors"
+		- Different types of loops? (start with while loop?)
+- Write a function to print quads
+- Move parser stuff to its own directory
+
+TODO TODAY
+- Write print function as we go
+- Write hook to generate basic blocks when function finishes
+- Basic block constructor (with naming scheme)
+- Beginning of expression quad generator

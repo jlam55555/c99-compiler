@@ -1,8 +1,0 @@
-int
-typespec
-declspec
-declspeclist ident . ;
-declspeclist dirdeclarator . ;
-declspeclist declarator . ;
-declspeclist initdecl . ;
-declspeclist initdecl ; .

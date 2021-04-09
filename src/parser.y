@@ -13,6 +13,7 @@
 #include <structunion.h>
 #include <decl.h>
 #include <stmt.h>
+#include <quads.h>
 #include <stdio.h>
 
 int yydebug;
@@ -92,8 +93,8 @@ int yydebug;
 /* beware, the document gets wide here (rip 80 characters) */
 
 /* top level is translation unit (from 6.9 external definitions) */
-translnunit: 	externdecl 							{print_astnode($1);}
-		| translnunit externdecl					{print_astnode($2);}
+translnunit: 	externdecl 							{/*nothing to do*/}
+		| translnunit externdecl					{/*nothing to do*/}
 		;
 
 /* 6.4.4.3 */
@@ -542,7 +543,11 @@ externdecl: 	funcdef								{$$=$1;}
 /* 6.9.1 Function definitions */
 funcdef:	declspeclist declarator {decl_check_fndef($2);scope_set_fndef();decl_install($2,$1);} compoundstmt
 										{/*note that this doesn't allow for old fndef syntax*/
-										 $$=$2;$2->decl.fn_body=$4;}
+										 $$=$2;$2->decl.fn_body=$4;
+										 /*print function body*/
+										 print_astnode($$);
+										 /*generate quads for this function*/
+										 generate_quads($$);}
 		;
 
 %%
