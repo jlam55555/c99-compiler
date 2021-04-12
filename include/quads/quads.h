@@ -31,7 +31,32 @@ struct quad {
 	struct basic_block *bb;
 
 	enum opcode opcode;
-	union astnode *dest, *src1, *src2;
+	struct addr *dest, *src1, *src2;
+};
+
+/**
+ * An entity that may be used as the source or operand of a quad.
+ *
+ * Can store scalar variables (astnode_decl objects, temporaries, or constant
+ * values).
+ *
+ * Note: an assumption is made that the register size is 64 bits, and thus
+ * a constant (scalar) has maximum size 64 bits.
+ */
+struct addr {
+	// reference to astnode, temporary (pseudo-register), constant value
+	enum addr_type { AT_AST, AT_TMP, AT_CONST } type;
+
+	// size in bytes of the operand; since we're only dealing with scalar
+	// types here, this should never exceed the size of the arch. register
+	// size (e.g., 8 bytes on an x86_64 arch.)
+	unsigned size;
+
+	// for astnode, const types only
+	union addr_val {
+		union astnode *astnode;
+		unsigned char constval[8];
+	} val;
 };
 
 /**

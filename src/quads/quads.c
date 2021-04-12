@@ -1,4 +1,5 @@
 #include <quads/quads.h>
+#include <quads/printutils.h>
 #include <string.h>
 
 // current function name and basic block number
@@ -14,6 +15,45 @@ static struct basic_block *basic_block_new()
 	bb->bb_no = bb_no++;
 
 	return bb;
+}
+
+static struct quad *quad_new(struct basic_block *bb, enum opcode opcode,
+	struct addr *dest, struct addr *src1, struct addr *src2)
+{
+	struct quad *quad = calloc(1, sizeof(struct quad));
+
+	// TODO: additional checks here
+	// 	e.g., check that assignment isn't into rvalue
+
+	*quad = (struct quad) {
+		.bb = bb,
+		.next = bb->ll,
+
+		.opcode = opcode,
+		.dest = dest,
+		.src1 = src1,
+		.src2 = src2,
+	};
+
+	// note: this generates the basic block in reverse
+	bb->ll = quad;
+
+	return quad;
+}
+
+static struct addr *addr_new(enum addr_type type, unsigned size)
+{
+	struct addr *addr = calloc(1, sizeof(struct addr));
+
+	*addr = (struct addr) {
+		.type = type,
+		.size = size,
+
+		// TODO: remove
+		.val.constval[0] = 3
+	};
+
+	return addr;
 }
 
 /**
@@ -47,6 +87,12 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 	// expression statement: break down into subexpressions
 	case NT_STMT_EXPR:
 		NYI("expression statement quad generation");
+
+		// TODO: remove; this is for testing only
+		quad_new(bb, ADD,
+			addr_new(AT_CONST, 1),
+			addr_new(AT_CONST, 2),
+			addr_new(AT_CONST, 4));
 		break;
 
 	// label statements: declare a new bb
@@ -84,7 +130,7 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 
 	default:
 		// TODO: are any statement types missed?
-		NYI("other stmt types");
+		NYI("other stmt types quad generation");
 	}
 
 	// iterate
@@ -105,10 +151,10 @@ struct basic_block *generate_quads(union astnode *fn_decl)
 	// recursively generate quads for each statement
 	generate_quads_rec(fn_decl->decl.fn_body, fn_bb);
 
-	return fn_bb;
-}
+#if DEBUG
+	// dump basic blocks
+	print_basic_blocks(fn_bb);
+#endif
 
-void print_basic_block(struct basic_block *bb)
-{
-	// TODO
+	return fn_bb;
 }

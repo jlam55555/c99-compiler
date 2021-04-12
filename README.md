@@ -122,6 +122,11 @@ Fixes:
     - fix unions being printed as structs
     - fix unnamed unions not being assigned a filename/lineno location
     - implementing labels
+    - introduced preliminary data structures for quads (quads, basic blocks)
+- 4/12/21: beginning quad generation
+    - implemented quad generation for labels and simple arithmetic expressions
+    - implemented printing for current basic block structures
+    - introduced addr object type for quad operands and output
 
 ---
   

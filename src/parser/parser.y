@@ -154,7 +154,8 @@ arglistopt:	arglist								{$$=$1;}
 		;
 
 /* unary operators: 6.5.3; doesn't include C11 _Alignof */
-uexpr:		pofexpr								{$$=$1;}
+uexpr:		pofexpr								{$$=$1;
+										 CHECK_SYM_FOUND($1);}
 		| PLUSPLUS uexpr						{/*replace ++a with a=a+1*/
 										 union astnode *one, *inner;
 										 ALLOC(one);
@@ -383,8 +384,7 @@ dirdeclarator:	IDENT								{$$=decl_new($1);}
 										 $$=decl_append($1,decl_array_new(NULL,$3));}
 		| dirdeclarator '[' '*' ']'					{$$=decl_append($1,decl_array_new(NULL,NULL));}
 		| dirdeclarator '(' {scope_push(ST_PROTO);} paramtypelist {scope_pop();} ')'
-										{/*TODO: implement prototype scope*/
-										 $$=decl_append($1,decl_function_new($4));}
+										{$$=decl_append($1,decl_function_new($4));}
 		| dirdeclarator '(' identlist ')'				{/*reject old C function syntax*/
 										 yyerror_fatal("old function declaration style not allowed");}
 		| dirdeclarator '(' {scope_push(ST_PROTO);scope_pop();} ')'	{$$=decl_append($1,decl_function_new(NULL));}
