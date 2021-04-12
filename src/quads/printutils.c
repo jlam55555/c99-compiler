@@ -5,10 +5,11 @@
 char *opcode2str(enum opcode oc)
 {
 	switch (oc) {
-	case LOAD:	return "LOAD";
-	case STORE:	return "STORE";
-	case ADD:	return "ADD";
-	case SUB:	return "SUB";
+	case OC_LOAD:	return "LOAD";
+	case OC_STORE:	return "STORE";
+	case OC_ADD:	return "ADD";
+	case OC_SUB:	return "SUB";
+	case OC_MOV:	return "MOV";
 	}
 
 	yyerror_fatal("invalid opcode");
@@ -26,18 +27,27 @@ void print_addr(struct addr *addr)
 	}
 
 	// indicate size of addr
-	fprintf(fp, "[(%d) ", addr->size);
+	fprintf(fp, "[%d:", addr->size);
 
 	switch (addr->type) {
+
+	// print constant (scalar) value (as hex)
 	case AT_CONST:
 		constval = addr->val.constval;
+		fprintf(fp, "const:");
 		switch (addr->size) {
-		case 1: fprintf(fp, "%x]",  *((uint8_t *) constval)); break;
-		case 2: fprintf(fp, "%x]",  *((uint16_t *)constval)); break;
-		case 4: fprintf(fp, "%x]",  *((uint32_t *)constval)); break;
-		case 8: fprintf(fp, "%lx]", *((uint64_t *)constval)); break;
+		case 1: fprintf(fp, "%x",  *((uint8_t *) constval)); break;
+		case 2: fprintf(fp, "%x",  *((uint16_t *)constval)); break;
+		case 4: fprintf(fp, "%x",  *((uint32_t *)constval)); break;
+		case 8: fprintf(fp, "%lx", *((uint64_t *)constval)); break;
 		default: yyerror_fatal("compiler: invalid size");
 		}
+		fprintf(fp, "]");
+		break;
+
+	// print temporary value (id)
+	case AT_TMP:
+		fprintf(fp, "tmp:%d]", addr->val.tmpid);
 		break;
 	default:
 		NYI("printing non-const addr operand");

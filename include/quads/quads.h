@@ -11,10 +11,11 @@
  * List of opcodes for the quad IR
  */
 enum opcode {
-	LOAD,
-	STORE,
-	ADD,
-	SUB,
+	OC_LOAD,
+	OC_STORE,
+	OC_ADD,
+	OC_SUB,
+	OC_MOV,
 	// TODO
 };
 
@@ -52,10 +53,11 @@ struct addr {
 	// size (e.g., 8 bytes on an x86_64 arch.)
 	unsigned size;
 
-	// for astnode, const types only
+	// data associated with each type
 	union addr_val {
 		union astnode *astnode;
 		unsigned char constval[8];
+		unsigned tmpid;
 	} val;
 };
 

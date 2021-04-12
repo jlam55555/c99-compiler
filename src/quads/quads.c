@@ -1,10 +1,11 @@
 #include <quads/quads.h>
 #include <quads/printutils.h>
 #include <string.h>
+#include <stdint.h>
 
 // current function name and basic block number
 static char *fn_name;
-static int bb_no;
+static int bb_no, tmp_no;
 
 static struct basic_block *basic_block_new()
 {
@@ -48,12 +49,83 @@ static struct addr *addr_new(enum addr_type type, unsigned size)
 	*addr = (struct addr) {
 		.type = type,
 		.size = size,
-
-		// TODO: remove
-		.val.constval[0] = 3
 	};
 
 	return addr;
+}
+
+static struct addr *tmp_addr_new(unsigned size)
+{
+	struct addr *addr = addr_new(AT_TMP, size);
+
+	// assign unique temporary (pseudo-)register identifier
+	addr->val.tmpid = tmp_no++;
+
+	return addr;
+}
+
+/**
+ * iteratively and recursively generates a linked-list of quads for an
+ * expression
+ *
+ * @param expr		expression object
+ * @param bb		basic block to add quads to
+ * @return 		addr storing result of expression
+ */
+static struct addr *generate_expr_quads(union astnode *expr,
+	struct basic_block *bb)
+{
+	struct addr *addr1, *addr2, *addr3;
+
+	// null expression
+	// this shouldn't happen but this is here as a safety measure
+	if (!expr) {
+		yyerror("compiler: empty expression in generate_expr_quads()");
+		return NULL;
+	}
+
+	switch (NT(expr)) {
+	case NT_NUMBER:
+		// TODO: for now, assume 8-byte integer
+
+		// convert into const
+		addr1 = addr_new(AT_CONST, 8);
+		*addr1->val.constval = (uint64_t) expr->num.num.int_val;
+		return addr1;
+
+	case NT_BINOP:
+		switch (expr->binop.op) {
+		// arithmetic
+		case '+':
+			addr1 = generate_expr_quads(expr->binop.left, bb);
+			addr2 = generate_expr_quads(expr->binop.right, bb);
+
+			// create new tmp
+			// TODO: choose larger of two sizes
+			addr3 = tmp_addr_new(8);
+
+			quad_new(bb, OC_ADD, addr3, addr1, addr2);
+			return addr3;
+
+		// assignment
+		case '=':
+			// TODO: check that left is lvalue
+			addr1 = generate_expr_quads(expr->binop.left, bb);
+			addr2 = generate_expr_quads(expr->binop.right, bb);
+
+			quad_new(bb, OC_MOV, addr1, addr2, NULL);
+
+			// can return either addr1 or addr2; either should hold
+			// the same value after the MOV opcode
+			return addr1;
+		}
+		break;
+
+	default:
+		NYI("other expression type quad generation");
+	}
+
+	return NULL;
 }
 
 /**
@@ -86,13 +158,7 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 
 	// expression statement: break down into subexpressions
 	case NT_STMT_EXPR:
-		NYI("expression statement quad generation");
-
-		// TODO: remove; this is for testing only
-		quad_new(bb, ADD,
-			addr_new(AT_CONST, 1),
-			addr_new(AT_CONST, 2),
-			addr_new(AT_CONST, 4));
+		generate_expr_quads(stmt->stmt_expr.expr, bb);
 		break;
 
 	// label statements: declare a new bb
