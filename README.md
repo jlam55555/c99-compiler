@@ -65,16 +65,18 @@ function can print the entire AST statement tree (declarations are printed
 separately, as they are being declared). Statements (expression statements,
 block statements, and control flow), labels have been implemented.
 
+##### Quad Generation
 TODO
+- Everything (see res/scratch/TODO)
+
+Fixes:
+- Don't segfault on seeing typedef
+- Allow arrays (including VLAs) in prototypes
 - Redeclaration of extern variables is allowed, but need to check for
     compatibility and narrow type to strictest intersection of the two types
     (for now redeclaration of extern variable with any type is allowed (BAD))
 - Recursive declaration validation
 - Convert array to pointers in function parameter lists
-
-##### Quad Generation
-TODO
-- Everything
 
 ---
 

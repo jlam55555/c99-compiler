@@ -252,6 +252,10 @@ void print_expr(union astnode *node, int depth)
 {
 	FILE *fp = stdout;
 
+	if (!node) {
+		return;
+	}
+
 	INDENT(depth);
 	switch (node->generic.type) {
 
