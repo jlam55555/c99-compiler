@@ -217,17 +217,19 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 
 	// label statements: declare a new bb
 	case NT_STMT_LABEL:
-	case NT_STMT_CASE:
-		// TODO: make labelled statements flat, otherwise have to
-		// 	call generate_quads_rec() manually because it doesn't
-		// 	follow the format
-
 		new_bb = basic_block_new();
 
 		// TODO: associate label/case astnode with this bb
 
+		// TODO: name basic block with the label, not a number
+
 		bb->next_def = new_bb;
 		bb = new_bb;
+
+		// TODO: make labelled statements flat? matches syntax better
+		// 	that way; this also doesn't work correctly with multiple
+		// 	nested labels
+//		generate_quads_rec(stmt->stmt_label.body, bb);
 		break;
 
 	// unconditional jump statements; terminate current basic block

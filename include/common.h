@@ -39,7 +39,6 @@ enum astnode_type {
 	// statement types
 	NT_STMT_EXPR,
 	NT_STMT_LABEL,
-	NT_STMT_CASE,
 	NT_STMT_COMPOUND,
 	NT_STMT_IFELSE,
 	NT_STMT_SWITCH,
