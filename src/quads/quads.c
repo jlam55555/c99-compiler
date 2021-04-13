@@ -94,25 +94,24 @@ static struct addr *generate_expr_quads(union astnode *expr,
 		return addr1;
 
 	case NT_BINOP:
+		addr1 = generate_expr_quads(expr->binop.left, bb);
+		addr2 = generate_expr_quads(expr->binop.right, bb);
+
 		switch (expr->binop.op) {
 		// arithmetic
 		case '+':
-			addr1 = generate_expr_quads(expr->binop.left, bb);
-			addr2 = generate_expr_quads(expr->binop.right, bb);
-
 			// create new tmp
 			// TODO: choose larger of two sizes
 			addr3 = tmp_addr_new(8);
-
 			quad_new(bb, OC_ADD, addr3, addr1, addr2);
+			return addr3;
+		case '-':
+			addr3 = tmp_addr_new(8);
+			quad_new(bb, OC_SUB, addr3, addr1, addr2);
 			return addr3;
 
 		// assignment
 		case '=':
-			// TODO: check that left is lvalue
-			addr1 = generate_expr_quads(expr->binop.left, bb);
-			addr2 = generate_expr_quads(expr->binop.right, bb);
-
 			quad_new(bb, OC_MOV, addr1, addr2, NULL);
 
 			// can return either addr1 or addr2; either should hold
