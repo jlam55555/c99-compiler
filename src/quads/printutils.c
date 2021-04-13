@@ -34,7 +34,7 @@ void print_addr(struct addr *addr)
 	// print constant (scalar) value (as hex)
 	case AT_CONST:
 		constval = addr->val.constval;
-		fprintf(fp, "const:");
+		fprintf(fp, "const:0x");
 		switch (addr->size) {
 		case 1: fprintf(fp, "%x",  *((uint8_t *) constval)); break;
 		case 2: fprintf(fp, "%x",  *((uint16_t *)constval)); break;

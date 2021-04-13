@@ -3,6 +3,7 @@
 #include <quads/sizeof.h>
 #include <string.h>
 #include <stdint.h>
+#include <parser.tab.h>
 
 // current function name and basic block number
 static char *fn_name;
@@ -86,6 +87,11 @@ static struct addr *generate_expr_quads(union astnode *expr,
 
 	// symbol
 	case NT_DECL:
+		// if abstract, don't do anything and don't return anything
+		if (!expr->decl.ident) {
+			return NULL;
+		}
+
 		// TODO: take sizeof astnode
 		addr1 = addr_new(AT_AST, astnode_sizeof_symbol(expr));
 		addr1->val.astnode = expr;
@@ -93,12 +99,45 @@ static struct addr *generate_expr_quads(union astnode *expr,
 
 	// constant number
 	case NT_NUMBER:
-		// TODO: for now, assume 8-byte integer
+		// TODO: for now, assume 4-byte integer
 
 		// convert into const
-		addr1 = addr_new(AT_CONST, 8);
-		*addr1->val.constval = (uint64_t) expr->num.num.int_val;
+		addr1 = addr_new(AT_CONST, 4);
+		*((uint64_t *)addr1->val.constval) = expr->num.num.int_val;
 		return addr1;
+
+	// unary operator
+	case NT_UNOP:
+		addr1 = generate_expr_quads(expr->unop.arg, bb);
+
+		// TODO: still have to implement a lot here
+		switch (expr->unop.op) {
+
+		// sizeof with a symbol or constexpr
+		// TODO: note that sizeof returns type size_t, defined in
+		// 	stddef.h -- should represent this type somewhere
+		// TODO: our limited view of constexpr is that it is a number;
+		// 	for now assume even less, that it is an int (this is
+		// 	clearly not true; can be other basetypes, but right now
+		// 	the number representation is not consistent)
+		case SIZEOF:
+			addr2 = addr_new(AT_CONST, 8);
+			*((uint64_t *)addr2->val.constval)
+				= addr1->type == AT_CONST
+				? addr1->size
+				: astnode_sizeof_symbol(expr->unop.arg);
+			// TODO: can free addr1 if constant
+			return addr2;
+
+		// sizeof with a typename (addr1 should be NULL)
+		case 's':
+			addr2 = addr_new(AT_CONST, 8);
+			*((uint64_t *)addr2->val.constval)
+				= astnode_sizeof_type(expr->unop.arg
+					->decl.components);
+			return addr2;
+		}
+		break;
 
 	// binary operator
 	case NT_BINOP:
@@ -136,9 +175,10 @@ static struct addr *generate_expr_quads(union astnode *expr,
 		break;
 
 	default:
-		NYI("other expression type quad generation");
+		NYI("quadgen: other expression type quad generation");
 	}
 
+	yyerror_fatal("quadgen: invalid fallthrough; some expr not handled");
 	return NULL;
 }
 
@@ -178,6 +218,10 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 	// label statements: declare a new bb
 	case NT_STMT_LABEL:
 	case NT_STMT_CASE:
+		// TODO: make labelled statements flat, otherwise have to
+		// 	call generate_quads_rec() manually because it doesn't
+		// 	follow the format
+
 		new_bb = basic_block_new();
 
 		// TODO: associate label/case astnode with this bb
