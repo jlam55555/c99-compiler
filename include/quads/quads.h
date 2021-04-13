@@ -59,6 +59,10 @@ struct addr {
 		unsigned char constval[8];
 		unsigned tmpid;
 	} val;
+
+	// TODO: will probably need to associate each struct addr instance
+	// 	with a type, especially in the case of casting, or finding the
+	// 	type of deeply nested expressions, or determining l/rvalues
 };
 
 /**

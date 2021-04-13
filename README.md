@@ -66,12 +66,29 @@ separately, as they are being declared). Statements (expression statements,
 block statements, and control flow), labels have been implemented.
 
 ##### Quad Generation
-TODO
-- Everything (see res/scratch/TODO)
+TODO (also see res/scratch/TODO)
+- Operators
+    - Arithmetic on ints and pointers -- work in progress
+    - sizeof -- work in progress
+    - Assignment -- done?
+- Making function calls
+- Statements
+    - compound statements -- done?
+    - expression statements -- work in progress
+        - warning if expression is "useless", i.e., no side-effects
+    - if statements
+    - loop statements
+        - break/continue statements
+    - return statements
+
+Notes:
+- At this point, we start making assumptions about the architecture. In
+    particular, a 64-bit architecture based on the common x86_64 model is used.
 
 Fixes (from previous assignment):
 - Labels should be inserted into the symbol table, and unresolved goto labels
     should be resolved when function is complete
+- Check that member access on a struct/union is a valid member name
 - Don't segfault on seeing typedef
 - Allow arrays (including VLAs) in prototypes
 - Redeclaration of extern variables is allowed, but need to check for

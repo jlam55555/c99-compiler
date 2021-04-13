@@ -1,5 +1,6 @@
 #include <quads/quads.h>
 #include <quads/printutils.h>
+#include <quads/sizeof.h>
 #include <string.h>
 #include <stdint.h>
 
@@ -86,7 +87,7 @@ static struct addr *generate_expr_quads(union astnode *expr,
 	// symbol
 	case NT_DECL:
 		// TODO: take sizeof astnode
-		addr1 = addr_new(AT_AST, 8);
+		addr1 = addr_new(AT_AST, astnode_sizeof_symbol(expr));
 		addr1->val.astnode = expr;
 		return addr1;
 
@@ -104,11 +105,16 @@ static struct addr *generate_expr_quads(union astnode *expr,
 		addr1 = generate_expr_quads(expr->binop.left, bb);
 		addr2 = generate_expr_quads(expr->binop.right, bb);
 
+		// TODO: +/- have to correctly implement pointer arithmetic
+		// 	(have to check type of their operands, which means
+		// 	that we have to associate type with struct addrs)
 		switch (expr->binop.op) {
 		// arithmetic
 		case '+':
 			// create new tmp
 			// TODO: choose larger of two sizes
+			// 	(or better yet, use real types rather than just
+			// 	sizes)
 			addr3 = tmp_addr_new(8);
 			quad_new(bb, OC_ADD, addr3, addr1, addr2);
 			return addr3;
