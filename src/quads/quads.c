@@ -23,9 +23,6 @@ static struct quad *quad_new(struct basic_block *bb, enum opcode opcode,
 {
 	struct quad *quad = calloc(1, sizeof(struct quad));
 
-	// TODO: additional checks here
-	// 	e.g., check that assignment isn't into rvalue
-
 	*quad = (struct quad) {
 		.bb = bb,
 		.next = bb->ll,
@@ -80,11 +77,20 @@ static struct addr *generate_expr_quads(union astnode *expr,
 	// null expression
 	// this shouldn't happen but this is here as a safety measure
 	if (!expr) {
-		yyerror("compiler: empty expression in generate_expr_quads()");
+		yyerror("quadgen: empty expression in generate_expr_quads()");
 		return NULL;
 	}
 
 	switch (NT(expr)) {
+
+	// symbol
+	case NT_DECL:
+		// TODO: take sizeof astnode
+		addr1 = addr_new(AT_AST, 8);
+		addr1->val.astnode = expr;
+		return addr1;
+
+	// constant number
 	case NT_NUMBER:
 		// TODO: for now, assume 8-byte integer
 
@@ -93,6 +99,7 @@ static struct addr *generate_expr_quads(union astnode *expr,
 		*addr1->val.constval = (uint64_t) expr->num.num.int_val;
 		return addr1;
 
+	// binary operator
 	case NT_BINOP:
 		addr1 = generate_expr_quads(expr->binop.left, bb);
 		addr2 = generate_expr_quads(expr->binop.right, bb);
@@ -112,6 +119,8 @@ static struct addr *generate_expr_quads(union astnode *expr,
 
 		// assignment
 		case '=':
+			// TODO: check that addr1 is an lvalue
+
 			quad_new(bb, OC_MOV, addr1, addr2, NULL);
 
 			// can return either addr1 or addr2; either should hold
@@ -144,7 +153,7 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 
 	// error
 	if (!bb) {
-		yyerror_fatal("compiler: bb bb cannot be NULL");
+		yyerror_fatal("quadgen: bb bb cannot be NULL");
 		return;
 	}
 

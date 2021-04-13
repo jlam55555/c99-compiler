@@ -21,7 +21,7 @@ void print_addr(struct addr *addr)
 	unsigned char *constval;
 
 	if (!addr) {
-		yyerror_fatal("compiler: addr should not be NULL"
+		yyerror_fatal("quadgen: addr should not be NULL"
 			" in print_addr()");
 		return;
 	}
@@ -40,7 +40,7 @@ void print_addr(struct addr *addr)
 		case 2: fprintf(fp, "%x",  *((uint16_t *)constval)); break;
 		case 4: fprintf(fp, "%x",  *((uint32_t *)constval)); break;
 		case 8: fprintf(fp, "%lx", *((uint64_t *)constval)); break;
-		default: yyerror_fatal("compiler: invalid size");
+		default: yyerror_fatal("quadgen: invalid size");
 		}
 		fprintf(fp, "]");
 		break;
@@ -49,9 +49,14 @@ void print_addr(struct addr *addr)
 	case AT_TMP:
 		fprintf(fp, "tmp:%d]", addr->val.tmpid);
 		break;
-	default:
-		NYI("printing non-const addr operand");
+
+	// print symbol table value
+	case AT_AST:
+		fprintf(fp, "symbol:%s]", addr->val.astnode->decl.ident);
 		break;
+
+	default:
+		yyerror_fatal("quadgen: unknown address type");
 	}
 }
 
@@ -60,7 +65,7 @@ void print_quad(struct quad *quad)
 	FILE *fp = stdout;
 
 	if (!quad) {
-		yyerror_fatal("compiler: quad should not be NULL"
+		yyerror_fatal("quadgen: quad should not be NULL"
 			" in print_quad()");
 		return;
 	}
@@ -90,7 +95,7 @@ void print_basic_block(struct basic_block *bb)
 	FILE *fp = stdout;
 
 	if (!bb) {
-		yyerror_fatal("compiler: basic block should not be NULL"
+		yyerror_fatal("quadgen: basic block should not be NULL"
 			" in print_basic_block()");
 		return;
 	}

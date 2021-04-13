@@ -69,7 +69,9 @@ block statements, and control flow), labels have been implemented.
 TODO
 - Everything (see res/scratch/TODO)
 
-Fixes:
+Fixes (from previous assignment):
+- Labels should be inserted into the symbol table, and unresolved goto labels
+    should be resolved when function is complete
 - Don't segfault on seeing typedef
 - Allow arrays (including VLAs) in prototypes
 - Redeclaration of extern variables is allowed, but need to check for
@@ -124,9 +126,11 @@ Fixes:
     - implementing labels
     - introduced preliminary data structures for quads (quads, basic blocks)
 - 4/12/21: beginning quad generation
+    - introduced addr object type for quad operands and output; can hold
+        constant values, temporary values (i.e., a pseudo-register), and symbols
+    - implemented sizeof operator for some symbols
     - implemented quad generation for labels and simple arithmetic expressions
     - implemented printing for current basic block structures
-    - introduced addr object type for quad operands and output
 
 ---
   
