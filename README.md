@@ -85,6 +85,10 @@ TODO (also see res/scratch/TODO)
         - break/continue statements
     - return statements
 - Type conversions/implicit casts
+- Indicate whether variables are local (parameter or regular) or global
+    (for use with addressing modes later)
+- Fix three-address codes
+- Fix labels (see fixes, below)
 
 Notes:
 - At this point, we start making assumptions about the architecture. In

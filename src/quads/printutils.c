@@ -49,7 +49,7 @@ void print_addr(struct addr *addr)
 
 	// print temporary value (id)
 	case AT_TMP:
-		fprintf(fp, "tmp:%d]", addr->val.tmpid);
+		fprintf(fp, "tmp:%%%d]", addr->val.tmpid);
 		break;
 
 	// print symbol table value

@@ -9,6 +9,9 @@
 static char *fn_name;
 static int bb_no, tmp_no;
 
+/**
+ * TODO: add description to all these local (static) functions
+ */
 static struct basic_block *basic_block_new()
 {
 	struct basic_block *bb = calloc(1, sizeof(struct basic_block));
@@ -66,22 +69,41 @@ static struct addr *tmp_addr_new(union astnode *decl)
 
 /**
  * iteratively and recursively generates a linked-list of quads for an
- * expression
+ * (r-value) expression; corresponds to function of same name in lecture notes
+ * 
+ * The use of the target address is to have more optimized 3-address quads,
+ * i.e., remove extra MOV quads. (These will still have to be added back in
+ * when we get to assembly code generation, as x86 is a 2-address architecture.)
+ * 
+ * semantic notes:
+ * - if primary expression (scalar or constant):
+ * 	- if no target, return as a struct addr
+ * 	- if target is specified, emit MOV opcode
+ * - if assignment (=):
+ * 	- evaluate left lvalue (and check that it is an lvalue)
+ * 	- evaluate right rvalue with target set to left lvalue
+ * 	- if dest set, emit MOV quad from lvalue (arbitrarily chosen) to dest
+ * 		(this happens if multiple assignments directly in a row)
+ * - if unary/binary expression, emit quad
+ * 	- if dest is NULL, a temporary is created
+ *	- if target, it is the destination of the quad
  *
  * @param expr		expression object
+ * @param dest		target address, or NULL if temporary expression
  * @param bb		basic block to add quads to
  * @return 		addr storing result of expression
  */
-static struct addr *generate_expr_quads(union astnode *expr,
-	struct basic_block *bb)
+static struct addr *gen_rvalue(union astnode *expr,
+	struct addr *dest, struct basic_block *bb)
 {
-	struct addr *addr1, *addr2, *addr3;
+	struct addr *src1, *src2;
 	union astnode *ts;
+	enum opcode op;
 
 	// null expression
 	// this shouldn't happen but this is here as a safety measure
 	if (!expr) {
-		yyerror("quadgen: empty expression in generate_expr_quads()");
+		yyerror("quadgen: empty expression in gen_rvalue()");
 		return NULL;
 	}
 
@@ -94,21 +116,33 @@ static struct addr *generate_expr_quads(union astnode *expr,
 			return NULL;
 		}
 
-		addr1 = addr_new(AT_AST, expr->decl.components);
-		addr1->val.astnode = expr;
-		return addr1;
+		src1 = addr_new(AT_AST, expr->decl.components);
+		src1->val.astnode = expr;
+
+		if (dest) {
+			quad_new(bb, OC_MOV, dest, src1, NULL);
+		} else {
+			dest = src1;
+		}
+		return dest;
 
 	// constant number
 	case NT_NUMBER:
 		// convert into const
-		addr1 = addr_new(AT_CONST, expr->num.ts);
-		*((uint64_t *)addr1->val.constval) =
+		src1 = addr_new(AT_CONST, expr->num.ts);
+		*((uint64_t *)src1->val.constval) =
 			*((uint64_t *)expr->num.buf);
-		return addr1;
+
+		if (dest) {
+			quad_new(bb, OC_MOV, dest, src1, NULL);
+		} else {
+			dest = src1;
+		}
+		return dest;
 
 	// unary operator
 	case NT_UNOP:
-		addr1 = generate_expr_quads(expr->unop.arg, bb);
+		src1 = gen_rvalue(expr->unop.arg, NULL, bb);
 
 		// TODO: still have to implement a lot here
 		switch (expr->unop.op) {
@@ -128,34 +162,43 @@ static struct addr *generate_expr_quads(union astnode *expr,
 			ts->ts_scalar.modifiers.lls = LLS_LONG_LONG;
 			ts->ts_scalar.modifiers.sign = SIGN_UNSIGNED;
 
-			addr2 = addr_new(AT_CONST, ts);
-			*((uint64_t *)addr2->val.constval)
-				= addr1->type == AT_CONST
-				? addr1->size
+			src2 = addr_new(AT_CONST, ts);
+			*((uint64_t *)src2->val.constval)
+				= src1->type == AT_CONST
+				? src1->size
 				: astnode_sizeof_symbol(expr->unop.arg);
-			// TODO: can free addr1 if constant
-			return addr2;
+			
+			if (dest) {
+				quad_new(bb, OC_MOV, dest, src2, NULL);
+			} else {
+				dest = src2;
+			}
+			return dest;
 
 		// sizeof with a typename (addr1 should be NULL)
 		case 's':
+			// see notes above
 			ALLOC_TYPE(ts, NT_TS_SCALAR);
 			ts->ts_scalar.basetype = BT_INT;
 			ts->ts_scalar.modifiers.lls = LLS_LONG_LONG;
 			ts->ts_scalar.modifiers.sign = SIGN_UNSIGNED;
 
-			addr2 = addr_new(AT_CONST, ts);
-			*((uint64_t *)addr2->val.constval)
+			src1 = addr_new(AT_CONST, ts);
+			*((uint64_t *)src1->val.constval)
 				= astnode_sizeof_type(expr->unop.arg
 					->decl.components);
-			return addr2;
+
+			if (dest) {
+				quad_new(bb, OC_MOV, dest, src1, NULL);
+			} else {
+				dest = src1;
+			}
+			return dest;
 		}
 		break;
 
 	// binary operator
 	case NT_BINOP:
-		addr1 = generate_expr_quads(expr->binop.left, bb);
-		addr2 = generate_expr_quads(expr->binop.right, bb);
-		enum opcode op;
 		switch(expr->binop.op){
 			case '+':	op = OC_ADD;	break;
 			case '-':	op = OC_SUB;	break;
@@ -169,6 +212,23 @@ static struct addr *generate_expr_quads(union astnode *expr,
 			case SHR:	op = OC_SHR;	break;
 		}
 
+		src1 = gen_rvalue(expr->binop.left, NULL, bb);
+
+		// if assignment, target for src2 is src1
+		if (expr->binop.op == '=') {
+			// TODO: check that src1 is an rvalue
+
+			src2 = gen_rvalue(expr->binop.right, src1, bb);
+
+			// if target, also emit mov quad
+			if (dest) {
+				quad_new(bb, OC_MOV, dest, src1, NULL);
+			}
+
+			return src1;
+		}
+		src2 = gen_rvalue(expr->binop.right, NULL, bb);
+
 		// TODO: +/- have to correctly implement pointer arithmetic
 		// 	(have to check type of their operands, which means
 		// 	that we have to associate type with struct addrs)
@@ -179,34 +239,44 @@ static struct addr *generate_expr_quads(union astnode *expr,
 			// TODO: choose larger of two sizes
 			// 	(or better yet, use real types rather than just
 			// 	sizes)
-			addr3 = tmp_addr_new(addr1->decl);
-			quad_new(bb, OC_ADD, addr3, addr1, addr2);
-			return addr3;
+			if (!dest) {
+				dest = tmp_addr_new(src1->decl);
+			}
+			quad_new(bb, OC_ADD, dest, src1, src2);
+			return dest;
+			
 		case '-':
-			addr3 = tmp_addr_new(addr1->decl);
-			quad_new(bb, OC_SUB, addr3, addr1, addr2);
-			return addr3;
+			if (!dest) {
+				dest = tmp_addr_new(src1->decl);
+			}
+			quad_new(bb, OC_SUB, dest, src1, src2);
+			return dest;
 
 		case '*':
-			addr3 = tmp_addr_new(addr1->decl);
-			quad_new(bb, OC_MUL, addr3, addr1, addr2);
-			return addr3;
+			if (!dest) {
+				dest = tmp_addr_new(src1->decl);
+			}
+			quad_new(bb, OC_MUL, dest, src1, src2);
+			return dest;
 		
 		case '/':
-			addr3 = tmp_addr_new(addr1->decl);
-			quad_new(bb, OC_MUL, addr3, addr1, addr2);
-			return addr3;
+			if (!dest) {
+				dest = tmp_addr_new(src1->decl);
+			}
+			quad_new(bb, OC_MUL, dest, src1, src2);
+			return dest;
 
 
-		// assignment
-		case '=':
-			// TODO: check that addr1 is an lvalue
+		// TODO: remove; gets replaced with above code
+		// // assignment: special case; set target
+		// case '=':
+		// 	// TODO: check that addr1 is an lvalue
 
-			quad_new(bb, OC_MOV, addr1, addr2, NULL);
+		// 	quad_new(bb, OC_MOV, addr1, addr2, NULL);
 
-			// can return either addr1 or addr2; either should hold
-			// the same value after the MOV opcode
-			return addr1;
+		// 	// can return either addr1 or addr2; either should hold
+		// 	// the same value after the MOV opcode
+		// 	return addr1;
 
 		
 		}
@@ -241,6 +311,8 @@ static void generate_if_else_quads(union astnode *expr)
 	else
 		Bn = Bf;
 
+	generate_conditional_quads(expr->stmt_if_else.ifstmt, Bt, Bf);
+	
 }
 
 /**
@@ -252,11 +324,26 @@ static void generate_if_else_quads(union astnode *expr)
  */
 static void generate_conditional_quads(union astnode *expr, struct basic_block *Bt, struct basic_block *Bf)
 {
-	int op = expr->binop.op;
-	if (op=='<'||op=='>'||op==LTEQ||op==GTEQ||op==EQEQ||op==NOTEQ)
+	struct basic_block *bb = basic_block_new();
+	switch(expr->generic.type)
 	{
+		case NT_BINOP:;
+			struct addr *addr1 = gen_rvalue(expr->binop.left, NULL, bb);
+			struct addr *addr2 = gen_rvalue(expr->binop.left, NULL, bb);
+			quad_new(bb, OC_CMP, NULL, addr1, addr2);
+			switch(expr->binop.op)
+			{
+				case '<':	break;
+				case '>':	break;
+				case LTEQ:	break;
+				case GTEQ:	break;
+				case EQEQ:	break;
+				case NOTEQ:	break;
+				default:	;
+			}
+			break;
 		
-
+			
 	}
 
 }
@@ -293,7 +380,7 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 
 	// expression statement: break down into subexpressions
 	case NT_STMT_EXPR:
-		generate_expr_quads(stmt->stmt_expr.expr, bb);
+		gen_rvalue(stmt->stmt_expr.expr, NULL, bb);
 		break;
 
 	// label statements: declare a new bb

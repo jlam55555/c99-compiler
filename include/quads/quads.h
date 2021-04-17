@@ -25,6 +25,12 @@ enum opcode {
 	OC_SHL,
 	OC_SHR,
 	OC_CMP,
+	OC_LT,
+	OC_GT,
+	OC_LE,
+	OC_GE,
+	OC_EQ,
+	OC_NEQ,
 	// TODO
 };
 
@@ -112,5 +118,21 @@ struct basic_block {
  * @param fn_decl		declarator for a function definition
  */
 struct basic_block *generate_quads(union astnode *fn_decl);
+
+/**
+ * generate quads for if else statements
+ *
+ * @param expr		expression in if
+ */
+static void generate_if_else_quads(union astnode *expr);
+
+/**
+ * generate quads for conditional expression
+ *
+ * @param expr		expression in if
+ * @param Bt		basic block Then
+ * @param Bf		basic block False
+ */
+static void generate_conditional_quads(union astnode *expr, struct basic_block *Bt, struct basic_block *Bf);
 
 #endif
