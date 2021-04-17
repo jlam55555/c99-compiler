@@ -284,14 +284,14 @@ void print_expr(union astnode *node, int depth)
 
 		fprintf(fp, "CONSTANT:  ");
 		print_typespec(node->num.ts);
-		
+
 		if (bt == BT_INT && sign == SIGN_SIGNED) {
-			fprintf(fp, "%lld\n", *((long long*)node->num.buf));
+			fprintf(fp, " %lld\n", *((long long*)node->num.buf));
 		} else if (bt == BT_INT) {
-			fprintf(fp, "%llu\n",
+			fprintf(fp, " %llu\n",
 				*((unsigned long long*)node->num.buf));
 		} else {
-			fprintf(fp, "%lG\n", *(long double*)node->num.buf);
+			fprintf(fp, " %llG\n", *((long double*)node->num.buf));
 		}
 
 		// TODO: remove;

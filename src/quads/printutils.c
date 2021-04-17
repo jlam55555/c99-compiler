@@ -40,6 +40,8 @@ void print_addr(struct addr *addr)
 		case 2: fprintf(fp, "%x",  *((uint16_t *)constval)); break;
 		case 4: fprintf(fp, "%x",  *((uint32_t *)constval)); break;
 		case 8: fprintf(fp, "%lx", *((uint64_t *)constval)); break;
+		case 16: fprintf(fp, "%lx%lx", *((uint64_t *)constval),
+			*((uint64_t *)constval+1)); break;
 		default: yyerror_fatal("quadgen: invalid size");
 		}
 		fprintf(fp, "]");

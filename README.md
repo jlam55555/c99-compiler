@@ -84,6 +84,7 @@ TODO (also see res/scratch/TODO)
     - loop statements
         - break/continue statements
     - return statements
+- Type conversions/implicit casts
 
 Notes:
 - At this point, we start making assumptions about the architecture. In

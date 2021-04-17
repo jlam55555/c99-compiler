@@ -24,6 +24,7 @@ enum opcode {
 	OC_XOR,
 	OC_SHL,
 	OC_SHR,
+	OC_CMP,
 	// TODO
 };
 

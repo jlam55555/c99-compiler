@@ -14,12 +14,10 @@ union astnode *make_int(int radix, enum scalar_basetype type,
 
 	// alloc and set union astnode type representation
 	ALLOC_TYPE(ts, NT_TS_SCALAR);
-	ts->ts_scalar = (struct astnode_typespec_scalar) {
-		.basetype = type,
-		.modifiers = (struct modifiers) {
-			.lls = lls,
-			.sign = sign
-		}
+	ts->ts_scalar.basetype = type;
+	ts->ts_scalar.modifiers = (struct modifiers) {
+		.lls = lls,
+		.sign = sign,
 	};
 
 	ALLOC_TYPE(number, NT_NUMBER);
@@ -58,16 +56,12 @@ union astnode *make_fp(enum scalar_basetype type, enum scalar_lls lls)
 
 	// alloc and set union astnode type representation
 	ALLOC_TYPE(ts, NT_TS_SCALAR);
-	ts->ts_scalar = (struct astnode_typespec_scalar) {
-		.basetype = type,
-		.modifiers = (struct modifiers) {
-			.lls = lls
-		}
-	};
+	ts->ts_scalar.basetype = type;
+	ts->ts_scalar.modifiers.lls = lls;
 
 	ALLOC_TYPE(number, NT_NUMBER);
 	number->num.ts = ts;
-	*((long double*)number->num.buf) = strtod(yytext, NULL);
+	*((long double*)number->num.buf) = (long double)strtod(yytext, NULL);
 
 	return number;
 
