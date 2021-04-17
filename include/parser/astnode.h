@@ -6,8 +6,9 @@
 #ifndef ASTNODEH
 #define ASTNODEH
 
-#include <stdlib.h>	// for malloc in macro
-#include <string.h>	// for strdup in macro
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
 #include <lexer/numutils.h>
 #include <lexer/stringutils.h>
 #include <parser/decl.h>
@@ -35,10 +36,17 @@ struct astnode_ternop {
 	union astnode *first, *second, *third;
 };
 
+// numeric literal
 struct astnode_number {
 	_ASTNODE
 
-	struct number num;
+	// struct number num;
+
+	// store numeric typespec
+	union astnode *ts;
+
+	// store byte representation
+	u_int8_t buf[16];
 };
 
 struct astnode_ident {

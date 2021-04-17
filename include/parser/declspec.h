@@ -22,8 +22,9 @@ struct astnode_typespec_scalar {
 	} basetype;
 
 	struct modifiers {
-		enum {LLS_UNSPEC, LLS_LONG, LLS_LONG_LONG, LLS_SHORT} lls;
-		enum {SIGN_UNSPEC, SIGN_SIGNED, SIGN_UNSIGNED} sign;
+		enum scalar_lls {LLS_UNSPEC, LLS_LONG, LLS_LONG_LONG, LLS_SHORT}
+			lls;
+		enum scalar_sign {SIGN_UNSPEC, SIGN_SIGNED, SIGN_UNSIGNED} sign;
 	} modifiers;
 };
 

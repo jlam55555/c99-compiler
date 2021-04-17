@@ -4,16 +4,20 @@ A basic C compiler for ECE466
 ---
 
 ### Build instructions
-This requires `cmake` (version 3) and `make`. The top-level Makefile
-in this directory has some recipes for building it
+Dependencies:
+- `cmake` (3.13+)
+- `make`
+- `flex`
+- `bison`
+- `gcc` (tested on gcc8)
+
+The top-level Makefile in this directory has some recipes for building
 [out-of-source][cmake-oos]:
 ```bash
 $ make build run
 $ make clean
 ```
-
-If using an IDE with cmake plugin support (e.g., cmake-tools in vscode), set
-the build directory to the `target` directory.
+This will build to the `build` directory.
 
 ---
 
@@ -69,7 +73,7 @@ block statements, and control flow), labels have been implemented.
 TODO (also see res/scratch/TODO)
 - Operators
     - Arithmetic on ints and pointers -- work in progress
-    - sizeof -- work in progress
+    - sizeof -- done?
     - Assignment -- done?
 - Making function calls
 - Statements

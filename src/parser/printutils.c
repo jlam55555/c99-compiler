@@ -115,8 +115,8 @@ void print_declarator(union astnode *component, int depth)
 	// declarator components
 	case NT_DECLARATOR_ARRAY:
 		INDENT(depth);
-		fprintf(fp, "array (%d) of\n",
-			component->decl_array.length->num.num.int_val);
+		fprintf(fp, "array (%d) of\n", *((unsigned long long*)
+			component->decl_array.length->num.buf));
 		break;
 	case NT_DECLARATOR_POINTER:
 		INDENT(depth);
@@ -276,9 +276,27 @@ void print_expr(union astnode *node, int depth)
 		break;
 	
 	case NT_NUMBER:;
-		char *numstring = print_number(node->num.num);
-		fprintf(fp, "CONSTANT:  %s\n", numstring);
-		free(numstring);
+		// TODO: remove
+		// char *numstring = print_number(node->num);
+		enum scalar_basetype bt = node->num.ts->ts_scalar.basetype;
+		enum scalar_lls lls = node->num.ts->ts_scalar.modifiers.lls;
+		enum scalar_sign sign = node->num.ts->ts_scalar.modifiers.sign;
+
+		fprintf(fp, "CONSTANT:  ");
+		print_typespec(node->num.ts);
+		
+		if (bt == BT_INT && sign == SIGN_SIGNED) {
+			fprintf(fp, "%lld\n", *((long long*)node->num.buf));
+		} else if (bt == BT_INT) {
+			fprintf(fp, "%llu\n",
+				*((unsigned long long*)node->num.buf));
+		} else {
+			fprintf(fp, "%lG\n", *(long double*)node->num.buf);
+		}
+
+		// TODO: remove;
+		// fprintf(fp, "CONSTANT:  %s\n", numstring);
+		// free(numstring);
 		break;
 
 	case NT_STRING:;

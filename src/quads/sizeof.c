@@ -23,7 +23,7 @@ unsigned astnode_sizeof_type(union astnode *type)
 	// sizeof array is count*sizeof(contained type)
 	case NT_DECLARATOR_ARRAY:
 		// TODO: for now, assume array expression is an int
-		return ((unsigned)type->decl_array.length->num.num.int_val)
+		return (*((unsigned*)type->decl_array.length->num.buf))
 			* astnode_sizeof_type(LL_NEXT_OF(type));
 
 	// sizeof (pointer) = width of memory bus (assumption: 8 bytes)

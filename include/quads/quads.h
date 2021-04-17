@@ -16,6 +16,14 @@ enum opcode {
 	OC_ADD,
 	OC_SUB,
 	OC_MOV,
+	OC_MUL,
+	OC_DIV,
+	OC_MOD,
+	OC_AND,
+	OC_OR,
+	OC_XOR,
+	OC_SHL,
+	OC_SHR,
 	// TODO
 };
 
@@ -63,6 +71,7 @@ struct addr {
 	// TODO: will probably need to associate each struct addr instance
 	// 	with a type, especially in the case of casting, or finding the
 	// 	type of deeply nested expressions, or determining l/rvalues
+	union astnode *decl;
 };
 
 /**

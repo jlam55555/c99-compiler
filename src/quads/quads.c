@@ -41,21 +41,23 @@ static struct quad *quad_new(struct basic_block *bb, enum opcode opcode,
 	return quad;
 }
 
-static struct addr *addr_new(enum addr_type type, unsigned size)
+static struct addr *addr_new(enum addr_type type, unsigned size,
+	union astnode *decl)
 {
 	struct addr *addr = calloc(1, sizeof(struct addr));
 
 	*addr = (struct addr) {
 		.type = type,
 		.size = size,
+		.decl = decl,
 	};
 
 	return addr;
 }
 
-static struct addr *tmp_addr_new(unsigned size)
+static struct addr *tmp_addr_new(unsigned size, union astnode *decl)
 {
-	struct addr *addr = addr_new(AT_TMP, size);
+	struct addr *addr = addr_new(AT_TMP, size, decl);
 
 	// assign unique temporary (pseudo-)register identifier
 	addr->val.tmpid = tmp_no++;
@@ -93,17 +95,18 @@ static struct addr *generate_expr_quads(union astnode *expr,
 		}
 
 		// TODO: take sizeof astnode
-		addr1 = addr_new(AT_AST, astnode_sizeof_symbol(expr));
+		addr1 = addr_new(AT_AST, astnode_sizeof_symbol(expr),
+			expr->decl.components);
 		addr1->val.astnode = expr;
 		return addr1;
 
 	// constant number
 	case NT_NUMBER:
-		// TODO: for now, assume 4-byte integer
-
 		// convert into const
-		addr1 = addr_new(AT_CONST, 4);
-		*((uint64_t *)addr1->val.constval) = expr->num.num.int_val;
+		addr1 = addr_new(AT_CONST, astnode_sizeof_type(expr->num.ts),
+			/*TODO: working here*/NULL);
+		*((uint64_t *)addr1->val.constval) =
+			*((uint64_t *)expr->num.buf);
 		return addr1;
 
 	// unary operator
@@ -121,7 +124,7 @@ static struct addr *generate_expr_quads(union astnode *expr,
 		// 	clearly not true; can be other basetypes, but right now
 		// 	the number representation is not consistent)
 		case SIZEOF:
-			addr2 = addr_new(AT_CONST, 8);
+			addr2 = addr_new(AT_CONST, 8, /*TODO: working here*/NULL);
 			*((uint64_t *)addr2->val.constval)
 				= addr1->type == AT_CONST
 				? addr1->size
@@ -131,7 +134,7 @@ static struct addr *generate_expr_quads(union astnode *expr,
 
 		// sizeof with a typename (addr1 should be NULL)
 		case 's':
-			addr2 = addr_new(AT_CONST, 8);
+			addr2 = addr_new(AT_CONST, 8, NULL/*TODO: working here*/);
 			*((uint64_t *)addr2->val.constval)
 				= astnode_sizeof_type(expr->unop.arg
 					->decl.components);
@@ -143,6 +146,19 @@ static struct addr *generate_expr_quads(union astnode *expr,
 	case NT_BINOP:
 		addr1 = generate_expr_quads(expr->binop.left, bb);
 		addr2 = generate_expr_quads(expr->binop.right, bb);
+		enum opcode op;
+		switch(expr->binop.op){
+			case '+':	op = OC_ADD;	break;
+			case '-':	op = OC_SUB;	break;
+			case '*':	op = OC_MUL;	break;
+			case '/':	op = OC_DIV;	break;
+			case '%':	op = OC_MOD;	break;
+			case '&':	op = OC_AND;	break;
+			case '|':	op = OC_OR;		break;
+			case '^':	op = OC_XOR;	break;
+			case SHL:	op = OC_SHL;	break;
+			case SHR:	op = OC_SHR;	break;
+		}
 
 		// TODO: +/- have to correctly implement pointer arithmetic
 		// 	(have to check type of their operands, which means
@@ -154,13 +170,24 @@ static struct addr *generate_expr_quads(union astnode *expr,
 			// TODO: choose larger of two sizes
 			// 	(or better yet, use real types rather than just
 			// 	sizes)
-			addr3 = tmp_addr_new(8);
+			addr3 = tmp_addr_new(8, addr1->decl);
 			quad_new(bb, OC_ADD, addr3, addr1, addr2);
 			return addr3;
 		case '-':
-			addr3 = tmp_addr_new(8);
+			addr3 = tmp_addr_new(8, addr1->decl);
 			quad_new(bb, OC_SUB, addr3, addr1, addr2);
 			return addr3;
+
+		case '*':
+			addr3 = tmp_addr_new(8, addr1->decl);
+			quad_new(bb, OC_MUL, addr3, addr1, addr2);
+			return addr3;
+		
+		case '/':
+			addr3 = tmp_addr_new(8, addr1->decl);
+			quad_new(bb, OC_MUL, addr3, addr1, addr2);
+			return addr3;
+
 
 		// assignment
 		case '=':
@@ -171,6 +198,8 @@ static struct addr *generate_expr_quads(union astnode *expr,
 			// can return either addr1 or addr2; either should hold
 			// the same value after the MOV opcode
 			return addr1;
+
+		
 		}
 		break;
 
@@ -181,6 +210,31 @@ static struct addr *generate_expr_quads(union astnode *expr,
 	yyerror_fatal("quadgen: invalid fallthrough; some expr not handled");
 	return NULL;
 }
+
+/**
+ * generate quads for conditional statements
+ *
+ * @param expr		expression in if
+ */
+static void generate_conditional_quads(union astnode *expr)
+{
+	struct basic_block *Bt = basic_block_new();
+	struct basic_block *Bf = basic_block_new();
+	struct basic_block *Bn;
+
+	if(expr->stmt_if_else.elsestmt)
+		Bn = basic_block_new();
+	else
+		Bn = Bf;
+	
+
+
+
+
+
+}
+
+
 
 /**
  * iteratively and recursively generates a linked-list of basic blocks and quads

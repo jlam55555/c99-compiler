@@ -22,7 +22,7 @@ int yydebug;
 %union {
 	// from lexer
 	int sc;	// single-character tokens
-	struct number num;
+
 	char *ident;
 	struct string string;
 	struct charlit charlit;
@@ -88,7 +88,7 @@ int yydebug;
 %type<ident> 	IDENT
 %type<string>	STRING
 %type<charlit>	CHARLIT
-%type<num>	NUMBER
+%type<astnode>	NUMBER
 %%
 /* beware, the document gets wide here (rip 80 characters) */
 
@@ -102,7 +102,7 @@ translnunit: 	externdecl 							{/*nothing to do*/}
 		
 
 /* 6.4.4 */
-constant:	NUMBER								{ALLOC($$);$$->num=(struct astnode_number){NT_NUMBER,NULL,$1};}
+constant:	NUMBER								{$$=$1;}
 		/*| enumconst							{/*not implementing enums}*/
 		| CHARLIT							{ALLOC($$);$$->charlit=(struct astnode_charlit){NT_CHARLIT,NULL,$1};}
 		;
@@ -157,18 +157,20 @@ arglistopt:	arglist								{$$=$1;}
 uexpr:		pofexpr								{$$=$1;
 										 CHECK_SYM_FOUND($1);}
 		| PLUSPLUS uexpr						{/*replace ++a with a=a+1*/
-										 union astnode *one, *inner;
-										 ALLOC(one);
+										 union astnode *inner;
+										 /* TODO: remove this */
+										 /*ALLOC(one);
 										 one->num=(struct astnode_number){NT_NUMBER,NULL,
-										 	(struct number){INT_T,SIGNED_T,1}};
-										 ALLOC_SET_BINOP(inner,'+',$2,one);
+										 	(struct number){INT_T,SIGNED_T,1}};*/
+										 ALLOC_SET_BINOP(inner,'+',$2,make_one());
 										 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| MINUSMINUS uexpr						{/*replace --a with a=a-1*/
-										 union astnode *one, *inner;
+										 union astnode *inner;
+										 /* TODO: remove this
 										 ALLOC(one);
 										 one->num=(struct astnode_number){NT_NUMBER,NULL,
-										 	(struct number){INT_T,SIGNED_T,1}};
-										 ALLOC_SET_BINOP(inner,'-',$2,one);
+										 	(struct number){INT_T,SIGNED_T,1}};*/
+										 ALLOC_SET_BINOP(inner,'-',$2,make_one());
 										 ALLOC_SET_BINOP($$,'=',$2,inner);}
 		| uop castexpr							{ALLOC_SET_UNOP($$,$1,$2);}
 		| SIZEOF uexpr							{ALLOC_SET_UNOP($$,$1,$2);}
