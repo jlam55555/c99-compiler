@@ -1,4 +1,4 @@
-BUILDDIR:=target
+BUILDDIR:=build
 CMAKE:=cmake
 CMAKEFLAGS?=
 

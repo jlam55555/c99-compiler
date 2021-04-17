@@ -1,5 +1,5 @@
 # executable target
-target
+build
 
 # vscode files
 .vscode
