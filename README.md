@@ -157,6 +157,14 @@ Fixes (from previous assignment):
     - implemented sizeof operator for some symbols
     - implemented quad generation for labels and simple arithmetic expressions
     - implemented printing for current basic block structures
+- 4/17/21: continuing quad generation
+    - updated numeric literals (in lexer) to use the parser representation, to
+        avoid having multiple type representations
+    - updated struct addr to hold a type representation
+    - improved 3-addr quad generation to remove extra MOV operations (for
+        slightly more compact ("optimized"?) quads, but these will be turned
+        back into MOV operations because x86 is a 2-address architecture)
+    - implemented more arithmetic operations
 
 ---
   
