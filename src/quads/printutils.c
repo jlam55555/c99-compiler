@@ -9,6 +9,8 @@ char *opcode2str(enum opcode oc)
 	case OC_STORE:	return "STORE";
 	case OC_ADD:	return "ADD";
 	case OC_SUB:	return "SUB";
+	case OC_MUL:	return "MUL";
+	case OC_DIV:	return "DIV";
 	case OC_MOV:	return "MOV";
 	}
 

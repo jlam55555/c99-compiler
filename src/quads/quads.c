@@ -5,9 +5,14 @@
 #include <stdint.h>
 #include <parser.tab.h>
 
+// predeclaring some local functions
+static struct addr *gen_assign(union astnode *expr,
+	struct addr *target, struct basic_block *bb);
+
 // current function name and basic block number
 static char *fn_name;
 static int bb_no, tmp_no;
+struct loop *cur_loop;
 
 /**
  * TODO: add description to all these local (static) functions
@@ -23,6 +28,18 @@ static struct basic_block *basic_block_new()
 	return bb;
 }
 
+/**
+ * emits a new quad to the specified basic block
+ * 
+ * any of the operands or src may be null, depending on the opcode
+ * 
+ * @param bb		basic block to emit quad to
+ * @param opcode	quad opcode
+ * @param dest		quad destination; must be an lvalue
+ * @param src1		quad first operand
+ * @param src2		quad second operand
+ * @return		generated quad
+ */
 static struct quad *quad_new(struct basic_block *bb, enum opcode opcode,
 	struct addr *dest, struct addr *src1, struct addr *src2)
 {
@@ -44,6 +61,14 @@ static struct quad *quad_new(struct basic_block *bb, enum opcode opcode,
 	return quad;
 }
 
+/**
+ * constructs and returns a new struct addr (operand/dest to quad)
+ * 
+ * @param type		type of addr (memory (variable), immediate (constant),
+ * 			or temporary (register))
+ * @param decl		astnode representation of the type of the value
+ * @return		constructed struct addr
+ */
 static struct addr *addr_new(enum addr_type type, union astnode *decl)
 {
 	struct addr *addr = calloc(1, sizeof(struct addr));
@@ -57,6 +82,14 @@ static struct addr *addr_new(enum addr_type type, union astnode *decl)
 	return addr;
 }
 
+/**
+ * constructs and returns a new temporary pseudo-register (for subexpressions)
+ * 
+ * also gives the struct addr a unique ID
+ * 
+ * @param decl		astnode representation of the type of the value
+ * @return		constructed struct addr
+ */
 static struct addr *tmp_addr_new(union astnode *decl)
 {
 	struct addr *addr = addr_new(AT_TMP, decl);
@@ -150,10 +183,6 @@ static struct addr *gen_rvalue(union astnode *expr,
 		// sizeof with a symbol or constexpr
 		// TODO: note that sizeof returns type size_t, defined in
 		// 	stddef.h -- should represent this type somewhere
-		// TODO: our limited view of constexpr is that it is a number;
-		// 	for now assume even less, that it is an int (this is
-		// 	clearly not true; can be other basetypes, but right now
-		// 	the number representation is not consistent)
 		case SIZEOF:
 			// create 8-byte type like size_t (similar to
 			// unsigned long long in 64-bit systems)
@@ -194,39 +223,45 @@ static struct addr *gen_rvalue(union astnode *expr,
 				dest = src1;
 			}
 			return dest;
+
+		// pointer deref
+		case '*':
+			// check that the rvalue is a pointer type
+			// raise warning but allow this
+			if (NT(src1->decl) != NT_DECLARATOR_POINTER) {
+				yyerror("dereferencing non-pointer type");
+			}
+
+			if (!dest) {
+				// get the type that the pointer is pointing to
+				ts = expr->unop.arg->decl_pointer.of;
+				dest = tmp_addr_new(ts);
+			}
+
+			quad_new(bb, OC_LOAD, dest, src1, NULL);
+			return dest;
 		}
 		break;
 
 	// binary operator
 	case NT_BINOP:
 		switch(expr->binop.op){
-			case '+':	op = OC_ADD;	break;
-			case '-':	op = OC_SUB;	break;
-			case '*':	op = OC_MUL;	break;
-			case '/':	op = OC_DIV;	break;
-			case '%':	op = OC_MOD;	break;
-			case '&':	op = OC_AND;	break;
-			case '|':	op = OC_OR;	break;
-			case '^':	op = OC_XOR;	break;
-			case SHL:	op = OC_SHL;	break;
-			case SHR:	op = OC_SHR;	break;
+		case '+':	op = OC_ADD;	break;
+		case '-':	op = OC_SUB;	break;
+		case '*':	op = OC_MUL;	break;
+		case '/':	op = OC_DIV;	break;
+		case '%':	op = OC_MOD;	break;
+		case '&':	op = OC_AND;	break;
+		case '|':	op = OC_OR;	break;
+		case '^':	op = OC_XOR;	break;
+		case SHL:	op = OC_SHL;	break;
+		case SHR:	op = OC_SHR;	break;
+
+		// special binop: assignment
+		case '=':	return gen_assign(expr, dest, bb);
 		}
 
 		src1 = gen_rvalue(expr->binop.left, NULL, bb);
-
-		// if assignment, target for src2 is src1
-		if (expr->binop.op == '=') {
-			// TODO: check that src1 is an rvalue
-
-			src2 = gen_rvalue(expr->binop.right, src1, bb);
-
-			// if target, also emit mov quad
-			if (dest) {
-				quad_new(bb, OC_MOV, dest, src1, NULL);
-			}
-
-			return src1;
-		}
 		src2 = gen_rvalue(expr->binop.right, NULL, bb);
 
 		// TODO: +/- have to correctly implement pointer arithmetic
@@ -265,19 +300,6 @@ static struct addr *gen_rvalue(union astnode *expr,
 			}
 			quad_new(bb, OC_MUL, dest, src1, src2);
 			return dest;
-
-
-		// TODO: remove; gets replaced with above code
-		// // assignment: special case; set target
-		// case '=':
-		// 	// TODO: check that addr1 is an lvalue
-
-		// 	quad_new(bb, OC_MOV, addr1, addr2, NULL);
-
-		// 	// can return either addr1 or addr2; either should hold
-		// 	// the same value after the MOV opcode
-		// 	return addr1;
-
 		
 		}
 		break;
@@ -290,8 +312,164 @@ static struct addr *gen_rvalue(union astnode *expr,
 	return NULL;
 }
 
-static void generate_while_quads(union astnode *stmt)
+/**
+ * generate a lvalue (in the case of variable assignment)
+ * 
+ * semantic notes:
+ * - only is successful if expr is a variable (memory address) or deref
+ * - currently only scalar variables are supported, struct/union assignments
+ *  	are not
+ * 
+ * @param expr		expression astnode representing lvalue
+ * @param bb		containing basic block
+ * @param mode		set addressing mode
+ * @return		generated lvalue
+ */
+static struct addr *gen_lvalue(union astnode *expr,
+	struct basic_block *bb, enum addr_mode *mode)
 {
+	struct addr *dest;
+
+	switch (NT(expr)) {
+	
+	// variable
+	case NT_DECL:
+
+		// if abstract, not an lvalue; fallthrough to error
+		if (!expr->decl.ident) {
+			break;
+		}
+
+		switch (NT(expr->decl.components)) {
+
+		case NT_DECLSPEC:
+			if (NT(expr->decl.components->declspec.ts) !=
+				NT_TS_SCALAR) {
+				yyerror_fatal("assignment to struct/union"
+					" not supported (yet)");
+				return NULL;
+			}
+		case NT_DECLARATOR_POINTER:
+
+			*mode = AM_DIRECT;
+
+			dest = addr_new(AT_AST, expr->decl.components);
+			dest->val.astnode = expr;
+			return dest;
+		}
+
+		// TODO: this is not actually correct: it should not allow
+		// 	assignment to a function/array (but yes to pointer)
+		// switch (NT(expr->decl.declspec->declspec.ts)) {
+		// case NT_TS_SCALAR:
+		// 	*mode = AM_DIRECT;
+
+		// 	// wrap astnode in struct addr
+		// 	// following code copied from gen_rvalue
+
+			
+
+		// 	dest = addr_new(AT_AST, expr->decl.components);
+		// 	dest->val.astnode = expr;
+		// 	return dest;
+		// case NT_TS_STRUCT_UNION:
+		// 	NYI("assignment to struct/union");
+		// 	return NULL;
+		// }
+
+		// fallthrough: invalid lvalue (shouldn't happen)
+		break;
+
+	// deref
+	case NT_UNOP:
+		// only valid operation that returns an lvalue is deref,
+		// if not fallthrough to error
+		if (expr->unop.op != '*') {
+			break;
+		}
+
+		*mode = AM_INDIRECT;
+
+		dest = gen_rvalue(expr, NULL, bb);
+		return dest;
+	}
+
+	yyerror_fatal("quadgen: gen_lvalue fallthrough: invalid lvalue");
+	return NULL;
+}
+
+/**
+ * handle assignment expressions
+ * 
+ * semantic notes:
+ * - returns value in case it is used as an rvalue (note: assignment is an
+ * 	rvalue in C (section 6.5.16) but an lvalue in C++ (section 5.17))
+ * - if multiple chained assignments (i.e., dest is specified), then will also
+ * 	emit a MOV instruction
+ * 
+ * @param expr		assignment astnode expression
+ * @param target	destination if directly chained assignment to a variable
+ * @param bb		containing basic block
+ * @return		addr of RHS of expression (for use as an rvalue)
+ */
+static struct addr *gen_assign(union astnode *expr,
+	struct addr *target, struct basic_block *bb)
+{
+	struct addr *dest, *src;
+	enum addr_mode mode;
+
+	if (NT(expr) != NT_BINOP || expr->binop.op != '=') {
+		yyerror_fatal("quadgen: gen_assign(): not an assignment");
+		return NULL;
+	}
+
+	// generate lvalue; if invalid lvalue, will report and panic in
+	// gen_lvalue()
+	dest = gen_lvalue(expr->binop.left, bb, &mode);
+	if (mode == AM_DIRECT) {
+		src = gen_rvalue(expr->binop.right, dest, bb);
+	} else {
+		src = gen_rvalue(expr->binop.right, NULL, bb);
+		quad_new(bb, OC_STORE, NULL, src, dest);
+	}
+
+	// directly being assigned to a memory location, issue a MOV
+	if (target) {
+		quad_new(bb, OC_MOV, NULL, src, target);
+	}
+
+	return src;
+}
+
+
+/*Loops*/
+
+/*Function to allocate new loop*/
+struct loop *loop_new(void)
+{
+	struct loop *lp = malloc(sizeof(struct loop));
+	lp->prev = cur_loop;
+	return lp;
+
+	
+}
+
+
+
+static void generate_while_quads(union astnode *stmt, struct basic_block *bb)
+{
+	struct basic_block *bb_cond = basic_block_new();
+	struct basic_block *bb_body = basic_block_new();
+	struct basic_block *bb_next = basic_block_new();
+
+	//Continue and break points
+	bb->next_cond = bb_cond;
+	bb = bb_cond;
+
+	cur_loop = loop_new();
+	cur_loop->bb_cont = bb_cond;
+	
+	//generate_conditional_quads(stmt->stmt_while.cond, )
 
 }
 

@@ -82,6 +82,12 @@ struct addr {
 };
 
 /**
+ * addressing mode for lvalues: AM_DIRECT for regular variables (memory values),
+ * AM_INDIRECT for pointers (indirect memory values)
+ */
+enum addr_mode { AM_DIRECT, AM_INDIRECT };
+
+/**
  * Holds a linked list of quads (which may be in reverse order when building
  * the basic_block; see generate_quads()), and information about predecessor/
  * successor basic blocks
@@ -106,6 +112,13 @@ struct basic_block {
 	//	quad in the linked list?
 	struct quad *cond;
 };
+
+struct loop{
+	struct basic_block *bb_cont, *bb_break;
+	struct loop *prev;
+};
+
+
 
 /**
  * Generate basic blocks and quads for a function
