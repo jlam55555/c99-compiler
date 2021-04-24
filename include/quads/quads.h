@@ -11,8 +11,9 @@
  * List of opcodes for the quad IR
  */
 enum opcode {
-	OC_LOAD,
-	OC_STORE,
+	OC_LOAD,	// target = LOAD addr
+	OC_STORE,	// STORE value, addr
+	OC_LEA,		// target = LEA addr
 	OC_ADD,
 	OC_SUB,
 	OC_MOV,
@@ -27,12 +28,23 @@ enum opcode {
 	OC_CMP,
 	OC_LT,
 	OC_GT,
-	OC_LE,
-	OC_GE,
 	OC_EQ,
 	OC_NEQ,
+	OC_LTEQ,
+	OC_GTEQ,
+
+	OC_PMOV,	// pseudo-MOV/reinterpret
 	// TODO
 };
+
+enum branches {	NEVER=0,
+				ALWAYS=1, 
+				BR_LT,
+				BR_GT,
+				BR_EQ,
+				BR_NEQ,
+				BR_LTEQ,
+				BR_GTEQ,};
 
 /**
  * A single instruction in the quad (3-address) IR.
@@ -101,7 +113,7 @@ struct basic_block {
 	// basic block identifier
 	char *fn_name;
 	int bb_no;
-
+	enum branches branch;
 	// prev is predecessor BB
 	// next_def is default (fall-through) BB
 	// next_cond is non-default (conditional) BB
@@ -117,7 +129,6 @@ struct loop{
 	struct basic_block *bb_cont, *bb_break;
 	struct loop *prev;
 };
-
 
 
 /**
@@ -149,5 +160,14 @@ static void generate_if_else_quads(union astnode *expr, struct basic_block *bb);
  * @param Bf		basic block False
  */
 static void generate_conditional_quads(union astnode *expr, struct basic_block *bb, struct basic_block *Bt, struct basic_block *Bf);
+
+/**
+ * link basic blocks
+ * @param bb 	current
+ * @param branch	branching
+ * @param prev	previous bb
+ * @param next	next bb
+ */
+struct basic_block *link_basic_block(struct basic_block *bb, enum branches branch, struct basic_block *prev, struct basic_block *next);
 
 #endif

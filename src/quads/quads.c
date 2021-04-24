@@ -8,6 +8,7 @@
 // predeclaring some local functions
 static struct addr *gen_assign(union astnode *expr,
 	struct addr *target, struct basic_block *bb);
+static void generate_quads_rec(union astnode *stmt, struct basic_block *bb);
 
 // current function name and basic block number
 static char *fn_name;
@@ -109,14 +110,13 @@ static struct addr *tmp_addr_new(union astnode *decl)
  * when we get to assembly code generation, as x86 is a 2-address architecture.)
  * 
  * semantic notes:
+ * - currently no support for floating point in expressions, only simple
+ * 	scalar types (char, ([unspec]|short|long|long long) int)
+ * - currently no support for signed/unsigned type conversions
  * - if primary expression (scalar or constant):
  * 	- if no target, return as a struct addr
  * 	- if target is specified, emit MOV opcode
- * - if assignment (=):
- * 	- evaluate left lvalue (and check that it is an lvalue)
- * 	- evaluate right rvalue with target set to left lvalue
- * 	- if dest set, emit MOV quad from lvalue (arbitrarily chosen) to dest
- * 		(this happens if multiple assignments directly in a row)
+ * - if assignment (=): see gen_assign()
  * - if unary/binary expression, emit quad
  * 	- if dest is NULL, a temporary is created
  *	- if target, it is the destination of the quad
@@ -129,9 +129,10 @@ static struct addr *tmp_addr_new(union astnode *decl)
 static struct addr *gen_rvalue(union astnode *expr,
 	struct addr *dest, struct basic_block *bb)
 {
-	struct addr *src1, *src2;
+	struct addr *src1, *src2, *tmp, *tmp2;
 	union astnode *ts;
 	enum opcode op;
+	unsigned subtype_size;
 
 	// null expression
 	// this shouldn't happen but this is here as a safety measure
@@ -149,18 +150,60 @@ static struct addr *gen_rvalue(union astnode *expr,
 			return NULL;
 		}
 
-		src1 = addr_new(AT_AST, expr->decl.components);
-		src1->val.astnode = expr;
-
-		if (dest) {
-			quad_new(bb, OC_MOV, dest, src1, NULL);
-		} else {
-			dest = src1;
+		// don't support expressions with non-integral types
+		if (NT(expr->decl.components) == NT_DECLSPEC) {
+			ts = expr->decl.components->declspec.ts;
+			
+			if (NT(ts) == NT_TS_SCALAR
+				&& ts->ts_scalar.basetype != BT_INT
+				&& ts->ts_scalar.basetype != BT_CHAR) {
+				yyerror_fatal("only int, char types allowed in"
+					" expressions at this time");
+			}
 		}
+		
+		// treat array as pointer (special cases are treated elsewhere)	
+		if (NT(expr->decl.components) == NT_DECLARATOR_ARRAY) {
+			// TODO: maybe (?) change type to be that of a pointer
+			// TODO: in add/subtract/assign array, downgrade it
+			// 	and write a function to do this
+
+			// ALLOC_TYPE(ts, NT_DECLARATOR_POINTER);
+			// ts->decl_pointer.of =
+			// 	expr->decl.components->decl_array.of;
+			// src1 = addr_new(AT_AST, ts);
+			src1 = addr_new(AT_AST, expr->decl.components);
+			src1->val.astnode = expr;
+
+			if (!dest) {
+				dest = tmp_addr_new(src1->decl);
+			}
+			quad_new(bb, OC_LEA, dest, src1, NULL);
+		}
+		
+		// not a pointer
+		else {
+			src1 = addr_new(AT_AST, expr->decl.components);
+			src1->val.astnode = expr;
+
+			if (dest) {
+				quad_new(bb, OC_MOV, dest, src1, NULL);
+			} else {
+				dest = src1;
+			}
+		}
+
 		return dest;
 
 	// constant number
 	case NT_NUMBER:
+		// don't support expressions with non-integral types
+		if (expr->num.ts->ts_scalar.basetype != BT_INT
+			&& expr->num.ts->ts_scalar.basetype != BT_CHAR) {
+			yyerror_fatal("only int, char types allowed in"
+					" expressions at this time");
+		}
+
 		// convert into const
 		src1 = addr_new(AT_CONST, expr->num.ts);
 		*((uint64_t *)src1->val.constval) =
@@ -195,7 +238,7 @@ static struct addr *gen_rvalue(union astnode *expr,
 			*((uint64_t *)src2->val.constval)
 				= src1->type == AT_CONST
 				? src1->size
-				: astnode_sizeof_symbol(expr->unop.arg);
+				: astnode_sizeof_type(src1->decl);
 			
 			if (dest) {
 				quad_new(bb, OC_MOV, dest, src2, NULL);
@@ -227,17 +270,28 @@ static struct addr *gen_rvalue(union astnode *expr,
 		// pointer deref
 		case '*':
 			// check that the rvalue is a pointer type
-			if (NT(src1->decl) != NT_DECLARATOR_POINTER) {
+			if (NT(src1->decl) != NT_DECLARATOR_POINTER
+				&& NT(src1->decl) != NT_DECLARATOR_ARRAY) {
 				yyerror_fatal("dereferencing non-pointer type");
 			}
 
+			// create new addr of underlying type to store the
+			// result in
 			if (!dest) {
 				// get the type that the pointer is pointing to
-				ts = expr->unop.arg->decl_pointer.of;
+				ts = src1->decl->decl_pointer.of;
 				dest = tmp_addr_new(ts);
+
+				// noop "pseudo-mov," i.e., reinterpret pointer
+				// as different size but same pointer value
+				quad_new(bb, OC_PMOV, dest, src1, NULL);
 			}
 
-			quad_new(bb, OC_LOAD, dest, src1, NULL);
+			// noop if pointer to/array of array
+			if (NT(src1->decl->decl_array.of)
+				!= NT_DECLARATOR_ARRAY) {
+				quad_new(bb, OC_LOAD, dest, src1, NULL);
+			}
 			return dest;
 		}
 		break;
@@ -269,6 +323,45 @@ static struct addr *gen_rvalue(union astnode *expr,
 		switch (expr->binop.op) {
 		// arithmetic
 		case '+':
+			// helper: is array or pointer
+			#define AOP(addr) (NT(addr->decl) == NT_DECLARATOR_ARRAY \
+				|| NT(addr->decl) == NT_DECLARATOR_POINTER)
+
+			// make the first one the pointer, if applicable
+			if (AOP(src2)) {
+				tmp = src2;
+				src2 = src1;
+				src1 = tmp;
+			}
+
+			// error case: pointer + pointer
+			if (AOP(src1) && AOP(src2)) {
+				yyerror_fatal("pointer + pointer");
+				return NULL;
+			}
+
+			// special case: pointer + int;
+			if (AOP(src1)) {
+				// insert operation to multiply src2 by sizeof
+				// src1 subtype
+
+				// see notes above
+				ALLOC_TYPE(ts, NT_TS_SCALAR);
+				ts->ts_scalar.basetype = BT_INT;
+				ts->ts_scalar.modifiers.lls = LLS_LONG_LONG;
+				ts->ts_scalar.modifiers.sign = SIGN_UNSIGNED;
+
+				// convert into const
+				tmp = addr_new(AT_CONST, ts);
+				*((uint64_t *)tmp->val.constval) =
+					astnode_sizeof_type(src1->decl->
+						decl_pointer.of);
+
+				tmp2 = tmp_addr_new(src2->decl);
+				quad_new(bb, OC_MUL, tmp2, tmp, src2);
+				src2 = tmp2;
+			}
+
 			// create new tmp
 			// TODO: choose larger of two sizes
 			// 	(or better yet, use real types rather than just
@@ -373,7 +466,8 @@ static struct addr *gen_lvalue(union astnode *expr,
 		dest = gen_rvalue(expr->unop.arg, NULL, bb);
 
 		// check that the rvalue is a pointer type
-		if (NT(dest->decl) != NT_DECLARATOR_POINTER) {
+		if (NT(dest->decl) != NT_DECLARATOR_POINTER
+			&& NT(dest->decl) != NT_DECLARATOR_ARRAY) {
 			yyerror_fatal("dereferencing non-pointer type");
 		}
 
@@ -440,6 +534,54 @@ struct loop *loop_new(void)
 	
 }
 
+static void generate_for_quads(union astnode *stmt, struct basic_block *bb)
+{
+
+	struct basic_block *bb_cond = basic_block_new();
+	struct basic_block *bb_body = basic_block_new();
+	struct basic_block *bb_update = basic_block_new();
+	struct basic_block *bb_next = basic_block_new();
+
+	cur_loop = loop_new();
+	//Continue and break points
+	cur_loop->bb_cont = bb_cond;
+	cur_loop->bb_break = bb_next;
+
+	//gen_assign(stmt->stmt_for.init);
+
+	
+
+	
+}
+
+
+
+static void generate_do_while_quads(union astnode *stmt, struct basic_block *bb)
+{
+	struct basic_block *bb_cond = basic_block_new();
+	struct basic_block *bb_body = basic_block_new();
+	struct basic_block *bb_next = basic_block_new();
+
+	cur_loop = loop_new();
+	//Continue and break points
+	cur_loop->bb_cont = bb_cond;
+	cur_loop->bb_break = bb_next;
+
+	link_basic_block(bb, ALWAYS, bb_body, NULL);
+	bb = bb_body;
+
+	generate_quads_rec(stmt->stmt_while.body, bb);
+
+	link_basic_block(bb, ALWAYS, bb_cond, NULL);
+	bb = bb_cond;
+
+	generate_conditional_quads(stmt->stmt_while.cond, bb, bb_body, bb_next);
+
+	bb = bb_next;
+	cur_loop = cur_loop->prev;
+
+
+}
 
 
 static void generate_while_quads(union astnode *stmt, struct basic_block *bb)
@@ -448,15 +590,24 @@ static void generate_while_quads(union astnode *stmt, struct basic_block *bb)
 	struct basic_block *bb_body = basic_block_new();
 	struct basic_block *bb_next = basic_block_new();
 
-	//Continue and break points
-	bb->next_cond = bb_cond;
-	bb = bb_cond;
 
 	cur_loop = loop_new();
+	//Continue and break points
 	cur_loop->bb_cont = bb_cond;
+	cur_loop->bb_break = bb_next;
+
+	link_basic_block(bb, ALWAYS, bb_cond, NULL);
+	bb = bb_cond;
+
+	generate_conditional_quads(stmt->stmt_while.cond, bb, bb_body, bb_next);
 	
-	
-	//generate_conditional_quads(stmt->stmt_while.cond, )
+	bb = bb_body;
+	generate_quads_rec(stmt->stmt_while.body, bb);
+
+	link_basic_block(bb, ALWAYS, bb_cond, NULL);
+
+	bb = bb_next;
+	cur_loop = cur_loop->prev;
 	
 }
 
@@ -478,6 +629,22 @@ static void generate_if_else_quads(union astnode *expr, struct basic_block *bb)
 		Bn = Bf;
 
 	generate_conditional_quads(expr->stmt_if_else.ifstmt, bb, Bt, Bf);
+
+	bb = Bt;
+	
+	generate_quads_rec(expr->stmt_if_else.ifstmt, bb);
+	link_basic_block(bb, ALWAYS, Bn, NULL);
+
+	if(expr->stmt_if_else.elsestmt)
+	{
+		bb = Bf;
+		generate_quads_rec(expr->stmt_if_else.elsestmt, bb);
+		link_basic_block(bb, ALWAYS, Bn, NULL);
+		
+	}
+
+	bb = Bn;
+
 	
 }
 
@@ -496,17 +663,19 @@ static void generate_conditional_quads(union astnode *expr, struct basic_block *
 	{
 		case NT_BINOP:;
 			struct addr *addr1 = gen_rvalue(expr->binop.left, NULL, bb);
-			struct addr *addr2 = gen_rvalue(expr->binop.left, NULL, bb);
+			struct addr *addr2 = gen_rvalue(expr->binop.right, NULL, bb);
 			quad_new(bb, OC_CMP, NULL, addr1, addr2);
+
+			// struct addr *addr_bt = gen
 			switch(expr->binop.op)
 			{
-				case '<':	break;
-				case '>':	break;
-				case LTEQ:	break;
-				case GTEQ:	break;
-				case EQEQ:	break;
-				case NOTEQ:	break;
-				default:	;
+				case '<':	link_basic_block(bb, BR_LT, Bt, Bf);	break;
+				case '>':	link_basic_block(bb, BR_GT, Bt, Bf);	break;
+				case LTEQ:	link_basic_block(bb, BR_LTEQ, Bt, Bf);	break;
+				case GTEQ:	link_basic_block(bb, BR_GTEQ, Bt, Bf);	break;
+				case EQEQ:	link_basic_block(bb, BR_EQ, Bt, Bf);	break;
+				case NOTEQ:	link_basic_block(bb, BR_NEQ, Bt, Bf);	break;
+				default:	yyerror("binop in conditional expr\n");
 			}
 			break;
 		
@@ -515,6 +684,15 @@ static void generate_conditional_quads(union astnode *expr, struct basic_block *
 
 }
 
+
+struct basic_block *link_basic_block(struct basic_block *bb, enum branches branch, struct basic_block *prev, struct basic_block *next)
+{
+	bb->branch = branch;
+	bb->prev = prev;
+	bb->next_cond = next;
+
+	return bb;
+}
 
 
 /**
@@ -579,14 +757,18 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 	// conditional jump statement
 	// TODO: also ternary?
 	case NT_STMT_IFELSE:
-		NYI("conditional jump statement quad generation");
+		generate_if_else_quads(stmt, bb);
 		break;
 
 	// loops
 	case NT_STMT_FOR:
+		generate_for_quads(stmt, bb);
+		break;
 	case NT_STMT_WHILE:
+		generate_while_quads(stmt, bb);
+		break;
 	case NT_STMT_DO_WHILE:
-		NYI("loop quad generation");
+		generate_do_while_quads(stmt, bb);
 		break;
 
 	default:

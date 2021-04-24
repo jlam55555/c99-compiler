@@ -7,11 +7,16 @@ char *opcode2str(enum opcode oc)
 	switch (oc) {
 	case OC_LOAD:	return "LOAD";
 	case OC_STORE:	return "STORE";
+	case OC_LEA:	return "LEA";
 	case OC_ADD:	return "ADD";
 	case OC_SUB:	return "SUB";
 	case OC_MUL:	return "MUL";
 	case OC_DIV:	return "DIV";
 	case OC_MOV:	return "MOV";
+	case OC_CMP:	return "CMP";
+
+	// pseudo-opcode
+	case OC_PMOV:	return "PSEUDO-MOV";
 	}
 
 	yyerror_fatal("invalid opcode");
@@ -109,6 +114,20 @@ void print_basic_block(struct basic_block *bb)
 	_LL_FOR(bb->ll, iter, next) {
 		print_quad(iter);
 	}
+	
+	switch(bb->branch){
+		case NEVER:		break;
+		case ALWAYS:	fprintf(fp, "BR .BB.%s.%d\n", bb->prev->fn_name, bb->prev->bb_no);
+		// case BR_LT:		fprintf(fp, "BRLT .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev->bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
+		// case BR_GT:		fprintf(fp, "BRGT .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
+		// case BR_EQ:		fprintf(fp, "BREQ .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
+		// case BR_NEQ:	fprintf(fp, "BRNE .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
+		// case BR_LTEQ:	fprintf(fp, "BRLE .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
+		// case BR_GTEQ:	fprintf(fp, "BRGE .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
+
+	}
+
+
 }
 
 void print_basic_blocks(struct basic_block *bb)
