@@ -16,7 +16,9 @@ static int bb_no, tmp_no;
 struct loop *cur_loop;
 
 /**
- * TODO: add description to all these local (static) functions
+ * generates a new basic block with a unique identifier
+ * 
+ * @return		a new basic block
  */
 static struct basic_block *basic_block_new()
 {
@@ -684,6 +686,17 @@ static void generate_conditional_quads(union astnode *expr, struct basic_block *
 
 }
 
+static void generate_cont_break_quads(union astnode *stmt, struct basic_block *bb)
+{
+	if(NT(stmt))
+		link_basic_block(bb, ALWAYS, cur_loop->bb_break, NULL);
+	else
+	{
+		if(NT(stmt))
+			link_basic_block(bb, ALWAYS, cur_loop->bb_cont, NULL);
+	}
+}
+
 
 struct basic_block *link_basic_block(struct basic_block *bb, enum branches branch, struct basic_block *prev, struct basic_block *next)
 {
@@ -748,8 +761,10 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 	// unconditional jump statements; terminate current basic block
 	// (but have to keep going in case of labels further on)
 	case NT_STMT_RETURN:
+		break;
 	case NT_STMT_CONT:
 	case NT_STMT_BREAK:
+		break;
 	case NT_STMT_GOTO:
 		NYI("unconditional jump statement quad generation");
 		break;
@@ -780,6 +795,12 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 	generate_quads_rec(LL_NEXT(stmt), bb);
 }
 
+/**
+ * begin generating quads at the top-level (function level)
+ * 
+ * @param fn_decl	function declaration to generate quads for
+ * @return		basic block CFG
+ */
 struct basic_block *generate_quads(union astnode *fn_decl)
 {
 	struct basic_block *fn_bb;

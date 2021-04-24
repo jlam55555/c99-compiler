@@ -165,6 +165,25 @@ Fixes (from previous assignment):
         slightly more compact ("optimized"?) quads, but these will be turned
         back into MOV operations because x86 is a 2-address architecture)
     - implemented more arithmetic operations
+- 4/24/21: continuing quad generation
+    - updated (most) function names to match Hak's notes
+    - added more functionality to gen_rvalue function
+    - implemented gen_lvalue, gen_assign functions
+    - implemented most array/pointer dereferencing behavior, including:
+        - pointer addition (not subtraction yet)
+        - multidimensional arrays
+        - dereferencing of pointer/array to array (no-op/reinterpret cast-like)
+
+TODO (Jon, 4/24/21, Quad generation expressions)
+- demote arrays when assigned-from/added/subtracted/dereferenced/addressof-ed
+- more operations (logical, cmp, bitwise)
+- pointer subtraction
+- automatic type conversion
+- explicit type conversion (casting)
+- stricter typing
+- function calls
+- don't allow function call on non-function symbol
+- don't emit opcodes in sizeof (minor issue)
 
 ---
   
