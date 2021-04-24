@@ -136,16 +136,18 @@ struct basic_block *generate_quads(union astnode *fn_decl);
  * generate quads for if else statements
  *
  * @param expr		expression in if
+ * @param bb		current basic block
  */
-static void generate_if_else_quads(union astnode *expr);
+static void generate_if_else_quads(union astnode *expr, struct basic_block *bb);
 
 /**
  * generate quads for conditional expression
  *
  * @param expr		expression in if
+ * @param bb		current basic block
  * @param Bt		basic block Then
  * @param Bf		basic block False
  */
-static void generate_conditional_quads(union astnode *expr, struct basic_block *Bt, struct basic_block *Bf);
+static void generate_conditional_quads(union astnode *expr, struct basic_block *bb, struct basic_block *Bt, struct basic_block *Bf);
 
 #endif

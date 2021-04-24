@@ -227,9 +227,8 @@ static struct addr *gen_rvalue(union astnode *expr,
 		// pointer deref
 		case '*':
 			// check that the rvalue is a pointer type
-			// raise warning but allow this
 			if (NT(src1->decl) != NT_DECLARATOR_POINTER) {
-				yyerror("dereferencing non-pointer type");
+				yyerror_fatal("dereferencing non-pointer type");
 			}
 
 			if (!dest) {
@@ -358,25 +357,6 @@ static struct addr *gen_lvalue(union astnode *expr,
 			return dest;
 		}
 
-		// TODO: this is not actually correct: it should not allow
-		// 	assignment to a function/array (but yes to pointer)
-		// switch (NT(expr->decl.declspec->declspec.ts)) {
-		// case NT_TS_SCALAR:
-		// 	*mode = AM_DIRECT;
-
-		// 	// wrap astnode in struct addr
-		// 	// following code copied from gen_rvalue
-
-			
-
-		// 	dest = addr_new(AT_AST, expr->decl.components);
-		// 	dest->val.astnode = expr;
-		// 	return dest;
-		// case NT_TS_STRUCT_UNION:
-		// 	NYI("assignment to struct/union");
-		// 	return NULL;
-		// }
-
 		// fallthrough: invalid lvalue (shouldn't happen)
 		break;
 
@@ -390,7 +370,13 @@ static struct addr *gen_lvalue(union astnode *expr,
 
 		*mode = AM_INDIRECT;
 
-		dest = gen_rvalue(expr, NULL, bb);
+		dest = gen_rvalue(expr->unop.arg, NULL, bb);
+
+		// check that the rvalue is a pointer type
+		if (NT(dest->decl) != NT_DECLARATOR_POINTER) {
+			yyerror_fatal("dereferencing non-pointer type");
+		}
+
 		return dest;
 	}
 
@@ -469,16 +455,18 @@ static void generate_while_quads(union astnode *stmt, struct basic_block *bb)
 	cur_loop = loop_new();
 	cur_loop->bb_cont = bb_cond;
 	
+	
 	//generate_conditional_quads(stmt->stmt_while.cond, )
-
+	
 }
 
 /**
  * generate quads for if else statements
  *
  * @param expr		expression in if
+ * @param bb		expression in if
  */
-static void generate_if_else_quads(union astnode *expr)
+static void generate_if_else_quads(union astnode *expr, struct basic_block *bb)
 {
 	struct basic_block *Bt = basic_block_new();
 	struct basic_block *Bf = basic_block_new();
@@ -489,7 +477,7 @@ static void generate_if_else_quads(union astnode *expr)
 	else
 		Bn = Bf;
 
-	generate_conditional_quads(expr->stmt_if_else.ifstmt, Bt, Bf);
+	generate_conditional_quads(expr->stmt_if_else.ifstmt, bb, Bt, Bf);
 	
 }
 
@@ -497,12 +485,13 @@ static void generate_if_else_quads(union astnode *expr)
  * generate quads for conditional expression
  *
  * @param expr		expression in if
+ * @param bb		current basic block
  * @param Bt		basic block Then
  * @param Bf		basic block False
  */
-static void generate_conditional_quads(union astnode *expr, struct basic_block *Bt, struct basic_block *Bf)
+static void generate_conditional_quads(union astnode *expr, struct basic_block *bb, struct basic_block *Bt, struct basic_block *Bf)
 {
-	struct basic_block *bb = basic_block_new();
+
 	switch(expr->generic.type)
 	{
 		case NT_BINOP:;
