@@ -173,6 +173,9 @@ Fixes (from previous assignment):
         - pointer addition (not subtraction yet)
         - multidimensional arrays
         - dereferencing of pointer/array to array (no-op/reinterpret cast-like)
+- 4/26/21: continuing quad generation
+    - added addressof operator
+    - added option to demote (reinterpret) arrays to pointers for most operations
 
 TODO (Jon, 4/24/21, Quad generation expressions)
 - demote arrays when assigned-from/added/subtracted/dereferenced/addressof-ed

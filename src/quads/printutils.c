@@ -16,7 +16,7 @@ char *opcode2str(enum opcode oc)
 	case OC_CMP:	return "CMP";
 
 	// pseudo-opcode
-	case OC_PMOV:	return "PSEUDO-MOV";
+	case OC_CAST:	return "CAST";
 	}
 
 	yyerror_fatal("invalid opcode");

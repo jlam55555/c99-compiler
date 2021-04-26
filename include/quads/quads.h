@@ -1,5 +1,7 @@
 /**
  * Defining the data structures and functions for quads and basic blocks.
+ *
+ * See also: exprquads.h for
  */
 
 #ifndef QUADSH
@@ -33,8 +35,9 @@ enum opcode {
 	OC_LTEQ,
 	OC_GTEQ,
 
-	OC_PMOV,	// pseudo-MOV/reinterpret
-	// TODO
+	// generic cast operation -- may be noop, may not; exact implementation
+	// is deferred to the target code generation stage
+	OC_CAST,
 };
 
 enum branches {	NEVER=0,
@@ -124,6 +127,49 @@ struct basic_block {
 	//	quad in the linked list?
 	struct quad *cond;
 };
+
+/**
+ * generates a new basic block with a unique identifier
+ *
+ * @return		a new basic block
+ */
+struct basic_block *basic_block_new(void);
+
+/**
+ * emits a new quad to the specified basic block
+ *
+ * any of the operands or src may be null, depending on the opcode
+ *
+ * @param bb		basic block to emit quad to
+ * @param opcode	quad opcode
+ * @param dest		quad destination; must be an lvalue
+ * @param src1		quad first operand
+ * @param src2		quad second operand
+ * @return		generated quad
+ */
+struct quad *quad_new(struct basic_block *bb, enum opcode opcode,
+	struct addr *dest, struct addr *src1, struct addr *src2);
+
+/**
+ * constructs and returns a new struct addr (operand/dest to quad)
+ *
+ * @param type		type of addr (memory (variable), immediate (constant),
+ * 			or temporary (register))
+ * @param decl		astnode representation of the type of the value
+ * @return		constructed struct addr
+ */
+struct addr *addr_new(enum addr_type type, union astnode *decl);
+
+/**
+ * constructs and returns a new temporary pseudo-register (for subexpressions)
+ *
+ * also gives the struct addr a unique ID
+ *
+ * @param decl		astnode representation of the type of the value
+ * @return		constructed struct addr
+ */
+struct addr *tmp_addr_new(union astnode *decl);
+
 
 struct loop{
 	struct basic_block *bb_cont, *bb_break;
