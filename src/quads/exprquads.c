@@ -60,6 +60,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		return NULL;
 	}
 
+	// TODO: implement remaining operators
 	switch (NT(expr)) {
 
 	// symbol
@@ -209,6 +210,12 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 				quad_new(bb, OC_CAST, dest, src1, NULL);
 			}
 			return dest;
+
+		// TODO: implement addressof operator
+
+		// TODO: implement fncall (is it a unop?)
+
+		// TODO: implement casting (explicit type conversions)
 		}
 		break;
 
@@ -238,9 +245,6 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		demote_array(src1);
 		demote_array(src2);
 
-		// TODO: +/- have to correctly implement pointer arithmetic
-		// 	(have to check type of their operands, which means
-		// 	that we have to associate type with struct addrs)
 		switch (expr->binop.op) {
 		// arithmetic
 		case '+':
@@ -284,15 +288,13 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			}
 
 			// create new tmp
-			// TODO: choose larger of two sizes
-			// 	(or better yet, use real types rather than just
-			// 	sizes)
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
 			quad_new(bb, OC_ADD, dest, src1, src2);
 			return dest;
 
+		// TODO: implement pointer subtraction
 		case '-':
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
@@ -361,7 +363,7 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 		// fallthrough: invalid lvalue (shouldn't happen)
 		break;
 
-		// deref
+	// deref
 	case NT_UNOP:
 		// only valid operation that returns an lvalue is deref,
 		// if not fallthrough to error

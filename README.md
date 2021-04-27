@@ -173,7 +173,7 @@ Fixes (from previous assignment):
         - pointer addition (not subtraction yet)
         - multidimensional arrays
         - dereferencing of pointer/array to array (no-op/reinterpret cast-like)
-- 4/26/21: continuing quad generation
+- 4/26/21: continuing expression quad generation
     - refactored quad gen for expressions to new file
     - updated sizeof(expr) to output quads to dummy bb so they don't show up
         in the final quad output
@@ -183,21 +183,13 @@ Fixes (from previous assignment):
         what Hak puts in his assignments
         - DEBUG2 prints out type information for struct addr
         - DEBUG2 makes sizeof(expr) emit quads to regular (non-dummy) output
-    - TODO: add addressof operator
-    - TODO: implement more operations
-    - TODO: function calls
     - TODO: pointer subtraction
-
-TODO (Jon, 4/24/21, Quad generation expressions)
-- demote arrays when assigned-from/added/subtracted/dereferenced/addressof-ed
-- more operations (logical, cmp, bitwise)
-- pointer subtraction
-- automatic type conversion
-- explicit type conversion (casting)
-- stricter typing
-- function calls
-- don't allow function call on non-function symbol
-- don't emit opcodes in sizeof (minor issue)
+    - TODO: add addressof operator
+    - TODO: function calls (and don't allow function calls on non-function
+        objects)
+    - TODO: implement explicit type conversion
+    - TODO: set correct output type based on input types (implicit conversions)
+    - TODO: implement all operations
 
 ---
   
