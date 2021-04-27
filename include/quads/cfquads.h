@@ -8,21 +8,31 @@
 
 #include <parser/astnode.h>
 
-enum branches {	NEVER=0,
-        ALWAYS=1,
-        BR_LT,
-        BR_GT,
-        BR_EQ,
-        BR_NEQ,
-        BR_LTEQ,
-        BR_GTEQ,};
-
-struct loop{
-        struct basic_block *bb_cont, *bb_break;
-        struct loop *prev;
+/**
+ * TODO: need documentation
+ */
+enum branches {
+	NEVER=0,
+	ALWAYS=1,
+	BR_LT,
+	BR_GT,
+	BR_EQ,
+	BR_NEQ,
+	BR_LTEQ,
+	BR_GTEQ,
 };
 
+/**
+ * TODO: need documentation
+ */
+struct loop {
+	struct basic_block *bb_cont, *bb_break;
+	struct loop *prev;
+};
 
+/**
+ * TODO: need documentation
+ */
 void generate_for_quads(union astnode *stmt, struct basic_block *bb);
 
 /**
@@ -52,6 +62,9 @@ void generate_conditional_quads(union astnode *expr, struct basic_block *bb, str
  */
 struct basic_block *link_basic_block(struct basic_block *bb, enum branches branch, struct basic_block *prev, struct basic_block *next);
 
+/**
+ * TODO: need documentation
+ */
 void generate_while_quads(union astnode *stmt, struct basic_block *bb);
 void generate_do_while_quads(union astnode *stmt, struct basic_block *bb);
 

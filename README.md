@@ -21,6 +21,12 @@ This will build to the `build` directory.
 
 ---
 
+### Code Style
+Code style roughly follows the [Linux kernel coding style][styleguide], which
+itself has an affinity for K&R conventions.
+
+---
+
 ### Implementation details
 This parser will attempt to implement much of the C99 standard, except
 where specified. The lexer also includes some C11 support (namely,
@@ -185,7 +191,7 @@ Fixes (from previous assignment):
         - multidimensional arrays
         - dereferencing of pointer/array to array (no-op/reinterpret cast-like)
 - 4/26/21: continuing expression quad generation
-    - refactored quad gen for expressions to new file
+    - refactored quad gen for expressions, control flow to new files
     - updated sizeof(expr) to output quads to dummy bb so they don't show up
         in the final quad output
     - consolidated all dereferencing, variable values from gen_rvalue into
@@ -211,3 +217,4 @@ Fixes (from previous assignment):
 ---
   
 [cmake-oos]: https://www.cs.swarthmore.edu/~adanner/tips/cmake.php
+[styleguide]: https://www.kernel.org/doc/html/latest/process/coding-style.html
