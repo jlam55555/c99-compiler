@@ -9,6 +9,7 @@
 #define QUADSH
 
 #include <parser/astnode.h>
+#include <quads/cfquads.h>
 
 /**
  * List of opcodes for the quad IR
@@ -50,15 +51,6 @@ enum opcode {
 	// is stored in target and src type declaration info
 	OC_CAST,	// target = CAST src
 };
-
-enum branches {	NEVER=0,
-				ALWAYS=1, 
-				BR_LT,
-				BR_GT,
-				BR_EQ,
-				BR_NEQ,
-				BR_LTEQ,
-				BR_GTEQ,};
 
 /**
  * A single instruction in the quad (3-address) IR.
@@ -193,50 +185,24 @@ struct addr *addr_new(enum addr_type type, union astnode *decl);
  */
 struct addr *tmp_addr_new(union astnode *decl);
 
-
-struct loop{
-	struct basic_block *bb_cont, *bb_break;
-	struct loop *prev;
-};
-
+/**
+ * iteratively and recursively generates a linked-list of basic blocks and quads
+ *
+ * @param stmt		linked list of statements to generate quads for
+ * @param bb		current basic block
+ */
+void generate_quads_rec(union astnode *stmt, struct basic_block *bb);
 
 /**
- * Generate basic blocks and quads for a function
+ * Generate basic blocks and quads for a function (top-level)
  *
  * Like complex declarations, basic blocks are built "in reverse" (by nature
  * of a singly-linked list) and then reversed when complete. While having a
  * second pointer would make it easy to build in the correct order, we do away
  * with all the troubles of maintaining extra pointers.
- * 
+ *
  * @param fn_decl		declarator for a function definition
  */
 struct basic_block *generate_quads(union astnode *fn_decl);
-
-/**
- * generate quads for if else statements
- *
- * @param expr		expression in if
- * @param bb		current basic block
- */
-static void generate_if_else_quads(union astnode *expr, struct basic_block *bb);
-
-/**
- * generate quads for conditional expression
- *
- * @param expr		expression in if
- * @param bb		current basic block
- * @param Bt		basic block Then
- * @param Bf		basic block False
- */
-static void generate_conditional_quads(union astnode *expr, struct basic_block *bb, struct basic_block *Bt, struct basic_block *Bf);
-
-/**
- * link basic blocks
- * @param bb 	current
- * @param branch	branching
- * @param prev	previous bb
- * @param next	next bb
- */
-struct basic_block *link_basic_block(struct basic_block *bb, enum branches branch, struct basic_block *prev, struct basic_block *next);
 
 #endif
