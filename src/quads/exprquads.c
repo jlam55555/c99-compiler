@@ -84,49 +84,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 	case NT_DECL:
 		return gen_lvalue(expr, bb, NULL, dest);
 
-//		// if abstract, don't do anything and don't return anything
-//		if (!expr->decl.ident) {
-//			return NULL;
-//		}
-//
-//		// don't support expressions with non-integral types
-//		if (NT(expr->decl.components) == NT_DECLSPEC) {
-//			ts = expr->decl.components->declspec.ts;
-//
-//			if (NT(ts) == NT_TS_SCALAR
-//			    && ts->ts_scalar.basetype != BT_INT
-//			    && ts->ts_scalar.basetype != BT_CHAR) {
-//				yyerror_fatal("only int, char types allowed in"
-//					      " expressions at this time");
-//			}
-//		}
-//
-//		// treat array as pointer (special cases are treated elsewhere)
-//		if (NT(expr->decl.components) == NT_DECLARATOR_ARRAY) {
-//			src1 = addr_new(AT_AST, expr->decl.components);
-//			src1->val.astnode = expr;
-//
-//			if (!dest) {
-//				dest = tmp_addr_new(src1->decl);
-//			}
-//			quad_new(bb, OC_LEA, dest, src1, NULL);
-//		}
-//
-//		// not an array
-//		else {
-//			src1 = addr_new(AT_AST, expr->decl.components);
-//			src1->val.astnode = expr;
-//
-//			if (dest) {
-//				quad_new(bb, OC_MOV, dest, src1, NULL);
-//			} else {
-//				dest = src1;
-//			}
-//		}
-//
-//		return dest;
-
-		// constant number
+	// constant number
 	case NT_NUMBER:
 		// don't support expressions with non-integral types
 		if (expr->num.ts->ts_scalar.basetype != BT_INT
@@ -199,6 +157,9 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		// TODO: implement these
 		// lvalue unops: & (addressof), ++, -- (post inc/dec)
 		switch (expr->unop.op) {
+		// pointer deref
+		case '*':
+			return gen_lvalue(expr, bb, NULL, dest);
 
 		// addressof
 		case '&':
@@ -216,40 +177,10 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		}
 
 		// other rvalue unops: these generate quads and demote arrays
-//		src1 = gen_rvalue(expr->unop.arg, NULL, bb);
-//		demote_array(src1);
+		src1 = gen_rvalue(expr->unop.arg, NULL, bb);
+		demote_array(src1);
 
 		switch (expr->unop.op) {
-		// pointer deref
-		case '*':
-			return gen_lvalue(expr, bb, NULL, dest);
-
-//			demote_array(src1);
-//
-//			// check that the rvalue is a pointer type
-//			if (NT(src1->decl) != NT_DECLARATOR_POINTER) {
-//				yyerror_fatal("dereferencing non-pointer type");
-//			}
-//
-//			// create new addr of underlying type to store the
-//			// result in
-//			if (!dest) {
-//				// get the type that the pointer is pointing to
-//				ts = src1->decl->decl_pointer.of;
-//				dest = tmp_addr_new(ts);
-//			}
-//
-//			// noop not pointing to an array
-//			if (NT(src1->decl->decl_array.of)
-//				!= NT_DECLARATOR_ARRAY) {
-//				quad_new(bb, OC_LOAD, dest, src1, NULL);
-//			}
-//			// noop cast i.e., reinterpret pointer
-//			// as different size but same pointer value
-//			else {
-//				quad_new(bb, OC_CAST, dest, src1, NULL);
-//			}
-//			return dest;
 
 		// TODO: implement addressof operator
 
