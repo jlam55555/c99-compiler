@@ -37,7 +37,11 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 	struct basic_block *bb);
 
 /**
- * generate a lvalue (in the case of variable assignment)
+ * generate a lvalue
+ *
+ * (for left side of assignments, ++, and -- operators; addrof (&) is handled
+ * separately because we want to elide the LOAD operation in something like
+ * &*var)
  *
  * semantic notes:
  * - only is successful if expr is a variable (memory address) or deref
@@ -50,7 +54,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
  * @return		generated lvalue
  */
 struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
-	enum addr_mode *mode);
+	enum addr_mode *mode, struct addr *dest);
 
 /**
  * handle assignment expressions

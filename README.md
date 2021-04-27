@@ -177,6 +177,8 @@ Fixes (from previous assignment):
     - refactored quad gen for expressions to new file
     - updated sizeof(expr) to output quads to dummy bb so they don't show up
         in the final quad output
+    - consolidated all dereferencing, variable values from gen_rvalue into
+        gen_lvalue to avoid duplication
     - implemented arrays demote to regular pointers for all operations except
         direct argument to sizeof
     - implemented a second debugging level (DEBUG2) for more debug info than

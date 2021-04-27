@@ -3,6 +3,30 @@
 #include <parser.tab.h>
 
 /**
+ * helper function to demote astnode array to pointer
+ *
+ * @param decl 		astnode representation of pointer type
+ * @return 		pointer type if input type is array, else original type
+ */
+static union astnode *astnode_demote_array(union astnode *decl)
+{
+	union astnode *ptr;
+
+	// if not array type, ignore
+	if (NT(decl) != NT_DECLARATOR_ARRAY) {
+		return decl;
+	}
+
+	ALLOC_TYPE(ptr, NT_DECLARATOR_POINTER);
+	ptr->decl_pointer.of = decl->decl_array.of;
+
+	return ptr;
+
+	// memory management is horrible -- this will cause really annoying
+	// dangling pointers if you actually try to free memory
+}
+
+/**
  * helper function to demote array to pointer type if not direct arg to sizeof;
  * if not an array type, no-op
  *
@@ -12,19 +36,10 @@ static void demote_array(struct addr *addr)
 {
 	union astnode *ptr;
 
-	// if not array type, ignore
-	if (NT(addr->decl) != NT_DECLARATOR_ARRAY) {
-		return;
+	if ((ptr = astnode_demote_array(addr->decl)) != addr->decl) {
+		addr->decl = ptr;
+		addr->size = astnode_sizeof_type(ptr);
 	}
-
-	ALLOC_TYPE(ptr, NT_DECLARATOR_POINTER);
-	ptr->decl_pointer.of = addr->decl->decl_array.of;
-	addr->decl = ptr;
-
-	addr->size = astnode_sizeof_type(ptr);
-
-	// memory management is horrible -- this will cause really annoying
-	// dangling pointers if you actually try to free memory
 }
 
 /**
@@ -50,6 +65,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 {
 	struct addr *src1, *src2, *tmp, *tmp2;
 	struct quad *quad;
+	enum addr_mode mode;
 	union astnode *ts;
 	enum opcode op;
 	unsigned subtype_size;
@@ -66,47 +82,49 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 	// symbol
 	case NT_DECL:
-		// if abstract, don't do anything and don't return anything
-		if (!expr->decl.ident) {
-			return NULL;
-		}
+		return gen_lvalue(expr, bb, NULL, dest);
 
-		// don't support expressions with non-integral types
-		if (NT(expr->decl.components) == NT_DECLSPEC) {
-			ts = expr->decl.components->declspec.ts;
-
-			if (NT(ts) == NT_TS_SCALAR
-			    && ts->ts_scalar.basetype != BT_INT
-			    && ts->ts_scalar.basetype != BT_CHAR) {
-				yyerror_fatal("only int, char types allowed in"
-					      " expressions at this time");
-			}
-		}
-
-		// treat array as pointer (special cases are treated elsewhere)
-		if (NT(expr->decl.components) == NT_DECLARATOR_ARRAY) {
-			src1 = addr_new(AT_AST, expr->decl.components);
-			src1->val.astnode = expr;
-
-			if (!dest) {
-				dest = tmp_addr_new(src1->decl);
-			}
-			quad_new(bb, OC_LEA, dest, src1, NULL);
-		}
-
-			// not a pointer
-		else {
-			src1 = addr_new(AT_AST, expr->decl.components);
-			src1->val.astnode = expr;
-
-			if (dest) {
-				quad_new(bb, OC_MOV, dest, src1, NULL);
-			} else {
-				dest = src1;
-			}
-		}
-
-		return dest;
+//		// if abstract, don't do anything and don't return anything
+//		if (!expr->decl.ident) {
+//			return NULL;
+//		}
+//
+//		// don't support expressions with non-integral types
+//		if (NT(expr->decl.components) == NT_DECLSPEC) {
+//			ts = expr->decl.components->declspec.ts;
+//
+//			if (NT(ts) == NT_TS_SCALAR
+//			    && ts->ts_scalar.basetype != BT_INT
+//			    && ts->ts_scalar.basetype != BT_CHAR) {
+//				yyerror_fatal("only int, char types allowed in"
+//					      " expressions at this time");
+//			}
+//		}
+//
+//		// treat array as pointer (special cases are treated elsewhere)
+//		if (NT(expr->decl.components) == NT_DECLARATOR_ARRAY) {
+//			src1 = addr_new(AT_AST, expr->decl.components);
+//			src1->val.astnode = expr;
+//
+//			if (!dest) {
+//				dest = tmp_addr_new(src1->decl);
+//			}
+//			quad_new(bb, OC_LEA, dest, src1, NULL);
+//		}
+//
+//		// not an array
+//		else {
+//			src1 = addr_new(AT_AST, expr->decl.components);
+//			src1->val.astnode = expr;
+//
+//			if (dest) {
+//				quad_new(bb, OC_MOV, dest, src1, NULL);
+//			} else {
+//				dest = src1;
+//			}
+//		}
+//
+//		return dest;
 
 		// constant number
 	case NT_NUMBER:
@@ -178,39 +196,60 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			return dest;
 		}
 
-		// regular unops: these generate quads and demote arrays
-		src1 = gen_rvalue(expr->unop.arg, NULL, bb);
-		demote_array(src1);
+		// TODO: implement these
+		// lvalue unops: & (addressof), ++, -- (post inc/dec)
+		switch (expr->unop.op) {
+
+		// addressof
+		case '&':
+			NYI("addressof");
+			return NULL;
+
+		// postincrement/decrement operators
+		case PLUSPLUS:
+			NYI("postinc");
+			return NULL;
+
+		case MINUSMINUS:
+			NYI("preinc");
+			return NULL;
+		}
+
+		// other rvalue unops: these generate quads and demote arrays
+//		src1 = gen_rvalue(expr->unop.arg, NULL, bb);
+//		demote_array(src1);
 
 		switch (expr->unop.op) {
 		// pointer deref
 		case '*':
-			demote_array(src1);
+			return gen_lvalue(expr, bb, NULL, dest);
 
-			// check that the rvalue is a pointer type
-			if (NT(src1->decl) != NT_DECLARATOR_POINTER) {
-				yyerror_fatal("dereferencing non-pointer type");
-			}
-
-			// create new addr of underlying type to store the
-			// result in
-			if (!dest) {
-				// get the type that the pointer is pointing to
-				ts = src1->decl->decl_pointer.of;
-				dest = tmp_addr_new(ts);
-			}
-
-			// noop not pointing to an array
-			if (NT(src1->decl->decl_array.of)
-				!= NT_DECLARATOR_ARRAY) {
-				quad_new(bb, OC_LOAD, dest, src1, NULL);
-			}
-			// noop cast i.e., reinterpret pointer
-			// as different size but same pointer value
-			else {
-				quad_new(bb, OC_CAST, dest, src1, NULL);
-			}
-			return dest;
+//			demote_array(src1);
+//
+//			// check that the rvalue is a pointer type
+//			if (NT(src1->decl) != NT_DECLARATOR_POINTER) {
+//				yyerror_fatal("dereferencing non-pointer type");
+//			}
+//
+//			// create new addr of underlying type to store the
+//			// result in
+//			if (!dest) {
+//				// get the type that the pointer is pointing to
+//				ts = src1->decl->decl_pointer.of;
+//				dest = tmp_addr_new(ts);
+//			}
+//
+//			// noop not pointing to an array
+//			if (NT(src1->decl->decl_array.of)
+//				!= NT_DECLARATOR_ARRAY) {
+//				quad_new(bb, OC_LOAD, dest, src1, NULL);
+//			}
+//			// noop cast i.e., reinterpret pointer
+//			// as different size but same pointer value
+//			else {
+//				quad_new(bb, OC_CAST, dest, src1, NULL);
+//			}
+//			return dest;
 
 		// TODO: implement addressof operator
 
@@ -292,11 +331,10 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 		// subtraction (regular and pointer)
 		case '-':
-			// make the first one the pointer, if applicable
-			if (AOP(src2)) {
-				tmp = src2;
-				src2 = src1;
-				src1 = tmp;
+			// integer - pointer invalid
+			if (!AOP(src1) && AOP(src2)) {
+				yyerror_fatal("integer - pointer");
+				return NULL;
 			}
 
 			// pointer - integer
@@ -361,9 +399,10 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 }
 
 struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
-	enum addr_mode *mode)
+	enum addr_mode *mode, struct addr *dest)
 {
-	struct addr *dest;
+	struct addr *tmp;
+	union astnode *ts;
 
 	switch (NT(expr)) {
 
@@ -380,16 +419,46 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 		case NT_DECLSPEC:
 			if (NT(expr->decl.components->declspec.ts) !=
 				NT_TS_SCALAR) {
-				yyerror_fatal("assignment to struct/union"
+				yyerror_fatal("struct/union lvalue"
 					      " not supported (yet)");
 				return NULL;
 			}
+
+			// TODO: don't allow non-int data types
+
+			// note: no break; other variables fallthrough
+
+		// pointer can be used as an lvalue but not array/function
 		case NT_DECLARATOR_POINTER:
+			if (mode) {
+				*mode = AM_DIRECT;
+			}
 
-			*mode = AM_DIRECT;
+			tmp = addr_new(AT_AST, expr->decl.components);
+			tmp->val.astnode = expr;
 
-			dest = addr_new(AT_AST, expr->decl.components);
-			dest->val.astnode = expr;
+			if (!dest) {
+				dest = tmp;
+			} else {
+				quad_new(bb, OC_MOV, dest, tmp, NULL);
+			}
+
+			return dest;
+
+		// treat array as pointer
+		case NT_DECLARATOR_ARRAY:
+			if (mode) {
+				*mode = AM_DIRECT;
+			}
+
+			tmp = addr_new(AT_AST, expr->decl.components);
+			tmp->val.astnode = expr;
+
+			if (!dest) {
+				dest = tmp_addr_new(tmp->decl);
+			}
+			quad_new(bb, OC_LEA, dest, tmp, NULL);
+
 			return dest;
 		}
 
@@ -404,15 +473,33 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 			break;
 		}
 
-		*mode = AM_INDIRECT;
+		if (mode) {
+			*mode = AM_INDIRECT;
+		}
 
-		dest = gen_rvalue(expr->unop.arg, NULL, bb);
+		tmp = gen_rvalue(expr->unop.arg, NULL, bb);
+		demote_array(tmp);
 
 		// check that the rvalue is a pointer type
-		if (NT(dest->decl) != NT_DECLARATOR_POINTER
-			&& NT(dest->decl) != NT_DECLARATOR_ARRAY) {
-
+		if (NT(tmp->decl) != NT_DECLARATOR_POINTER) {
 			yyerror_fatal("dereferencing non-pointer type");
+		}
+
+		// get the type that the pointer is pointing to
+		ts = tmp->decl->decl_pointer.of;
+
+		// create new addr of underlying type to store the result
+		if (!dest) {
+			dest = tmp_addr_new(ts);
+		}
+
+		// not pointing to an array
+		if (NT(ts) != NT_DECLARATOR_ARRAY) {
+			quad_new(bb, OC_LOAD, dest, tmp, NULL);
+		}
+		// pointing to an array (no-op/reinterpret cast)
+		else {
+			quad_new(bb, OC_CAST, dest, tmp, NULL);
 		}
 
 		return dest;
@@ -435,7 +522,10 @@ struct addr *gen_assign(union astnode *expr, struct addr *target,
 
 	// generate lvalue; if invalid lvalue, will report and panic in
 	// gen_lvalue()
-	dest = gen_lvalue(expr->binop.left, bb, &mode);
+	dest = gen_lvalue(expr->binop.left, bb, &mode, NULL);
+
+	// TODO: don't allow assignment to array/function lvalue
+
 	if (mode == AM_DIRECT) {
 		src = gen_rvalue(expr->binop.right, dest, bb);
 	} else {
