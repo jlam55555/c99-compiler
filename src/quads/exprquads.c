@@ -102,6 +102,22 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 	// symbol
 	case NT_DECL:
+		// abstract typename (e.g., cast), not an lvalue
+		if (!expr->decl.ident) {
+			// cannot be assigned to a value, so dest should be NULL
+			if (dest) {
+				// shouldn't happen in the grammar, but just
+				// to be safe
+				yyerror_fatal("quadgen: attempting to assign"
+					" abstract type to lvalue");
+				return NULL;
+			}
+
+			dest = addr_new(AT_AST, expr->decl.components);
+			dest->val.astnode = expr;
+			return dest;
+		}
+
 		return gen_lvalue(expr, bb, NULL, dest, 0);
 
 	// constant number
@@ -207,26 +223,14 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 		// TODO: implement fncall (is it a unop?)
 
-		// TODO: implement casting (explicit type conversions)
 		}
 		break;
 
 	// binary operator
 	case NT_BINOP:
-		switch(expr->binop.op){
-		case '+':	op = OC_ADD;	break;
-		case '-':	op = OC_SUB;	break;
-		case '*':	op = OC_MUL;	break;
-		case '/':	op = OC_DIV;	break;
-		case '%':	op = OC_MOD;	break;
-		case '&':	op = OC_AND;	break;
-		case '|':	op = OC_OR;	break;
-		case '^':	op = OC_XOR;	break;
-		case SHL:	op = OC_SHL;	break;
-		case SHR:	op = OC_SHR;	break;
-
 		// special binop: assignment
-		case '=':	return gen_assign(expr, dest, bb);
+		if (expr->binop.op == '=') {
+			return gen_assign(expr, dest, bb);
 		}
 
 		src1 = gen_rvalue(expr->binop.left, NULL, bb);
@@ -339,6 +343,16 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			quad_new(bb, OC_MUL, dest, src1, src2);
 			return dest;
 
+		// explicit type cast
+		case 'c':
+			// TODO: should check if dest type is compatible
+			// 	not going to do that now out of time
+
+			if (!dest) {
+				dest = tmp_addr_new(src1->decl);
+			}
+			quad_new(bb, OC_CAST, dest, src2, NULL);
+			return dest;
 		}
 		break;
 
@@ -467,18 +481,31 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 
 		// regular
 		if (!addrof) {
-			// create new addr of underlying type to store the result
-			if (!dest) {
-				dest = tmp_addr_new(ts);
-			}
+			// if being used as the LHS of an assignment
+			if (mode) {
+				if (NT(ts) == NT_DECLARATOR_ARRAY
+					|| NT(ts) == NT_DECLARATOR_FUNCTION) {
+					// fallthrough
+					break;
+				}
 
-			// not pointing to an array
-			if (NT(ts) != NT_DECLARATOR_ARRAY) {
-				quad_new(bb, OC_LOAD, dest, tmp, NULL);
+				dest = tmp;
 			}
-			// pointing to an array (no-op/reinterpret cast)
+			// if being used as an rvalue
 			else {
-				quad_new(bb, OC_CAST, dest, tmp, NULL);
+				// create addr of underlying type for result
+				if (!dest) {
+					dest = tmp_addr_new(ts);
+				}
+
+				// not pointing to an array
+				if (NT(ts) != NT_DECLARATOR_ARRAY) {
+					quad_new(bb, OC_LOAD, dest, tmp, NULL);
+				}
+				// pointing to an array (no-op/reinterpret cast)
+				else {
+					quad_new(bb, OC_CAST, dest, tmp, NULL);
+				}
 			}
 		}
 		// addressof (elide LOAD quad)
@@ -521,7 +548,7 @@ struct addr *gen_assign(union astnode *expr, struct addr *target,
 
 	// directly being assigned to a memory location, issue a MOV
 	if (target) {
-		quad_new(bb, OC_MOV, NULL, src, target);
+		quad_new(bb, OC_MOV, target, src, NULL);
 	}
 
 	return src;

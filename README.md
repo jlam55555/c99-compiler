@@ -204,6 +204,8 @@ Fixes (from previous assignment):
     - TODO: set correct output type based on input types (implicit conversions)
     - TODO: implement all operations
     - TODO: warn if statement is useless (i.e., no side effects)
+    - TODO: write a function to check if two types match (for extern decl
+        compatibility check and for pointer assignment)
 
 ---
   

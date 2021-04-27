@@ -14,12 +14,18 @@
  * List of opcodes for the quad IR
  */
 enum opcode {
+	// pointer ops
 	OC_LOAD,	// target = LOAD addr
 	OC_STORE,	// STORE value, addr
 	OC_LEA,		// target = LEA addr
+
+	// usually we can avoid this with 3-address quads, but sometimes
+	// we still need this (e.g., directly chained assignment)
+	OC_MOV,		// target = MOV src
+
+	// arithmetic
 	OC_ADD,
 	OC_SUB,
-	OC_MOV,
 	OC_MUL,
 	OC_DIV,
 	OC_MOD,
@@ -37,8 +43,9 @@ enum opcode {
 	OC_GTEQ,
 
 	// generic cast operation -- may be noop, may not; exact implementation
-	// is deferred to the target code generation stage
-	OC_CAST,
+	// is deferred to the target code generation stage; cast information
+	// is stored in target and src type declaration info
+	OC_CAST,	// target = CAST src
 };
 
 enum branches {	NEVER=0,
