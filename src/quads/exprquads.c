@@ -49,6 +49,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 	struct basic_block *bb)
 {
 	struct addr *src1, *src2, *tmp, *tmp2;
+	struct quad *quad;
 	union astnode *ts;
 	enum opcode op;
 	unsigned subtype_size;
@@ -246,12 +247,15 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		demote_array(src2);
 
 		switch (expr->binop.op) {
-		// arithmetic
-		case '+':
-			// helper: is array/pointer
-			#define AOP(addr) \
-				(NT(addr->decl) == NT_DECLARATOR_POINTER)
+		// helper for pointer arithmetic: is array/pointer
+		#define AOP(addr) (NT(addr->decl) == NT_DECLARATOR_POINTER)
 
+		// TODO: for pointer arithmetic make sure operands are
+		// 	the same type
+		// TODO: for pointer arithmetic make sure other operand is an
+		// 	integral type
+		// addition (regular and pointer)
+		case '+':
 			// make the first one the pointer, if applicable
 			if (AOP(src2)) {
 				tmp = src2;
@@ -267,22 +271,14 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 			// special case: pointer + int;
 			if (AOP(src1)) {
-				// insert operation to multiply src2 by sizeof
-				// src1 subtype
-
-				// see notes above
-				ALLOC_TYPE(ts, NT_TS_SCALAR);
-				ts->ts_scalar.basetype = BT_INT;
-				ts->ts_scalar.modifiers.lls = LLS_LONG_LONG;
-				ts->ts_scalar.modifiers.sign = SIGN_UNSIGNED;
-
-				// convert into const
-				tmp = addr_new(AT_CONST, ts);
+				// p+i => p + sizeof(*p)*i
+				// replace src2
+				tmp = addr_new(AT_CONST, create_size_t());
 				*((uint64_t *)tmp->val.constval) =
 					astnode_sizeof_type(src1->decl->
 						decl_pointer.of);
 
-				tmp2 = tmp_addr_new(src2->decl);
+				tmp2 = tmp_addr_new(create_size_t());
 				quad_new(bb, OC_MUL, tmp2, tmp, src2);
 				src2 = tmp2;
 			}
@@ -294,12 +290,49 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			quad_new(bb, OC_ADD, dest, src1, src2);
 			return dest;
 
-		// TODO: implement pointer subtraction
+		// subtraction (regular and pointer)
 		case '-':
+			// make the first one the pointer, if applicable
+			if (AOP(src2)) {
+				tmp = src2;
+				src2 = src1;
+				src1 = tmp;
+			}
+
+			// pointer - integer
+			else if (AOP(src1) && !AOP(src2)) {
+				// p-i = p - sizeof(*p) * i
+				// need to modify src2
+				tmp = addr_new(AT_CONST, create_size_t());
+				*((uint64_t *)tmp->val.constval) =
+					astnode_sizeof_type(src1->decl->
+						decl_pointer.of);
+
+				tmp2 = tmp_addr_new(create_size_t());
+				quad_new(bb, OC_MUL, tmp2, tmp, src2);
+				src2 = tmp2;
+			}
+
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
-			quad_new(bb, OC_SUB, dest, src1, src2);
+			quad = quad_new(bb, OC_SUB, dest, src1, src2);
+
+			// pointer - pointer
+			if (AOP(src1) && AOP(src2)) {
+				// p1-p2 = p1-p2 / sizeof(*p1)
+				// inject a division operation afterward
+				tmp = tmp_addr_new(create_size_t());
+				*((uint64_t *)tmp->val.constval) =
+					astnode_sizeof_type(src1->decl->
+						decl_pointer.of);
+
+				tmp2 = tmp_addr_new(create_size_t());
+				quad->dest = tmp2;
+
+				quad_new(bb, OC_DIV, dest, tmp2, tmp);
+			}
+
 			return dest;
 
 		case '*':

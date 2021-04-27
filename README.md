@@ -183,7 +183,7 @@ Fixes (from previous assignment):
         what Hak puts in his assignments
         - DEBUG2 prints out type information for struct addr
         - DEBUG2 makes sizeof(expr) emit quads to regular (non-dummy) output
-    - TODO: pointer subtraction
+    - implemented pointer subtraction
     - TODO: add addressof operator
     - TODO: function calls (and don't allow function calls on non-function
         objects)
