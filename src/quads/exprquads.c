@@ -2,6 +2,49 @@
 #include <quads/sizeof.h>
 #include <parser.tab.h>
 
+/**
+ * helper function to demote array to pointer type if not direct arg to sizeof;
+ * if not an array type, no-op
+ *
+ * @param addr		struct addr to demote (if array type)
+ */
+static void demote_array(struct addr *addr)
+{
+	union astnode *ptr;
+
+	// if not array type, ignore
+	if (NT(addr->decl) != NT_DECLARATOR_ARRAY) {
+		return;
+	}
+
+	ALLOC_TYPE(ptr, NT_DECLARATOR_POINTER);
+	ptr->decl_pointer.of = addr->decl->decl_array.of;
+	addr->decl = ptr;
+
+	addr->size = astnode_sizeof_type(ptr);
+
+	// memory management is horrible -- this will cause really annoying
+	// dangling pointers if you actually try to free memory
+}
+
+/**
+ * helper function to generate a typespec emulating size_t (which acts like an
+ * unsigned long long)
+ *
+ * @return typespec
+ */
+static union astnode *create_size_t(void)
+{
+	union astnode *ts;
+
+	ALLOC_TYPE(ts, NT_TS_SCALAR);
+	ts->ts_scalar.basetype = BT_INT;
+	ts->ts_scalar.modifiers.lls = LLS_LONG_LONG;
+	ts->ts_scalar.modifiers.sign = SIGN_UNSIGNED;
+
+	return ts;
+}
+
 struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 	struct basic_block *bb)
 {
@@ -40,14 +83,6 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 		// treat array as pointer (special cases are treated elsewhere)
 		if (NT(expr->decl.components) == NT_DECLARATOR_ARRAY) {
-			// TODO: maybe (?) change type to be that of a pointer
-			// TODO: in add/subtract/assign array, downgrade it
-			// 	and write a function to do this
-
-			// ALLOC_TYPE(ts, NT_DECLARATOR_POINTER);
-			// ts->decl_pointer.of =
-			// 	expr->decl.components->decl_array.of;
-			// src1 = addr_new(AT_AST, ts);
 			src1 = addr_new(AT_AST, expr->decl.components);
 			src1->val.astnode = expr;
 
@@ -75,7 +110,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 	case NT_NUMBER:
 		// don't support expressions with non-integral types
 		if (expr->num.ts->ts_scalar.basetype != BT_INT
-		    && expr->num.ts->ts_scalar.basetype != BT_CHAR) {
+			&& expr->num.ts->ts_scalar.basetype != BT_CHAR) {
 			yyerror_fatal("only int, char types allowed in"
 				      " expressions at this time");
 		}
@@ -100,21 +135,12 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		switch (expr->unop.op) {
 
 		// sizeof with a symbol or constexpr
-		// TODO: note that sizeof returns type size_t, defined in
-		// 	stddef.h -- should represent this type somewhere
 		case SIZEOF:
-			// create 8-byte type like size_t (similar to
-			// unsigned long long in 64-bit systems)
-			ALLOC_TYPE(ts, NT_TS_SCALAR);
-			ts->ts_scalar.basetype = BT_INT;
-			ts->ts_scalar.modifiers.lls = LLS_LONG_LONG;
-			ts->ts_scalar.modifiers.sign = SIGN_UNSIGNED;
-
-			src2 = addr_new(AT_CONST, ts);
+			src2 = addr_new(AT_CONST, create_size_t());
 			*((uint64_t *)src2->val.constval)
 				= src1->type == AT_CONST
-				  ? src1->size
-				  : astnode_sizeof_type(src1->decl);
+					? src1->size
+					: astnode_sizeof_type(src1->decl);
 
 			if (dest) {
 				quad_new(bb, OC_MOV, dest, src2, NULL);
@@ -123,15 +149,9 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			}
 			return dest;
 
-			// sizeof with a typename (addr1 should be NULL)
+		// sizeof with a typename (addr1 should be NULL)
 		case 's':
-			// see notes above
-			ALLOC_TYPE(ts, NT_TS_SCALAR);
-			ts->ts_scalar.basetype = BT_INT;
-			ts->ts_scalar.modifiers.lls = LLS_LONG_LONG;
-			ts->ts_scalar.modifiers.sign = SIGN_UNSIGNED;
-
-			src1 = addr_new(AT_CONST, ts);
+			src1 = addr_new(AT_CONST, create_size_t());
 			*((uint64_t *)src1->val.constval)
 				= astnode_sizeof_type(expr->unop.arg
 							      ->decl.components);
@@ -143,11 +163,12 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			}
 			return dest;
 
-			// pointer deref
+		// pointer deref
 		case '*':
+			demote_array(src1);
+
 			// check that the rvalue is a pointer type
-			if (NT(src1->decl) != NT_DECLARATOR_POINTER
-			    && NT(src1->decl) != NT_DECLARATOR_ARRAY) {
+			if (NT(src1->decl) != NT_DECLARATOR_POINTER) {
 				yyerror_fatal("dereferencing non-pointer type");
 			}
 
@@ -157,22 +178,23 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 				// get the type that the pointer is pointing to
 				ts = src1->decl->decl_pointer.of;
 				dest = tmp_addr_new(ts);
-
-				// noop "pseudo-mov," i.e., reinterpret pointer
-				// as different size but same pointer value
-				quad_new(bb, OC_CAST, dest, src1, NULL);
 			}
 
-			// noop if pointer to/array of array
+			// noop not pointing to an array
 			if (NT(src1->decl->decl_array.of)
-			    != NT_DECLARATOR_ARRAY) {
+				!= NT_DECLARATOR_ARRAY) {
 				quad_new(bb, OC_LOAD, dest, src1, NULL);
+			}
+			// noop cast i.e., reinterpret pointer
+			// as different size but same pointer value
+			else {
+				quad_new(bb, OC_CAST, dest, src1, NULL);
 			}
 			return dest;
 		}
 		break;
 
-		// binary operator
+	// binary operator
 	case NT_BINOP:
 		switch(expr->binop.op){
 		case '+':	op = OC_ADD;	break;
@@ -193,15 +215,20 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		src1 = gen_rvalue(expr->binop.left, NULL, bb);
 		src2 = gen_rvalue(expr->binop.right, NULL, bb);
 
+		// after here, no chance of an array that doesn't get demoted
+		// to a pointer (that only happens for sizeof)
+		demote_array(src1);
+		demote_array(src2);
+
 		// TODO: +/- have to correctly implement pointer arithmetic
 		// 	(have to check type of their operands, which means
 		// 	that we have to associate type with struct addrs)
 		switch (expr->binop.op) {
 		// arithmetic
 		case '+':
-			// helper: is array or pointer
-			#define AOP(addr) (NT(addr->decl)==NT_DECLARATOR_ARRAY \
-				|| NT(addr->decl) == NT_DECLARATOR_POINTER)
+			// helper: is array/pointer
+			#define AOP(addr) \
+				(NT(addr->decl) == NT_DECLARATOR_POINTER)
 
 			// make the first one the pointer, if applicable
 			if (AOP(src2)) {
@@ -299,7 +326,7 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 
 		case NT_DECLSPEC:
 			if (NT(expr->decl.components->declspec.ts) !=
-			    NT_TS_SCALAR) {
+				NT_TS_SCALAR) {
 				yyerror_fatal("assignment to struct/union"
 					      " not supported (yet)");
 				return NULL;
