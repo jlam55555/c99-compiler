@@ -60,7 +60,6 @@ void generate_while_quads(union astnode *stmt, struct basic_block *bb)
 	struct basic_block *bb_body = basic_block_new();
 	struct basic_block *bb_next = basic_block_new();
 
-
 	cur_loop = loop_new();
 	// Continue and break points
 	cur_loop->bb_cont = bb_cond;
@@ -86,10 +85,11 @@ void generate_if_else_quads(union astnode *expr, struct basic_block *bb)
 	struct basic_block *Bf = basic_block_new();
 	struct basic_block *Bn;
 
-	if (expr->stmt_if_else.elsestmt)
+	if (expr->stmt_if_else.elsestmt) {
 		Bn = basic_block_new();
-	else
+	} else {
 		Bn = Bf;
+	}
 
 	generate_conditional_quads(expr->stmt_if_else.ifstmt, bb, Bt, Bf);
 

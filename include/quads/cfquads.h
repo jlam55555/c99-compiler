@@ -51,16 +51,19 @@ void generate_if_else_quads(union astnode *expr, struct basic_block *bb);
  * @param Bt		basic block Then
  * @param Bf		basic block False
  */
-void generate_conditional_quads(union astnode *expr, struct basic_block *bb, struct basic_block *Bt, struct basic_block *Bf);
+void generate_conditional_quads(union astnode *expr, struct basic_block *bb,
+	struct basic_block *Bt, struct basic_block *Bf);
 
 /**
  * link basic blocks
- * @param bb 	current
+ * @param bb 		current
  * @param branch	branching
- * @param prev	previous bb
- * @param next	next bb
+ * @param prev		previous bb
+ * @param next		next bb
  */
-struct basic_block *link_basic_block(struct basic_block *bb, enum branches branch, struct basic_block *prev, struct basic_block *next);
+struct basic_block *link_basic_block(struct basic_block *bb,
+	enum branches branch, struct basic_block *prev,
+	struct basic_block *next);
 
 /**
  * TODO: need documentation
