@@ -21,7 +21,14 @@ struct basic_block *basic_block_new(void)
 	// set basic block identifier
 	bb->fn_name = strdup(fn_name);
 	bb->bb_no = bb_no++;
+	return bb;
+}
 
+struct basic_block *dummy_basic_block_new(void)
+{
+	struct basic_block *bb = calloc(1, sizeof(struct basic_block));
+
+	bb->bb_no = -1;
 	return bb;
 }
 

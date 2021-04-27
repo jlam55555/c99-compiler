@@ -5,6 +5,9 @@
 #ifndef PRINTUTILSH
 #define PRINTUTILSH
 
+#include <parser/astnode.h>
+#include <parser/scope.h>
+
 /**
  * print out struct/union definition recursively
  *

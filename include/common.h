@@ -10,6 +10,14 @@
 #ifndef COMMONH
 #define COMMONH
 
+// basic debugging info -- like the level in Hak's output
+#define DEBUG 1
+
+// extra debugging for debugging errors -- e.g., types for struct addr,
+// quads used in generation of sizeof operand (usually not emitted)
+#define DEBUG2 0
+
+// all astnode types
 enum astnode_type {
 	// terminals
 	NT_NUMBER,

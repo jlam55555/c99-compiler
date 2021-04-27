@@ -136,6 +136,15 @@ struct basic_block {
 struct basic_block *basic_block_new(void);
 
 /**
+ * generates a dummy basic block when we don't want to emit quads (e.g., in
+ * sizeof operation). The dummy basic block will have ID=-1 and should not
+ * be linked into the final CFG
+ *
+ * @return		a new dummy basic block
+ */
+struct basic_block *dummy_basic_block_new(void);
+
+/**
  * emits a new quad to the specified basic block
  *
  * any of the operands or src may be null, depending on the opcode

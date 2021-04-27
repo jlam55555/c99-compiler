@@ -31,7 +31,7 @@ static void demote_array(struct addr *addr)
  * helper function to generate a typespec emulating size_t (which acts like an
  * unsigned long long)
  *
- * @return typespec
+ * @return		unsigned long long typespec
  */
 static union astnode *create_size_t(void)
 {
@@ -129,18 +129,30 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 		// unary operator
 	case NT_UNOP:
-		src1 = gen_rvalue(expr->unop.arg, NULL, bb);
 
-		// TODO: still have to implement a lot here
+		// special cases: sizeof; these do not generate quads and
+		// do not demote arrays
 		switch (expr->unop.op) {
 
 		// sizeof with a symbol or constexpr
 		case SIZEOF:
+#if DEBUG2
+			// generate quads for expression in sizeof operand
+			// for debugging purposes only
+			src1 = gen_rvalue(expr->unop.arg, NULL, bb);
+#else
+			// generate quads to a dummy basic block
+			src1 = gen_rvalue(expr->unop.arg, NULL,
+				dummy_basic_block_new());
+#endif
+
+			// src2 is the resultant struct addr (static number
+			// after compilation)
 			src2 = addr_new(AT_CONST, create_size_t());
-			*((uint64_t *)src2->val.constval)
+			*((uint64_t *) src2->val.constval)
 				= src1->type == AT_CONST
-					? src1->size
-					: astnode_sizeof_type(src1->decl);
+				  ? src1->size
+				  : astnode_sizeof_type(src1->decl);
 
 			if (dest) {
 				quad_new(bb, OC_MOV, dest, src2, NULL);
@@ -149,10 +161,10 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			}
 			return dest;
 
-		// sizeof with a typename (addr1 should be NULL)
+		// sizeof with a typename
 		case 's':
 			src1 = addr_new(AT_CONST, create_size_t());
-			*((uint64_t *)src1->val.constval)
+			*((uint64_t *) src1->val.constval)
 				= astnode_sizeof_type(expr->unop.arg
 							      ->decl.components);
 
@@ -162,7 +174,13 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 				dest = src1;
 			}
 			return dest;
+		}
 
+		// regular unops: these generate quads and demote arrays
+		src1 = gen_rvalue(expr->unop.arg, NULL, bb);
+		demote_array(src1);
+
+		switch (expr->unop.op) {
 		// pointer deref
 		case '*':
 			demote_array(src1);

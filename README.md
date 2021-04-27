@@ -166,7 +166,7 @@ Fixes (from previous assignment):
         back into MOV operations because x86 is a 2-address architecture)
     - implemented more arithmetic operations
 - 4/24/21: continuing quad generation
-    - updated (most) function names to match Hak's notes
+    - updated (most) quad expression function names to match Hak's notes
     - added more functionality to gen_rvalue function
     - implemented gen_lvalue, gen_assign functions
     - implemented most array/pointer dereferencing behavior, including:
@@ -174,8 +174,19 @@ Fixes (from previous assignment):
         - multidimensional arrays
         - dereferencing of pointer/array to array (no-op/reinterpret cast-like)
 - 4/26/21: continuing quad generation
-    - added addressof operator
-    - added option to demote (reinterpret) arrays to pointers for most operations
+    - refactored quad gen for expressions to new file
+    - updated sizeof(expr) to output quads to dummy bb so they don't show up
+        in the final quad output
+    - implemented arrays demote to regular pointers for all operations except
+        direct argument to sizeof
+    - implemented a second debugging level (DEBUG2) for more debug info than
+        what Hak puts in his assignments
+        - DEBUG2 prints out type information for struct addr
+        - DEBUG2 makes sizeof(expr) emit quads to regular (non-dummy) output
+    - TODO: add addressof operator
+    - TODO: implement more operations
+    - TODO: function calls
+    - TODO: pointer subtraction
 
 TODO (Jon, 4/24/21, Quad generation expressions)
 - demote arrays when assigned-from/added/subtracted/dereferenced/addressof-ed

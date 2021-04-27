@@ -112,6 +112,12 @@ void print_declarator(union astnode *component, int depth)
 		print_declspec(component, depth);
 		return;
 
+	// in quads generation, numeric literals are just a typespec
+	// (without a declspec), account for that here
+	case NT_TS_SCALAR:
+		print_typespec(component);
+		return;
+
 	// declarator components
 	case NT_DECLARATOR_ARRAY:
 		INDENT(depth);
