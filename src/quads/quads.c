@@ -290,6 +290,8 @@ static void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 
 	// expression statement: break down into subexpressions
 	case NT_STMT_EXPR:
+		// TODO: warn if no side-effects (i.e., statement is useless)
+
 		gen_rvalue(stmt->stmt_expr.expr, NULL, bb);
 		break;
 

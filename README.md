@@ -70,25 +70,36 @@ separately, as they are being declared). Statements (expression statements,
 block statements, and control flow), labels have been implemented.
 
 ##### Quad Generation
+Quad generation is partitioned into expression quad generation and statement
+(control flow) quad generation. There are three new struct types: basic_block,
+quad, and addr (representing an operand to/destination of a quad).
+
+Each quad is generic (e.g., operand types and sizes may vary, e.g., the MOV
+quad encompasses MOVB, MOVL, etc. and may have any combination of operand
+addressing modes, even if illegal in x86_64). Each struct addr is given a type
+using the same typing system as the AST nodes, and thus each (sub)expression
+can be type-checked. With the more verbose DEBUG2 debug level, all of the
+struct addr types are printed for your viewing pleasure. The sizeof operator
+is necessarily implemented as a compile-time construct.
+
+TODO: write about statement/basic block generation
+
+Not implemented:
+- non-int/char lvalues (yet?)
+- structs/unions lvalues (yet?)
+- ternary statements
+- goto and switch statements
+
 TODO (also see res/scratch/TODO)
-- Operators
-    - Arithmetic on ints and pointers -- work in progress
-    - sizeof -- done?
-    - Assignment -- done?
-- Making function calls
 - Statements
     - compound statements -- done?
     - expression statements -- work in progress
-        - warning if expression is "useless", i.e., no side-effects
     - if statements
     - loop statements
         - break/continue statements
     - return statements
-- Type conversions/implicit casts
 - Indicate whether variables are local (parameter or regular) or global
     (for use with addressing modes later)
-- Fix three-address codes
-- Fix labels (see fixes, below)
 
 Notes:
 - At this point, we start making assumptions about the architecture. In
@@ -192,6 +203,7 @@ Fixes (from previous assignment):
     - TODO: implement explicit type conversion
     - TODO: set correct output type based on input types (implicit conversions)
     - TODO: implement all operations
+    - TODO: warn if statement is useless (i.e., no side effects)
 
 ---
   
