@@ -1,7 +1,8 @@
 /**
  * Defining the data structures and functions for quads and basic blocks.
  *
- * See also: exprquads.h for
+ * See also: exprquads.h for utilities specifically related to expression
+ * quad generation.
  */
 
 #ifndef QUADSH

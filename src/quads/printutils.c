@@ -38,7 +38,7 @@ void print_addr(struct addr *addr)
 	// indicate size of addr
 	fprintf(fp, "[%d:", addr->size);
 
-#if 0
+#if DEBUG2
 	// more intense debugging: print all struct addr types
 	// probably unnecessary unless trying to debug something
 	print_declarator(addr->decl, 0);

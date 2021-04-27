@@ -43,10 +43,30 @@ static void demote_array(struct addr *addr)
 }
 
 /**
+ * helper function to wrap a declaration in a pointer-to-(that type) typespec
+ *
+ * for use with the addressof operator
+ *
+ * @param decl		astnode representation of type to wrap
+ * @return		pointer to input type
+ */
+static union astnode *create_pointer_to(union astnode *decl)
+{
+	union astnode *ptr;
+
+	ALLOC_TYPE(ptr, NT_DECLARATOR_POINTER);
+	ptr->decl_pointer.of = decl;
+	return ptr;
+}
+
+/**
  * helper function to generate a typespec emulating size_t (which acts like an
  * unsigned long long)
  *
- * @return		unsigned long long typespec
+ * For use when generating a compile-time constant representing some pointer
+ * constant (i.e., for use with sizeof and pointer arithmetic)
+ *
+ * @return		unsigned long long astnode typespec representation
  */
 static union astnode *create_size_t(void)
 {
@@ -82,7 +102,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 	// symbol
 	case NT_DECL:
-		return gen_lvalue(expr, bb, NULL, dest);
+		return gen_lvalue(expr, bb, NULL, dest, 0);
 
 	// constant number
 	case NT_NUMBER:
@@ -159,12 +179,13 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		switch (expr->unop.op) {
 		// pointer deref
 		case '*':
-			return gen_lvalue(expr, bb, NULL, dest);
+			// lvalue is the deref expression itself
+			return gen_lvalue(expr, bb, NULL, dest, 0);
 
 		// addressof
 		case '&':
-			NYI("addressof");
-			return NULL;
+			// lvalue is the argument to the addressof expression
+			return gen_lvalue(expr->unop.arg, bb, NULL, dest, 1);
 
 		// postincrement/decrement operators
 		case PLUSPLUS:
@@ -330,7 +351,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 }
 
 struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
-	enum addr_mode *mode, struct addr *dest)
+	enum addr_mode *mode, struct addr *dest, int addrof)
 {
 	struct addr *tmp;
 	union astnode *ts;
@@ -368,10 +389,21 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 			tmp = addr_new(AT_AST, expr->decl.components);
 			tmp->val.astnode = expr;
 
-			if (!dest) {
-				dest = tmp;
-			} else {
-				quad_new(bb, OC_MOV, dest, tmp, NULL);
+			// regular
+			if (!addrof) {
+				if (!dest) {
+					dest = tmp;
+				} else {
+					quad_new(bb, OC_MOV, dest, tmp, NULL);
+				}
+			}
+			// addressof
+			else {
+				if (!dest) {
+					dest = tmp_addr_new(create_pointer_to(
+						tmp->decl));
+				}
+				quad_new(bb, OC_LEA, dest, tmp, NULL);
 			}
 
 			return dest;
@@ -385,10 +417,22 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 			tmp = addr_new(AT_AST, expr->decl.components);
 			tmp->val.astnode = expr;
 
-			if (!dest) {
-				dest = tmp_addr_new(tmp->decl);
+			// regular
+			if (!addrof) {
+				if (!dest) {
+					dest = tmp_addr_new(tmp->decl);
+				}
+				quad_new(bb, OC_LEA, dest, tmp, NULL);
 			}
-			quad_new(bb, OC_LEA, dest, tmp, NULL);
+			// addressof
+			else {
+				if (!dest) {
+					dest = tmp_addr_new(create_pointer_to(
+						tmp->decl));
+				}
+				// noop/reinterpret cast
+				quad_new(bb, OC_CAST, dest, tmp, NULL);
+			}
 
 			return dest;
 		}
@@ -408,7 +452,9 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 			*mode = AM_INDIRECT;
 		}
 
-		tmp = gen_rvalue(expr->unop.arg, NULL, bb);
+		// if addrof, we will be eliding this, so output to dest;
+		// but if not, we need an intermediate value
+		tmp = gen_rvalue(expr->unop.arg, addrof?dest:NULL, bb);
 		demote_array(tmp);
 
 		// check that the rvalue is a pointer type
@@ -419,18 +465,27 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 		// get the type that the pointer is pointing to
 		ts = tmp->decl->decl_pointer.of;
 
-		// create new addr of underlying type to store the result
-		if (!dest) {
-			dest = tmp_addr_new(ts);
-		}
+		// regular
+		if (!addrof) {
+			// create new addr of underlying type to store the result
+			if (!dest) {
+				dest = tmp_addr_new(ts);
+			}
 
-		// not pointing to an array
-		if (NT(ts) != NT_DECLARATOR_ARRAY) {
-			quad_new(bb, OC_LOAD, dest, tmp, NULL);
+			// not pointing to an array
+			if (NT(ts) != NT_DECLARATOR_ARRAY) {
+				quad_new(bb, OC_LOAD, dest, tmp, NULL);
+			}
+			// pointing to an array (no-op/reinterpret cast)
+			else {
+				quad_new(bb, OC_CAST, dest, tmp, NULL);
+			}
 		}
-		// pointing to an array (no-op/reinterpret cast)
+		// addressof (elide LOAD quad)
 		else {
-			quad_new(bb, OC_CAST, dest, tmp, NULL);
+			if (!dest) {
+				dest = tmp;
+			}
 		}
 
 		return dest;
@@ -453,7 +508,7 @@ struct addr *gen_assign(union astnode *expr, struct addr *target,
 
 	// generate lvalue; if invalid lvalue, will report and panic in
 	// gen_lvalue()
-	dest = gen_lvalue(expr->binop.left, bb, &mode, NULL);
+	dest = gen_lvalue(expr->binop.left, bb, &mode, NULL, 0);
 
 	// TODO: don't allow assignment to array/function lvalue
 

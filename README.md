@@ -197,7 +197,7 @@ Fixes (from previous assignment):
         - DEBUG2 prints out type information for struct addr
         - DEBUG2 makes sizeof(expr) emit quads to regular (non-dummy) output
     - implemented pointer subtraction
-    - TODO: add addressof operator
+    - implemented addressof (&) operator (noop/reinterpret cast for arrays)
     - TODO: function calls (and don't allow function calls on non-function
         objects)
     - TODO: implement explicit type conversion
