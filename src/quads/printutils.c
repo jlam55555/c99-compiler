@@ -16,6 +16,7 @@ char *opcode2str(enum opcode oc)
 	case OC_DIV:	return "DIV";
 	case OC_MOV:	return "MOV";
 	case OC_CMP:	return "CMP";
+	case OC_CALL:	return "CALL";
 
 	// pseudo-opcode
 	case OC_CAST:	return "CAST";
@@ -81,6 +82,7 @@ void print_addr(struct addr *addr)
 void print_quad(struct quad *quad)
 {
 	FILE *fp = stdout;
+	struct addr *iter;
 
 	if (!quad) {
 		yyerror_fatal("quadgen: quad should not be NULL"
@@ -101,7 +103,20 @@ void print_quad(struct quad *quad)
 	print_addr(quad->src1);
 	if (quad->src2) {
 		fprintf(fp, ", ");
-		print_addr(quad->src2);
+
+		// regular opcodes
+		if (quad->opcode != OC_CALL) {
+			print_addr(quad->src2);
+		}
+		// fncall opcode: ll of fncall arglist
+		else {
+			fprintf(fp, "(arglist");
+			_LL_FOR(quad->src2, iter, next) {
+				fprintf(fp, " ");
+				print_addr(iter);
+			}
+			fprintf(fp, ")");
+		}
 	}
 
 	fprintf(fp, "\n");

@@ -23,6 +23,9 @@ enum opcode {
 	// we still need this (e.g., directly chained assignment)
 	OC_MOV,		// target = MOV src
 
+	// fncall; arglist is a linked list of addr values
+	OC_CALL,	// target = CALL fn, arglist
+
 	// arithmetic
 	OC_ADD,
 	OC_SUB,
@@ -83,6 +86,9 @@ struct quad {
  * a constant (scalar) has maximum size 64 bits.
  */
 struct addr {
+	// linked list (e.g., for fncall arglist)
+	struct addr *next;
+
 	// reference to astnode, temporary (pseudo-register), constant value
 	enum addr_type { AT_AST, AT_TMP, AT_CONST } type;
 

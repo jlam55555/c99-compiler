@@ -54,14 +54,15 @@ void symtab_insert(struct symtab *st, char *ident, union astnode *node);
 union astnode *symtab_lookup(struct symtab *st, char *ident);
 
 /**
- * for parser: throws fatal error if symbol not found
+ * for parser.y non-functions: throws fatal error if symbol not found
  */
 #define CHECK_SYM_FOUND(var)\
 	NT(var) == NT_DECL && var->decl.is_implicit \
 	&& yyerror_fatal("undeclared symbol")
 
 /**
- * for parser: throws fatal error if symbol not found
+ * for parser.y fncalls: throws warning if symbol not found (implicit
+ * functions is allowed)
  */
 #define CHECK_SYM_FOUND_WARN(var)\
 	NT(var) == NT_DECL && var->decl.is_implicit \

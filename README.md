@@ -198,14 +198,15 @@ Fixes (from previous assignment):
         - DEBUG2 makes sizeof(expr) emit quads to regular (non-dummy) output
     - implemented pointer subtraction
     - implemented addressof (&) operator (noop/reinterpret cast for arrays)
-    - TODO: function calls (and don't allow function calls on non-function
+    - implemented explicit type conversion
+    - implemented function calls (and don't allow function calls on non-function
         objects)
-    - TODO: implement explicit type conversion
     - TODO: set correct output type based on input types (implicit conversions)
     - TODO: implement all operations
     - TODO: warn if statement is useless (i.e., no side effects)
     - TODO: write a function to check if two types match (for extern decl
         compatibility check and for pointer assignment)
+    - TODO: indicate if variables are local or global
 
 ---
   

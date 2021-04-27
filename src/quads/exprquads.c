@@ -86,7 +86,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 	struct addr *src1, *src2, *tmp, *tmp2;
 	struct quad *quad;
 	enum addr_mode mode;
-	union astnode *ts;
+	union astnode *ts, *iter;
 	enum opcode op;
 	unsigned subtype_size;
 
@@ -141,7 +141,34 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		}
 		return dest;
 
-		// unary operator
+	// fncall
+	case NT_FNCALL:
+		src1 = gen_rvalue(expr->fncall.fnname, NULL, bb);
+
+		// make sure src1 is a fn type (includes implicit functions)
+		if (NT(src1->decl) != NT_DECLARATOR_FUNCTION) {
+			yyerror_fatal("attempting to call a non-function");
+			return NULL;
+		}
+
+		// generate a struct addr for each argument in fncall arglist
+		src2 = tmp = addr_new(AT_CONST, create_size_t());
+		LL_FOR(expr->fncall.arglist, iter) {
+			tmp->next = gen_rvalue(iter, NULL, bb);
+			tmp = tmp->next;
+		}
+
+		if (!dest) {
+			// TODO: should infer type from function declaration
+			dest = tmp_addr_new(create_size_t());
+		}
+
+		quad_new(bb, OC_CALL, dest, src1, src2->next);
+
+		// TODO: return a value
+		return NULL;
+
+	// unary operator
 	case NT_UNOP:
 
 		// special cases: sizeof; these do not generate quads and
@@ -381,6 +408,12 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 		}
 
 		switch (NT(expr->decl.components)) {
+
+		// TODO: check that this is only used in fncalls
+		case NT_DECLARATOR_FUNCTION:
+			dest = addr_new(AT_AST, expr->decl.components);
+			dest->val.astnode = expr;
+			return dest;
 
 		case NT_DECLSPEC:
 			if (NT(expr->decl.components->declspec.ts) !=
