@@ -25,6 +25,18 @@ char *opcode2str(enum opcode oc)
 	yyerror_fatal("invalid opcode");
 }
 
+char *cc2str(enum cc cc) {
+	switch (cc) {
+	case CC_ALWAYS:	return NULL;
+	case CC_E: 	return "E";
+	case CC_NE: 	return "NE";
+	case CC_L:	return "L";
+	case CC_LE:	return "LE";
+	case CC_G:	return "G";
+	case CC_GE:	return "GE";
+	}
+}
+
 void print_addr(struct addr *addr)
 {
 	FILE *fp = stdout;
@@ -90,6 +102,8 @@ void print_quad(struct quad *quad)
 		return;
 	}
 
+	fprintf(fp, "\t");
+
 	// print dest addr (if applicable)
 	if (quad->dest) {
 		print_addr(quad->dest);
@@ -122,10 +136,17 @@ void print_quad(struct quad *quad)
 	fprintf(fp, "\n");
 }
 
+// (temporary?) duplicate checker; keeps track of seen basic blocks
+static struct bb_history {
+	struct bb_history *next;
+	struct basic_block *bb;
+} *bb_history;
+
 void print_basic_block(struct basic_block *bb)
 {
-	struct quad *iter;
 	FILE *fp = stdout;
+	struct quad *iter;
+	struct bb_history *hist_iter, *cur;
 
 	if (!bb) {
 		yyerror_fatal("quadgen: basic block should not be NULL"
@@ -133,13 +154,46 @@ void print_basic_block(struct basic_block *bb)
 		return;
 	}
 
-	fprintf(fp, ".BB.%s.%d\n", bb->fn_name, bb->bb_no);
+	// check if basic block has already been seen
+	_LL_FOR(bb_history, hist_iter, next) {
+		if (hist_iter->bb == bb) {
+			return;
+		}
+	}
 
+	// allocate new history item
+	cur = calloc(1, sizeof(struct bb_history));
+	cur->bb = bb;
+	if (!bb_history) {
+		bb_history = cur;
+	} else {
+		cur->next = bb_history;
+		bb_history = cur;
+	}
+
+	// print bb identifier
+	fprintf(fp, ".BB.%s.%d {\n", bb->fn_name, bb->bb_no);
+
+	// print all quads in bb
 	_LL_FOR(bb->ll, iter, next) {
 		print_quad(iter);
 	}
 
-	// TODO: working here
+	// print what it branches to
+	// conditional branch (if exists)
+	if (bb->next_cond && bb->branch_cc != CC_ALWAYS) {
+		fprintf(fp, "\tJMP%s .BB.%s.%d\n", cc2str(bb->branch_cc),
+			bb->next_cond->fn_name, bb->next_cond->bb_no);
+	}
+	// unconditional branch (if exists)
+	if (bb->next_def) {
+		fprintf(fp, "\tJMP .BB.%s.%d\n",
+			bb->next_def->fn_name, bb->next_def->bb_no);
+	}
+
+	fprintf(fp, "}\n");
+
+	// TODO: remove
 //	switch(bb->branch){
 //		case NEVER:		break;
 //		case ALWAYS:	fprintf(fp, "BR .BB.%s.%d\n", bb->prev->fn_name, bb->prev->bb_no);
@@ -157,14 +211,14 @@ void print_basic_block(struct basic_block *bb)
 
 void print_basic_blocks(struct basic_block *bb)
 {
-	// TODO: make sure not to repeat basic blocks
-
+	// make sure bb is not NULL (e.g., will be NULL in conditional branch
+	// of a unconditional jmp bb)
 	if (!bb) {
 		return;
 	}
 
+	// print
 	print_basic_block(bb);
-
 	print_basic_blocks(bb->next_def);
 	print_basic_blocks(bb->next_cond);
 }

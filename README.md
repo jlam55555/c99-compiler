@@ -211,6 +211,10 @@ Fixes (from previous assignment):
     - refactored gen_rvalue() to work for setting condition codes
     - introduced enum cc with condition codes (for results of relational
         operators, and for conditional jumps), and OC_SETcc opcodes
+    - prevent basic blocks from being printed multiple times
+    - fixed if statements quad generation
+    - implemented condition inversion in generate_conditional_quads()
+    - improved visual printing of basic blocks and quads using a {block} format
     - TODO: set correct output type based on input types (implicit conversions)
     - TODO: implement all operations
     - TODO: warn if statement is useless (i.e., no side effects)
