@@ -190,7 +190,7 @@ Fixes (from previous assignment):
         - pointer addition (not subtraction yet)
         - multidimensional arrays
         - dereferencing of pointer/array to array (no-op/reinterpret cast-like)
-- 4/26/21: continuing expression quad generation
+- 4/26/21: continuing expression/control flow quad generation
     - refactored quad gen for expressions, control flow to new files
     - updated sizeof(expr) to output quads to dummy bb so they don't show up
         in the final quad output
@@ -207,6 +207,10 @@ Fixes (from previous assignment):
     - implemented explicit type conversion
     - implemented function calls (and don't allow function calls on non-function
         objects)
+- 4/29/21: continuing expression/control flow quad generation
+    - refactored gen_rvalue() to work for setting condition codes
+    - introduced enum cc with condition codes (for results of relational
+        operators, and for conditional jumps), and OC_SETcc opcodes
     - TODO: set correct output type based on input types (implicit conversions)
     - TODO: implement all operations
     - TODO: warn if statement is useless (i.e., no side effects)

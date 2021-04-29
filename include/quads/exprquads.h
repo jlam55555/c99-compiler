@@ -9,6 +9,17 @@
 #include <quads/quads.h>
 
 /**
+ * helper function to generate a typespec emulating size_t (which acts like an
+ * unsigned long long)
+ *
+ * For use when generating a compile-time constant representing some pointer
+ * constant (i.e., for use with sizeof and pointer arithmetic)
+ *
+ * @return		unsigned long long astnode typespec representation
+ */
+union astnode *create_size_t(void);
+
+/**
  * iteratively and recursively generates a linked-list of quads for an
  * (r-value) expression; corresponds to function of same name in lecture notes
  *
@@ -29,14 +40,24 @@
  * - if unary/binary expression, emit quad
  * 	- if dest is NULL, a temporary is created
  *	- if target, it is the destination of the quad
+ * - if cc is not NULL, then indicates that this expression is intended for
+ * 	the condition codes it sets
+ * 	- if relational operator, do not save cmp result to a psuedo-register,
+ * 		and set which condition code is set
+ * 	- if non-relational operator, then do not set condition code; the result
+ * 		will be compared with 0 (implicit compare equality with 0)
+ * 	- this should be mutually exclusive with dest; an rvalue should not
+ * 		be (directly) used for both an assignment and a condition code
  *
  * @param expr		expression object
- * @param dest		target address, or NULL if temporary expression
+ * @param dest		target address, or NULL if temporary expression;
  * @param bb		basic block to add quads to
+ * @param cc		when result is (directly) used for condition codes;
+ * 			see semantic notes
  * @return 		addr storing result of expression
  */
 struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
-	struct basic_block *bb);
+	struct basic_block *bb, enum cc *cc);
 
 /**
  * generate a lvalue; may also be used as a rvalue, and thus a dest may be
