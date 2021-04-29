@@ -51,13 +51,11 @@ union astnode *create_size_t(void);
  *
  * @param expr		expression object
  * @param dest		target address, or NULL if temporary expression;
- * @param bb		basic block to add quads to
  * @param cc		when result is (directly) used for condition codes;
  * 			see semantic notes
  * @return 		addr storing result of expression
  */
-struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
-	struct basic_block *bb, enum cc *cc);
+struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc);
 
 /**
  * generate a lvalue; may also be used as a rvalue, and thus a dest may be
@@ -75,14 +73,13 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
  * 	fp lvalues are not
  *
  * @param expr		expression astnode representing lvalue
- * @param bb		containing basic block
  * @param mode		set addressing mode
  * @param dest		target address, or NULL if temporary expression
  * @param addrof	whether to take the address of the current expr
  * @return		generated lvalue
  */
-struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
-	enum addr_mode *mode, struct addr *dest, int addrof);
+struct addr *gen_lvalue(union astnode *expr, enum addr_mode *mode,
+	struct addr *dest, int addrof);
 
 /**
  * handle assignment expressions
@@ -95,10 +92,8 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
  *
  * @param expr		assignment astnode expression
  * @param target	destination if directly chained assignment to a variable
- * @param bb		containing basic block
  * @return		addr of RHS of expression (for use as an rvalue)
  */
-struct addr *gen_assign(union astnode *expr, struct addr *target,
-	struct basic_block *bb);
+struct addr *gen_assign(union astnode *expr, struct addr *target);
 
 #endif	// EXPRQUADS_H

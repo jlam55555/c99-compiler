@@ -71,15 +71,14 @@ union astnode *create_size_t(void)
 	return ts;
 }
 
-struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
-	struct basic_block *bb, enum cc *cc)
+struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 {
 	struct addr *src1, *src2, *tmp, *tmp2;
 	struct quad *quad;
+	struct basic_block *tmp_bb;
 	enum addr_mode mode;
-	union astnode *ts, *iter;
 	enum opcode op;
-	unsigned subtype_size;
+	union astnode *ts, *iter;
 
 	// null expression
 	// this shouldn't happen but this is here as a safety measure
@@ -109,7 +108,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			return dest;
 		}
 
-		return gen_lvalue(expr, bb, NULL, dest, 0);
+		return gen_lvalue(expr, NULL, dest, 0);
 
 	// constant number
 	case NT_NUMBER:
@@ -126,7 +125,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			*((uint64_t *)expr->num.buf);
 
 		if (dest) {
-			quad_new(bb, OC_MOV, dest, src1, NULL);
+			quad_new(OC_MOV, dest, src1, NULL);
 		} else {
 			dest = src1;
 		}
@@ -134,7 +133,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 	// fncall
 	case NT_FNCALL:
-		src1 = gen_rvalue(expr->fncall.fnname, NULL, bb, NULL);
+		src1 = gen_rvalue(expr->fncall.fnname, NULL, NULL);
 
 		// make sure src1 is a fn type (includes implicit functions)
 		if (NT(src1->decl) != NT_DECLARATOR_FUNCTION) {
@@ -145,7 +144,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		// generate a struct addr for each argument in fncall arglist
 		src2 = tmp = addr_new(AT_CONST, create_size_t());
 		LL_FOR(expr->fncall.arglist, iter) {
-			tmp->next = gen_rvalue(iter, NULL, bb, NULL);
+			tmp->next = gen_rvalue(iter, NULL, NULL);
 			tmp = tmp->next;
 		}
 
@@ -154,7 +153,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			dest = tmp_addr_new(create_size_t());
 		}
 
-		quad_new(bb, OC_CALL, dest, src1, src2->next);
+		quad_new(OC_CALL, dest, src1, src2->next);
 
 		// TODO: return a value
 		return NULL;
@@ -168,14 +167,16 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 
 		// sizeof with a symbol or constexpr
 		case SIZEOF:
-#if DEBUG2
+#if !DEBUG2
 			// generate quads for expression in sizeof operand
-			// for debugging purposes only
-			src1 = gen_rvalue(expr->unop.arg, NULL, bb);
-#else
-			// generate quads to a dummy basic block
-			src1 = gen_rvalue(expr->unop.arg, NULL,
-				dummy_basic_block_new(), NULL);
+			// for debugging purposes only; otherwise send to
+			// a dummy basic block not linked into the CFG
+			tmp_bb = cur_bb;
+			cur_bb = dummy_basic_block_new();
+#endif
+			src1 = gen_rvalue(expr->unop.arg, NULL, NULL);
+#if !DEBUG2
+			cur_bb = tmp_bb;
 #endif
 
 			// src2 is the resultant struct addr (static number
@@ -187,7 +188,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 				  : astnode_sizeof_type(src1->decl);
 
 			if (dest) {
-				quad_new(bb, OC_MOV, dest, src2, NULL);
+				quad_new(OC_MOV, dest, src2, NULL);
 			} else {
 				dest = src2;
 			}
@@ -198,10 +199,10 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			src1 = addr_new(AT_CONST, create_size_t());
 			*((uint64_t *) src1->val.constval)
 				= astnode_sizeof_type(expr->unop.arg
-							      ->decl.components);
+					->decl.components);
 
 			if (dest) {
-				quad_new(bb, OC_MOV, dest, src1, NULL);
+				quad_new(OC_MOV, dest, src1, NULL);
 			} else {
 				dest = src1;
 			}
@@ -214,12 +215,12 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		// pointer deref
 		case '*':
 			// lvalue is the deref expression itself
-			return gen_lvalue(expr, bb, NULL, dest, 0);
+			return gen_lvalue(expr, NULL, dest, 0);
 
 		// addressof
 		case '&':
 			// lvalue is the argument to the addressof expression
-			return gen_lvalue(expr->unop.arg, bb, NULL, dest, 1);
+			return gen_lvalue(expr->unop.arg, NULL, dest, 1);
 
 		// postincrement/decrement operators
 		case PLUSPLUS:
@@ -232,7 +233,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 		}
 
 		// other rvalue unops: these generate quads and demote arrays
-		src1 = gen_rvalue(expr->unop.arg, NULL, bb, NULL);
+		src1 = gen_rvalue(expr->unop.arg, NULL, NULL);
 		demote_array(src1);
 
 		switch (expr->unop.op) {
@@ -254,11 +255,11 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 	case NT_BINOP:
 		// special binop: assignment
 		if (expr->binop.op == '=') {
-			return gen_assign(expr, dest, bb);
+			return gen_assign(expr, dest);
 		}
 
-		src1 = gen_rvalue(expr->binop.left, NULL, bb, NULL);
-		src2 = gen_rvalue(expr->binop.right, NULL, bb, NULL);
+		src1 = gen_rvalue(expr->binop.left, NULL, NULL);
+		src2 = gen_rvalue(expr->binop.right, NULL, NULL);
 
 		// after here, no chance of an array that doesn't get demoted
 		// to a pointer (that only happens for sizeof)
@@ -298,7 +299,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 						decl_pointer.of);
 
 				tmp2 = tmp_addr_new(create_size_t());
-				quad_new(bb, OC_MUL, tmp2, tmp, src2);
+				quad_new(OC_MUL, tmp2, tmp, src2);
 				src2 = tmp2;
 			}
 
@@ -306,7 +307,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
-			quad_new(bb, OC_ADD, dest, src1, src2);
+			quad_new(OC_ADD, dest, src1, src2);
 			return dest;
 
 		// subtraction (regular and pointer)
@@ -327,14 +328,14 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 						decl_pointer.of);
 
 				tmp2 = tmp_addr_new(create_size_t());
-				quad_new(bb, OC_MUL, tmp2, tmp, src2);
+				quad_new(OC_MUL, tmp2, tmp, src2);
 				src2 = tmp2;
 			}
 
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
-			quad = quad_new(bb, OC_SUB, dest, src1, src2);
+			quad = quad_new(OC_SUB, dest, src1, src2);
 
 			// pointer - pointer
 			if (AOP(src1) && AOP(src2)) {
@@ -348,7 +349,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 				tmp2 = tmp_addr_new(create_size_t());
 				quad->dest = tmp2;
 
-				quad_new(bb, OC_DIV, dest, tmp2, tmp);
+				quad_new(OC_DIV, dest, tmp2, tmp);
 			}
 
 			return dest;
@@ -360,7 +361,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
-			quad_new(bb, OC_CAST, dest, src2, NULL);
+			quad_new(OC_CAST, dest, src2, NULL);
 			return dest;
 
 		case LOGAND:
@@ -400,21 +401,21 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
-			quad_new(bb, OC_MUL, dest, src1, src2);
+			quad_new(OC_MUL, dest, src1, src2);
 			return dest;
 
 		case '/':
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
-			quad_new(bb, OC_MUL, dest, src1, src2);
+			quad_new(OC_MUL, dest, src1, src2);
 			return dest;
 
 		case '%':
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
-			quad_new(bb, OC_MOD, dest, src1, src2);
+			quad_new(OC_MOD, dest, src1, src2);
 			return dest;
 
 		// TODO: implement these relational operators, and emit
@@ -455,8 +456,8 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest,
 	return NULL;
 }
 
-struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
-	enum addr_mode *mode, struct addr *dest, int addrof)
+struct addr *gen_lvalue(union astnode *expr, enum addr_mode *mode,
+	struct addr *dest, int addrof)
 {
 	struct addr *tmp;
 	union astnode *ts;
@@ -505,7 +506,7 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 				if (!dest) {
 					dest = tmp;
 				} else {
-					quad_new(bb, OC_MOV, dest, tmp, NULL);
+					quad_new(OC_MOV, dest, tmp, NULL);
 				}
 			}
 			// addressof
@@ -514,7 +515,7 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 					dest = tmp_addr_new(create_pointer_to(
 						tmp->decl));
 				}
-				quad_new(bb, OC_LEA, dest, tmp, NULL);
+				quad_new(OC_LEA, dest, tmp, NULL);
 			}
 
 			return dest;
@@ -533,7 +534,7 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 				if (!dest) {
 					dest = tmp_addr_new(tmp->decl);
 				}
-				quad_new(bb, OC_LEA, dest, tmp, NULL);
+				quad_new(OC_LEA, dest, tmp, NULL);
 			}
 			// addressof
 			else {
@@ -542,7 +543,7 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 						tmp->decl));
 				}
 				// noop/reinterpret cast
-				quad_new(bb, OC_CAST, dest, tmp, NULL);
+				quad_new(OC_CAST, dest, tmp, NULL);
 			}
 
 			return dest;
@@ -565,7 +566,7 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 
 		// if addrof, we will be eliding this, so output to dest;
 		// but if not, we need an intermediate value
-		tmp = gen_rvalue(expr->unop.arg, addrof?dest:NULL, bb, NULL);
+		tmp = gen_rvalue(expr->unop.arg, addrof?dest:NULL, NULL);
 		demote_array(tmp);
 
 		// check that the rvalue is a pointer type
@@ -597,11 +598,11 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 
 				// not pointing to an array
 				if (NT(ts) != NT_DECLARATOR_ARRAY) {
-					quad_new(bb, OC_LOAD, dest, tmp, NULL);
+					quad_new(OC_LOAD, dest, tmp, NULL);
 				}
 				// pointing to an array (no-op/reinterpret cast)
 				else {
-					quad_new(bb, OC_CAST, dest, tmp, NULL);
+					quad_new(OC_CAST, dest, tmp, NULL);
 				}
 			}
 		}
@@ -619,8 +620,7 @@ struct addr *gen_lvalue(union astnode *expr, struct basic_block *bb,
 	return NULL;
 }
 
-struct addr *gen_assign(union astnode *expr, struct addr *target,
-	struct basic_block *bb)
+struct addr *gen_assign(union astnode *expr, struct addr *target)
 {
 	struct addr *dest, *src;
 	enum addr_mode mode;
@@ -632,20 +632,20 @@ struct addr *gen_assign(union astnode *expr, struct addr *target,
 
 	// generate lvalue; if invalid lvalue, will report and panic in
 	// gen_lvalue()
-	dest = gen_lvalue(expr->binop.left, bb, &mode, NULL, 0);
+	dest = gen_lvalue(expr->binop.left, &mode, NULL, 0);
 
 	// TODO: don't allow assignment to array/function lvalue
 
 	if (mode == AM_DIRECT) {
-		src = gen_rvalue(expr->binop.right, dest, bb, NULL);
+		src = gen_rvalue(expr->binop.right, dest, NULL);
 	} else {
-		src = gen_rvalue(expr->binop.right, NULL, bb, NULL);
-		quad_new(bb, OC_STORE, NULL, src, dest);
+		src = gen_rvalue(expr->binop.right, NULL, NULL);
+		quad_new(OC_STORE, NULL, src, dest);
 	}
 
 	// directly being assigned to a memory location, issue a MOV
 	if (target) {
-		quad_new(bb, OC_MOV, target, src, NULL);
+		quad_new(OC_MOV, target, src, NULL);
 	}
 
 	return src;

@@ -172,15 +172,14 @@ struct basic_block *dummy_basic_block_new(void);
  *
  * any of the operands or src may be null, depending on the opcode
  *
- * @param bb		basic block to emit quad to
  * @param opcode	quad opcode
  * @param dest		quad destination; must be an lvalue
  * @param src1		quad first operand
  * @param src2		quad second operand
  * @return		generated quad
  */
-struct quad *quad_new(struct basic_block *bb, enum opcode opcode,
-	struct addr *dest, struct addr *src1, struct addr *src2);
+struct quad *quad_new(enum opcode opcode, struct addr *dest, struct addr *src1,
+	struct addr *src2);
 
 /**
  * constructs and returns a new struct addr (operand/dest to quad)
@@ -203,12 +202,11 @@ struct addr *addr_new(enum addr_type type, union astnode *decl);
 struct addr *tmp_addr_new(union astnode *decl);
 
 /**
- * iteratively and recursively generates a linked-list of basic blocks and quads
+ * recursively generate quads for a list of statements
  *
  * @param stmt		linked list of statements to generate quads for
- * @param bb		current basic block
  */
-void generate_quads_rec(union astnode *stmt, struct basic_block *bb);
+void gen_stmt_quads(union astnode *stmt);
 
 /**
  * Generate basic blocks and quads for a function (top-level)

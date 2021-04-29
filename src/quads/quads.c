@@ -29,14 +29,14 @@ struct basic_block *dummy_basic_block_new(void)
 	return bb;
 }
 
-struct quad *quad_new(struct basic_block *bb, enum opcode opcode,
-	struct addr *dest, struct addr *src1, struct addr *src2)
+struct quad *quad_new(enum opcode opcode, struct addr *dest, struct addr *src1,
+	struct addr *src2)
 {
 	struct quad *quad = calloc(1, sizeof(struct quad));
 
 	*quad = (struct quad) {
-		.bb = bb,
-		.next = bb->ll,
+		.bb = cur_bb,
+		.next = cur_bb->ll,
 
 		.opcode = opcode,
 		.dest = dest,
@@ -45,7 +45,9 @@ struct quad *quad_new(struct basic_block *bb, enum opcode opcode,
 	};
 
 	// note: this generates the basic block in reverse
-	bb->ll = quad;
+	// TODO: use _LL_APPEND to generate basic block not in reverse;
+	// 	no reason we can't do that (I think?)
+	cur_bb->ll = quad;
 
 	return quad;
 }
@@ -73,18 +75,12 @@ struct addr *tmp_addr_new(union astnode *decl)
 	return addr;
 }
 
-void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
+// TODO: convert this so that it returns the basic block that it creates
+void gen_stmt_quads(union astnode *stmt)
 {
-	struct basic_block *new_bb;
 
 	// end of recursion
 	if (!stmt) {
-		return;
-	}
-
-	// error
-	if (!bb) {
-		yyerror_fatal("quadgen: bb bb cannot be NULL");
 		return;
 	}
 
@@ -92,32 +88,35 @@ void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 
 	// compound statement: continue generating quads from body
 	case NT_STMT_COMPOUND:
-		generate_quads_rec(stmt->stmt_compound.body, bb);
+		gen_stmt_quads(stmt->stmt_compound.body);
 		break;
 
 	// expression statement: break down into subexpressions
 	case NT_STMT_EXPR:
 		// TODO: warn if no side-effects (i.e., statement is useless)
 
-		gen_rvalue(stmt->stmt_expr.expr, NULL, bb, NULL);
+		gen_rvalue(stmt->stmt_expr.expr, NULL, NULL);
 		break;
 
 	// label statements: declare a new bb
 	case NT_STMT_LABEL:
-		new_bb = basic_block_new();
-
-		// TODO: associate label/case astnode with this bb
-
-		// TODO: name basic block with the label, not a number
-
-		bb->next_def = new_bb;
-		bb = new_bb;
-
-		// TODO: make labelled statements flat? matches syntax better
-		// 	that way; this also doesn't work correctly with multiple
-		// 	nested labels
-//		generate_quads_rec(stmt->stmt_label.body, bb);
+		NYI("generic label statements");
 		break;
+
+//		new_bb = basic_block_new();
+//
+//		// TODO: associate label/case astnode with this bb
+//
+//		// TODO: name basic block with the label, not a number
+//
+//		bb->next_def = new_bb;
+//		bb = new_bb;
+//
+//		// TODO: make labelled statements flat? matches syntax better
+//		// 	that way; this also doesn't work correctly with multiple
+//		// 	nested labels
+////		gen_stmt_quads(stmt->stmt_label.body, bb);
+//		break;
 
 	// unconditional jump statements; terminate current basic block
 	// (but have to keep going in case of labels further on)
@@ -133,18 +132,18 @@ void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 	// conditional jump statement
 	// TODO: also ternary?
 	case NT_STMT_IFELSE:
-		bb = generate_if_else_quads(stmt, bb);
+		generate_if_else_quads(stmt);
 		break;
 
 	// loops
 	case NT_STMT_FOR:
-		generate_for_quads(stmt, bb);
+		generate_for_quads(stmt);
 		break;
 	case NT_STMT_WHILE:
-		generate_while_quads(stmt, bb);
+		generate_while_quads(stmt);
 		break;
 	case NT_STMT_DO_WHILE:
-		generate_do_while_quads(stmt, bb);
+		generate_do_while_quads(stmt);
 		break;
 
 	default:
@@ -153,7 +152,7 @@ void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 	}
 
 	// iterate
-	generate_quads_rec(LL_NEXT(stmt), bb);
+	gen_stmt_quads(LL_NEXT(stmt));
 }
 
 struct basic_block *generate_quads(union astnode *fn_decl)
@@ -165,10 +164,10 @@ struct basic_block *generate_quads(union astnode *fn_decl)
 	bb_no = 0;
 
 	// create starting basic block of function
-	fn_bb = basic_block_new();
+	cur_bb = fn_bb = basic_block_new();
 
 	// recursively generate quads for each statement
-	generate_quads_rec(fn_decl->decl.fn_body, fn_bb);
+	gen_stmt_quads(fn_decl->decl.fn_body);
 
 #if DEBUG
 	// dump basic blocks

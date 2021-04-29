@@ -34,12 +34,13 @@ struct loop {
 /**
  * TODO: need documentation
  */
-void generate_for_quads(union astnode *stmt, struct basic_block *bb);
+void generate_for_quads(union astnode *stmt);
 
 /**
  * generates quads for a while loop
  *
  * semantics:
+ * - After this function completes, cur_bb will be .BB.NEXT
  * - This uses the second form from Hak's notes, which is usually more than
  * 	the more straightforward form. Note that this doesn't use condition
  * 	inversion. It looks like:
@@ -59,17 +60,15 @@ void generate_for_quads(union astnode *stmt, struct basic_block *bb);
  * 	; ...
  *
  * @param stmt		astnode representation of while statement
- * @param bb		current basic block
- * @return		basic block that succeeds while loop (.BB.NEXT)
  */
-struct basic_block *generate_while_quads(union astnode *stmt,
-	struct basic_block *bb);
+void generate_while_quads(union astnode *stmt);
 
 /**
  * generate quads for if/else statements; performs condition inversion for
  * efficiency
  *
  * semantics:
+ * - After this function completes, cur_bb will be .BB.NEXT
  * - for a basic if stmt without else, the result looks like:
  *
  * .BB.COND:
@@ -100,36 +99,31 @@ struct basic_block *generate_while_quads(union astnode *stmt,
  * 	JMP .BB.NEXT
  *
  * @param expr		astnode representation if statement
- * @param bb		current basic block
- * @return		basic block that succeeds if stmt
  */
-struct basic_block *generate_if_else_quads(union astnode *expr,
-	struct basic_block *bb);
+void generate_if_else_quads(union astnode *expr);
 
 /**
  * generate quads for conditional expression (if, for, while conditionals);
  * has the capability of performing condition inversion if desired
  *
  * @param expr		expression in if
- * @param bb		current basic block
  * @param bb_true	basic block then
  * @param bb_false	basic block false
  * @param invert	whether to invert condition
  */
-void generate_conditional_quads(union astnode *expr, struct basic_block *bb,
+void generate_conditional_quads(union astnode *expr,
 	struct basic_block *bb_true, struct basic_block *bb_false, int invert);
 
 /**
- * link basic blocks, generating the appropriate JMPcc command
+ * links the current basic block to its successor(s)
  *
- * @param bb 		current basic block
  * @param cc		condition code to branch on, or CC_UNSPEC for
  * 			unconditional branch
  * @param bb_def	default next branch
  * @param bb_cond	conditional next branch (NULL for unconditional branch)
  */
-void link_bbs(struct basic_block *bb, enum cc cc,
-	struct basic_block *bb_def, struct basic_block *bb_cond);
+void link_bb(enum cc cc, struct basic_block *bb_def,
+	struct basic_block *bb_cond);
 
 // TODO: remove
 //struct basic_block *link_basic_block(struct basic_block *bb,
@@ -139,6 +133,6 @@ void link_bbs(struct basic_block *bb, enum cc cc,
 /**
  * TODO: need documentation
  */
-void generate_do_while_quads(union astnode *stmt, struct basic_block *bb);
+void generate_do_while_quads(union astnode *stmt);
 
 #endif // CFQUADS_H

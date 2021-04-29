@@ -16,7 +16,7 @@ struct loop *loop_new(void)
 	return lp;
 }
 
-void generate_for_quads(union astnode *stmt, struct basic_block *bb)
+void generate_for_quads(union astnode *stmt)
 {
 	NYI("for loop quad generation");
 
@@ -32,7 +32,7 @@ void generate_for_quads(union astnode *stmt, struct basic_block *bb)
 //
 //	// gen_assign(stmt->stmt_for.init);
 }
-void generate_do_while_quads(union astnode *stmt, struct basic_block *bb)
+void generate_do_while_quads(union astnode *stmt)
 {
 	NYI("do while quad generation");
 
@@ -48,7 +48,7 @@ void generate_do_while_quads(union astnode *stmt, struct basic_block *bb)
 //	link_basic_block(bb, ALWAYS, bb_body, NULL);
 //	bb = bb_body;
 //
-//	generate_quads_rec(stmt->stmt_while.body, bb);
+//	gen_stmt_quads(stmt->stmt_while.body, bb);
 //
 //	link_basic_block(bb, ALWAYS, bb_cond, NULL);
 //	bb = bb_cond;
@@ -59,8 +59,7 @@ void generate_do_while_quads(union astnode *stmt, struct basic_block *bb)
 //	cur_loop = cur_loop->prev;
 }
 
-struct basic_block *generate_while_quads(union astnode *stmt,
-	struct basic_block *bb)
+void generate_while_quads(union astnode *stmt)
 {
 	NYI("while quad generation");
 
@@ -71,10 +70,20 @@ struct basic_block *generate_while_quads(union astnode *stmt,
 	bb_cond = basic_block_new();
 	bb_next = basic_block_new();
 
-	link_bbs(bb_initjmp, CC_ALWAYS, bb_cond, NULL);
-	link_bbs(bb_body, CC_ALWAYS, bb_cond, NULL);
-	generate_conditional_quads(stmt->stmt_while.cond,
-		bb_cond, bb_body, bb_next, 0);
+	// first bb is simply a JMP to the condition
+	cur_bb = bb_initjmp;
+	link_bb(CC_ALWAYS, bb_cond, NULL);
+
+	// generate body quads like normal
+	cur_bb = bb_body;
+	gen_stmt_quads(stmt->stmt_while.body);
+	link_bb(CC_ALWAYS, bb_cond, NULL);
+
+	// generate condition quads
+	cur_bb = bb_cond;
+	generate_conditional_quads(stmt->stmt_while.cond, bb_body, bb_next, 0);
+
+	cur_bb = bb_next;
 
 //	struct basic_block *bb_cond = basic_block_new();
 //	struct basic_block *bb_body = basic_block_new();
@@ -91,7 +100,7 @@ struct basic_block *generate_while_quads(union astnode *stmt,
 //	generate_conditional_quads(stmt->stmt_while.cond, bb, bb_body, bb_next);
 //
 //	bb = bb_body;
-//	generate_quads_rec(stmt->stmt_while.body, bb);
+//	gen_stmt_quads(stmt->stmt_while.body, bb);
 //
 //	link_basic_block(bb, ALWAYS, bb_cond, NULL);
 //
@@ -99,8 +108,7 @@ struct basic_block *generate_while_quads(union astnode *stmt,
 //	cur_loop = cur_loop->prev;
 }
 
-struct basic_block *generate_if_else_quads(union astnode *expr,
-	struct basic_block *bb)
+void generate_if_else_quads(union astnode *expr)
 {
 	struct basic_block *bb_true = basic_block_new();
 	struct basic_block *bb_false = basic_block_new();
@@ -112,35 +120,31 @@ struct basic_block *generate_if_else_quads(union astnode *expr,
 		bb_next = bb_false;
 	}
 
-	generate_conditional_quads(expr->stmt_if_else.cond, bb,
+	generate_conditional_quads(expr->stmt_if_else.cond,
 		bb_true, bb_false, 1);
 
 	// generate statements for true branch
-	generate_quads_rec(expr->stmt_if_else.ifstmt, bb_true);
-
-	// TODO: remove
-//	link_basic_block(bb_true, ALWAYS, bb_next, NULL);
-	link_bbs(bb_true, CC_ALWAYS, bb_next, NULL);
+	cur_bb = bb_true;
+	gen_stmt_quads(expr->stmt_if_else.ifstmt);
+	link_bb(CC_ALWAYS, bb_next, NULL);
 
 	// generate statements for else branch
 	if (expr->stmt_if_else.elsestmt) {
-		generate_quads_rec(expr->stmt_if_else.elsestmt, bb_false);
-
-		// TODO: remove
-//		link_basic_block(bb_false, ALWAYS, bb_next, NULL);
-		link_bbs(bb_false, CC_ALWAYS, bb_next, NULL);
+		cur_bb = bb_false;
+		gen_stmt_quads(expr->stmt_if_else.elsestmt);
+		link_bb(CC_ALWAYS, bb_next, NULL);
 	}
 
-	return bb_next;
+	cur_bb = bb_next;
 }
 
-void generate_conditional_quads(union astnode *expr, struct basic_block *bb,
+void generate_conditional_quads(union astnode *expr,
 	struct basic_block *bb_true, struct basic_block *bb_false, int invert)
 {
 	enum cc cc = CC_UNSPEC;
 	struct addr *cond, *zero;
 
-	cond = gen_rvalue(expr, NULL, bb, &cc);
+	cond = gen_rvalue(expr, NULL, &cc);
 
 	// if cc is not set, then create compare and set cc to CC_NE (nonzero,
 	// default truthy condition)
@@ -150,7 +154,7 @@ void generate_conditional_quads(union astnode *expr, struct basic_block *bb,
 		zero = addr_new(AT_CONST, create_size_t());
 		*((uint64_t*)zero->val.constval) = 0;
 
-		quad_new(bb, OC_CMP, NULL, cond, zero);
+		quad_new(OC_CMP, NULL, cond, zero);
 		cc = CC_NE;
 	}
 
@@ -166,9 +170,9 @@ void generate_conditional_quads(union astnode *expr, struct basic_block *bb,
 			case CC_GE: cc = CC_L; break;
 		}
 
-		link_bbs(bb, cc, bb_false, bb_true);
+		link_bb(cc, bb_false, bb_true);
 	} else {
-		link_bbs(bb, cc, bb_true, bb_false);
+		link_bb(cc, bb_true, bb_false);
 	}
 
 	// TODO: remove
@@ -205,13 +209,13 @@ void generate_cont_break_quads(union astnode *stmt, struct basic_block *bb)
 //	}
 }
 
-void link_bbs(struct basic_block *bb, enum cc cc,
-	struct basic_block *bb_def, struct basic_block *bb_cond)
+void link_bb(enum cc cc, struct basic_block *bb_def,
+	struct basic_block *bb_cond)
 {
-	bb->branch_cc = cc;
+	cur_bb->branch_cc = cc;
 
-	bb->next_def = bb_def;
-	bb->next_cond = bb_cond;
+	cur_bb->next_def = bb_def;
+	cur_bb->next_cond = bb_cond;
 }
 
 // TODO: remove
