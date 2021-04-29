@@ -37,25 +37,87 @@ struct loop {
 void generate_for_quads(union astnode *stmt, struct basic_block *bb);
 
 /**
- * generate quads for if else statements
+ * generates quads for a while loop
  *
- * @param expr		expression in if
+ * semantics:
+ * - This uses the second form from Hak's notes, which is usually more than
+ * 	the more straightforward form. Note that this doesn't use condition
+ * 	inversion. It looks like:
+ *
+ * .BB.INITIALJUMP:
+ * 	JMP .BB.CONDITION
+ * 	; fallthrough to .BB.LOOPBODY
+ * .BB.LOOPBODY:
+ * 	; loop body statements
+ * 	; fallthrough to .BB.CONDITION
+ * .BB.CONDITION:
+ * 	; perform condition here (no inversion)
+ * 	JMPcc .BB.LOOPBODY
+ * 	; fallthrough to .BB.NEXT
+ * .BB.NEXT:
+ * 	; successor of while loop
+ * 	; ...
+ *
+ * @param stmt		astnode representation of while statement
  * @param bb		current basic block
+ * @return		basic block that succeeds while loop (.BB.NEXT)
+ */
+struct basic_block *generate_while_quads(union astnode *stmt,
+	struct basic_block *bb);
+
+/**
+ * generate quads for if/else statements; performs condition inversion for
+ * efficiency
+ *
+ * semantics:
+ * - for a basic if stmt without else, the result looks like:
+ *
+ * .BB.COND:
+ * 	; perform (inverted) condition here
+ * 	JMPcc .BB.TRUE:
+ * 	; fallthrough to .BB.NEXT
+ * .BB.NEXT:
+ * 	; successor of if statement
+ * 	; ...
+ * .BB.TRUE:
+ * 	; statements in true branch
+ * 	JMP .BB.NEXT
+ *
+ * - for an if stmt with else, the result looks like:
+ *
+ * .BB.COND:
+ * 	; perform (inverted) condition here
+ * 	JMPcc .BB.TRUE:
+ * 	; fallthrough to .BB.FALSE
+ * .BB.FALSE:
+ * 	; statements in else branch
+ * 	; fallthrough to .BB.NEXT
+ * .BB.NEXT:
+ * 	; successor of if/else stmt
+ * 	; ...
+ * .BB.TRUE:
+ * 	; statements in true branch
+ * 	JMP .BB.NEXT
+ *
+ * @param expr		astnode representation if statement
+ * @param bb		current basic block
+ * @return		basic block that succeeds if stmt
  */
 struct basic_block *generate_if_else_quads(union astnode *expr,
 	struct basic_block *bb);
 
 /**
  * generate quads for conditional expression (if, for, while conditionals);
- * performs condition inversion
+ * has the capability of performing condition inversion if desired
  *
  * @param expr		expression in if
  * @param bb		current basic block
  * @param bb_true	basic block then
  * @param bb_false	basic block false
+ * @param invert	whether to invert condition
  */
 void generate_conditional_quads(union astnode *expr, struct basic_block *bb,
-	struct basic_block *bb_true, struct basic_block *bb_false);
+	struct basic_block *bb_true, struct basic_block *bb_false, int invert);
 
 /**
  * link basic blocks, generating the appropriate JMPcc command
@@ -77,7 +139,6 @@ void link_bbs(struct basic_block *bb, enum cc cc,
 /**
  * TODO: need documentation
  */
-void generate_while_quads(union astnode *stmt, struct basic_block *bb);
 void generate_do_while_quads(union astnode *stmt, struct basic_block *bb);
 
 #endif // CFQUADS_H

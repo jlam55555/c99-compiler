@@ -10,6 +10,11 @@
 
 #include <parser/astnode.h>
 
+// current basic block being generated; easier to keep as a global variable
+// because it's a pain to pass around during recursive control flow basic
+// block generation
+extern struct basic_block *cur_bb;
+
 /**
  * List of opcodes for the quad IR
  */

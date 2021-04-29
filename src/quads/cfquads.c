@@ -1,8 +1,9 @@
 #include <quads/cfquads.h>
 #include <quads/quads.h>
 #include <quads/exprquads.h>
-#include <parser.tab.h>
 #include <malloc.h>
+
+// TODO: logical operators
 
 // used to hold state information about the current loops; information for
 // parent loops is stored on the stack frame
@@ -58,9 +59,22 @@ void generate_do_while_quads(union astnode *stmt, struct basic_block *bb)
 //	cur_loop = cur_loop->prev;
 }
 
-void generate_while_quads(union astnode *stmt, struct basic_block *bb)
+struct basic_block *generate_while_quads(union astnode *stmt,
+	struct basic_block *bb)
 {
 	NYI("while quad generation");
+
+	struct basic_block *bb_initjmp, *bb_body, *bb_cond, *bb_next;
+
+	bb_initjmp = basic_block_new();
+	bb_body = basic_block_new();
+	bb_cond = basic_block_new();
+	bb_next = basic_block_new();
+
+	link_bbs(bb_initjmp, CC_ALWAYS, bb_cond, NULL);
+	link_bbs(bb_body, CC_ALWAYS, bb_cond, NULL);
+	generate_conditional_quads(stmt->stmt_while.cond,
+		bb_cond, bb_body, bb_next, 0);
 
 //	struct basic_block *bb_cond = basic_block_new();
 //	struct basic_block *bb_body = basic_block_new();
@@ -99,7 +113,7 @@ struct basic_block *generate_if_else_quads(union astnode *expr,
 	}
 
 	generate_conditional_quads(expr->stmt_if_else.cond, bb,
-		bb_true, bb_false);
+		bb_true, bb_false, 1);
 
 	// generate statements for true branch
 	generate_quads_rec(expr->stmt_if_else.ifstmt, bb_true);
@@ -121,7 +135,7 @@ struct basic_block *generate_if_else_quads(union astnode *expr,
 }
 
 void generate_conditional_quads(union astnode *expr, struct basic_block *bb,
-	struct basic_block *bb_true, struct basic_block *bb_false)
+	struct basic_block *bb_true, struct basic_block *bb_false, int invert)
 {
 	enum cc cc = CC_UNSPEC;
 	struct addr *cond, *zero;
@@ -140,19 +154,22 @@ void generate_conditional_quads(union astnode *expr, struct basic_block *bb,
 		cc = CC_NE;
 	}
 
-	// invert conditional code
-	switch (cc) {
-		case CC_E: cc = CC_NE; break;
-		case CC_NE: cc = CC_E; break;
-		case CC_L: cc = CC_GE; break;
-		case CC_LE: cc = CC_G; break;
-		case CC_G: cc = CC_LE; break;
-		case CC_GE: cc = CC_L; break;
-	}
+	// at this point, cc should be well-defined
+	if (invert) {
+		// invert conditional code
+		switch (cc) {
+			case CC_E: cc = CC_NE; break;
+			case CC_NE: cc = CC_E; break;
+			case CC_L: cc = CC_GE; break;
+			case CC_LE: cc = CC_G; break;
+			case CC_G: cc = CC_LE; break;
+			case CC_GE: cc = CC_L; break;
+		}
 
-	// at this point, cc should be well-defined; also take note of inverted
-	// order of true/false branches
-	link_bbs(bb, cc, bb_false, bb_true);
+		link_bbs(bb, cc, bb_false, bb_true);
+	} else {
+		link_bbs(bb, cc, bb_true, bb_false);
+	}
 
 	// TODO: remove
 //	switch(expr->generic.type) {

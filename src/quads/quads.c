@@ -5,6 +5,8 @@
 #include <quads/cfquads.h>
 #include <string.h>
 
+struct basic_block *cur_bb;
+
 // current function name and basic block number
 static char *fn_name;
 static int bb_no, tmp_no;
