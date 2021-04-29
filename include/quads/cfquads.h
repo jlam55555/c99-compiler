@@ -115,7 +115,14 @@ void generate_conditional_quads(union astnode *expr,
 	struct basic_block *bb_true, struct basic_block *bb_false, int invert);
 
 /**
- * links the current basic block to its successor(s)
+ * links the current basic block to its successor(s), and reverses the quads
+ * in the current bb
+ *
+ * semantics:
+ * - since it only makes sense to link the current bb to the next when all the
+ * 	quads of the current basic block are finished, this acts as a de facto
+ * 	indication that the current basic block is complete; thus it performs
+ * 	the quad reversal as well
  *
  * @param cc		condition code to branch on, or CC_UNSPEC for
  * 			unconditional branch

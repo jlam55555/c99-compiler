@@ -214,7 +214,10 @@ void gen_stmt_quads(union astnode *stmt);
  * Like complex declarations, basic blocks are built "in reverse" (by nature
  * of a singly-linked list) and then reversed when complete. While having a
  * second pointer would make it easy to build in the correct order, we do away
- * with all the troubles of maintaining extra pointers.
+ * with all the troubles of maintaining extra pointers. (Alternatively, we
+ * could append to the end of the list, but this would be less efficient
+ * w/ O(N) rather than O(1) inserts). The bb will be reversed when it is
+ * complete, i.e., when link_bbs is called on the basic block
  *
  * @param fn_decl		declarator for a function definition
  */

@@ -185,10 +185,13 @@ void print_basic_block(struct basic_block *bb)
 		fprintf(fp, "\tJMP%s .BB.%s.%d\n", cc2str(bb->branch_cc),
 			bb->next_cond->fn_name, bb->next_cond->bb_no);
 	}
-	// unconditional branch (if exists)
+	// unconditional branch (if exists; doesn't exist for final
+	// bb in function, i.e., CFG terminal node)
 	if (bb->next_def) {
 		fprintf(fp, "\tJMP .BB.%s.%d\n",
 			bb->next_def->fn_name, bb->next_def->bb_no);
+	} else {
+		fprintf(fp, "\t(CFG terminal node)\n");
 	}
 
 	fprintf(fp, "}\n");

@@ -32,7 +32,7 @@ struct basic_block *dummy_basic_block_new(void)
 struct quad *quad_new(enum opcode opcode, struct addr *dest, struct addr *src1,
 	struct addr *src2)
 {
-	struct quad *quad = calloc(1, sizeof(struct quad));
+	struct quad *quad = calloc(1, sizeof(struct quad)), *iter;
 
 	*quad = (struct quad) {
 		.bb = cur_bb,
@@ -44,9 +44,8 @@ struct quad *quad_new(enum opcode opcode, struct addr *dest, struct addr *src1,
 		.src2 = src2,
 	};
 
-	// note: this generates the basic block in reverse
-	// TODO: use _LL_APPEND to generate basic block not in reverse;
-	// 	no reason we can't do that (I think?)
+	// note: this generates the basic block in reverse; will eventually
+	// be re-reversed in link_bb()
 	cur_bb->ll = quad;
 
 	return quad;
@@ -168,6 +167,9 @@ struct basic_block *generate_quads(union astnode *fn_decl)
 
 	// recursively generate quads for each statement
 	gen_stmt_quads(fn_decl->decl.fn_body);
+
+	// need to call this to finalize the last BB (i.e., reverse its quads)
+	link_bb(CC_ALWAYS, NULL, NULL);
 
 #if DEBUG
 	// dump basic blocks

@@ -209,6 +209,34 @@ void generate_cont_break_quads(union astnode *stmt, struct basic_block *bb)
 //	}
 }
 
+/**
+ * reverse quads in cur_bb when it is complete (i.e., in link_bb)
+ *
+ * uses same O(N) algorithm as in decl_reverse (decl.c); see that function
+ * for more details
+ */
+static void reverse_quads(void)
+{
+	struct quad *a, *b, *c;
+
+	if (!(a = cur_bb->ll) || !(b = _LL_NEXT(a, next))) {
+		return;
+	}
+
+	c = _LL_NEXT(b, next);
+	_LL_NEXT(a, next) = NULL;
+
+	while (c) {
+		_LL_NEXT(b, next) = a;
+		a = b;
+		b = c;
+		c = _LL_NEXT(c, next);
+	}
+
+	_LL_NEXT(b, next) = a;
+	cur_bb->ll = b;
+}
+
 void link_bb(enum cc cc, struct basic_block *bb_def,
 	struct basic_block *bb_cond)
 {
@@ -216,6 +244,9 @@ void link_bb(enum cc cc, struct basic_block *bb_def,
 
 	cur_bb->next_def = bb_def;
 	cur_bb->next_cond = bb_cond;
+
+	// reverse all quads in cur_bb; see function comment for an explanation
+	reverse_quads();
 }
 
 // TODO: remove

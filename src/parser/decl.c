@@ -36,7 +36,6 @@ union astnode *decl_append(union astnode *decl, union astnode *components)
  */
 static void decl_reverse(union astnode *decl)
 {
-	//
 	union astnode *a, *b, *c;
 
 	// components list is < 2 elements, nothing to do
