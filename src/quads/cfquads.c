@@ -98,7 +98,7 @@ struct basic_block *generate_if_else_quads(union astnode *expr,
 		bb_next = bb_false;
 	}
 
-	generate_conditional_quads(expr->stmt_if_else.ifstmt, bb,
+	generate_conditional_quads(expr->stmt_if_else.cond, bb,
 		bb_true, bb_false);
 
 	// generate statements for true branch

@@ -131,7 +131,7 @@ void generate_quads_rec(union astnode *stmt, struct basic_block *bb)
 	// conditional jump statement
 	// TODO: also ternary?
 	case NT_STMT_IFELSE:
-		generate_if_else_quads(stmt, bb);
+		bb = generate_if_else_quads(stmt, bb);
 		break;
 
 	// loops
