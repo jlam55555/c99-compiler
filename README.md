@@ -78,7 +78,9 @@ block statements, and control flow), labels have been implemented.
 ##### Quad Generation
 Quad generation is partitioned into expression quad generation and statement
 (control flow) quad generation. There are three new struct types: basic_block,
-quad, and addr (representing an operand to/destination of a quad).
+quad, and addr (representing an operand to/destination of a quad). There are two
+new enums: opcode (for quad opcodes), and cc (for condition codes, used for
+relational operators and branching statements).
 
 Each quad is generic (e.g., operand types and sizes may vary, e.g., the MOV
 quad encompasses MOVB, MOVL, etc. and may have any combination of operand
@@ -88,34 +90,52 @@ can be type-checked. With the more verbose DEBUG2 debug level, all of the
 struct addr types are printed for your viewing pleasure. The sizeof operator
 is necessarily implemented as a compile-time construct.
 
-TODO: write about statement/basic block generation
-
-Not implemented:
-- non-int/char lvalues (yet?)
-- structs/unions lvalues (yet?)
-- ternary statements
-- goto and switch statements
-
-TODO (also see res/scratch/TODO)
-- Statements
-    - compound statements -- done?
-    - expression statements -- work in progress
-    - if statements
-    - loop statements
-        - break/continue statements
-    - return statements
-- Indicate whether variables are local (parameter or regular) or global
-    (for use with addressing modes later)
+The control flow graph (CFG) is developed as a graph of struct basic_block
+objects, and the linearization is controlled by the linked list ll_bb. Control
+flow for if/else, while, do-while, and for statements are implemented. If/else
+statements use condition inversion and while loops have the condition after
+the body to reduce the number of branches (i.e., increase fall-throughs). The
+logical AND (&&) operator was implemented with implicit control flow.
 
 Notes:
 - At this point, we start making assumptions about the architecture. In
     particular, a 64-bit architecture based on the common x86_64 model is used.
+- Explicit casting is supported but (very) weakly checked. See the note about
+    OC_CAST.
+- Each struct addr has a (single) type declaration associated with it
+    (addr->decl), which allows for type-checking. However, since typing is
+    strict, casting (which may be a noop) has to be represented manually, so we
+    introduce the OC_CAST quad. E.g., this happens when taking the address of
+    an array (a noop, but the type changes from array[] to pointer->array[]).
+    The resulting target code generated from the OC_CAST will depend on the
+    types of its operands. (e.g., the above will generate a noop but a signed
+    cast from long to quadword will result in a CLTQ opcode.)
+- In general, there is the capability for type checking (via the typed struct
+    addr) but we don't have the time to check that every operation is valid.
+    It is left to the programmer to explicitly cast types when necessary, as
+    there may be unfortunately arbitrary implicit casts when determining the
+    type of new temporary struct addr objects. The safest bet is to just use
+    a single size and signed-ness for any operation.
 
-Fixes (from previous assignment):
+Not (fully?) implemented:
+- non-int/char lvalues (yet?)
+- structs/unions lvalues (yet?) and thus member operations (. and ->)
+- ternary statements
+- goto and switch statements
+- warn if statement is useless
+- logical OR (||) -- mostly because lazy, logic is same as &&
+- bitwise operators and postinc/postdec (same reason: not hard, just tedious)
+- a lot of type checking and integer promotion -- for now, assume arithmetic
+    operations occur on integral items of the same type, all casts are valid, 
+    not assigning to arrays or function lvalues
+- sizeof struct may be incorrect: for now, simply sums the sizes of its
+    component members (since we're not really implementing struct lvalues at
+    all, this is a lesser worry)
+
+Unresolved (from previous assignment):
 - Labels should be inserted into the symbol table, and unresolved goto labels
     should be resolved when function is complete
 - Check that member access on a struct/union is a valid member name
-- Don't segfault on seeing typedef
 - Allow arrays (including VLAs) in prototypes
 - Redeclaration of extern variables is allowed, but need to check for
     compatibility and narrow type to strictest intersection of the two types
@@ -215,7 +235,6 @@ Fixes (from previous assignment):
         operators, and for conditional jumps), and OC_SETcc opcodes
     - fixed if statements quad generation
     - implemented condition inversion in generate_conditional_quads()
-    - implemented basic blocks "history," now bbs not printed multiple times
     - implemented reversal of basic block quads once link_bb() is called on a
         bb (calling this indicates that a bb is complete)
     - implemented an explicit linearization of basic blocks using bb_ll_push(),
@@ -227,13 +246,18 @@ Fixes (from previous assignment):
     - improved visual printing of basic blocks and quads using a {block} format
     - updated print_basic_blocks() to print in the explicit linearization order
         dictated by bb_ll
-    - emit fatal warning on typedef
-    - TODO: set correct output type based on input types (implicit conversions)
-    - TODO: implement all operations
-    - TODO: warn if statement is useless (i.e., no side effects)
-    - TODO: write a function to check if two types match (for extern decl
-        compatibility check and for pointer assignment)
-    - TODO: indicate if variables are local or global
+- 4/30/21: finishing up major parts of quad generation
+    - indicate whether symbol is global, local, parameter, or implicit (will
+        influence target addressing modes); requires associating scope
+        information with each symbol as they are being inserted into the symbol
+        table b/c scope is popped before quad generation
+    - implemented do-while and for loops
+    - implemented logical AND (&&) with implicit control flow
+    - implemented relational (comparison) operators; depending on the target,
+        either emit a SETCC opcode (if set to variable/used as intermediate
+        value) or do not (condition code will be used by branching statement)
+    - emit fatal warning on typedef (rather than SEGFAULT)
+    - cleanup of many to-do items, documentation of broken/missing items
 
 ---
   
