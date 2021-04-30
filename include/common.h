@@ -103,8 +103,8 @@ extern int indi;
 	for (indi = 0; indi < (depth); indi++) \
 		fprintf(stdout, "  ");
 
-// indicates a feature is not yet implemented; somewhat equivalent to a TODO
-// (not that it will not be implemented)
+// indicates a feature is not yet implemented; somewhat equivalent to a to-do
+// (not that it will not be implemented); not fatal
 #define NYI(what) yyerror(#what " not yet implemented");
 
 #endif	// COMMONH

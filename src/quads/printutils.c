@@ -45,6 +45,7 @@ void print_addr(struct addr *addr)
 	FILE *fp = stdout;
 	unsigned char *constval;
 	enum scope_type st;
+	union astnode *decl;
 
 	if (!addr) {
 		yyerror_fatal("quadgen: addr should not be NULL"
@@ -87,16 +88,23 @@ void print_addr(struct addr *addr)
 
 	// print symbol table value
 	case AT_AST:
-		// get scope; proto scopes are fully promoted to function scopes
-		// so we have to check the is_proto member to see if a local
-		// var is from the prototype or not
-		st = addr->val.astnode->decl.is_proto ? ST_PROTO
-			: addr->val.astnode->decl.scope->type;
+		decl = addr->val.astnode;
+
+		if (decl->decl.is_implicit) {
+			st = -1;
+		} else {
+			// get scope; proto scopes are fully promoted to function scopes
+			// so we have to check the is_proto member to see if a local
+			// var is from the prototype or not
+			st = decl->decl.is_proto ? ST_PROTO
+				: decl->decl.scope->type;
+		}
 
 		fprintf(fp, "%s:%s]",
+			st == -1 ? "implicit" :
 			st == ST_FILE ? "globalvar" :
 			st == ST_PROTO ? "protovar" : "localvar",
-			addr->val.astnode->decl.ident);
+			decl->decl.ident);
 		break;
 
 	default:
@@ -153,14 +161,6 @@ void print_quad(struct quad *quad)
 	fprintf(fp, "\n");
 }
 
-// TODO: remove this; don't need this because we want to print out basic blocks
-// in reversed order
-// // (temporary?) duplicate checker; keeps track of seen basic blocks
-//static struct bb_history {
-//	struct bb_history *next;
-//	struct basic_block *bb;
-//} *bb_history;
-
 void print_basic_block(struct basic_block *bb)
 {
 	FILE *fp = stdout;
@@ -172,20 +172,6 @@ void print_basic_block(struct basic_block *bb)
 		yyerror_fatal("quadgen: null bb in print_basic_block");
 		return;
 	}
-
-	// TODO: remove
-//	// check if basic block has already been seen
-//	_LL_FOR(bb_history, hist_iter, next) {
-//		if (hist_iter->bb == bb) {
-//			return;
-//		}
-//	}
-//
-//	// allocate new history item
-//	cur = calloc(1, sizeof(struct bb_history));
-//	cur->bb = bb;
-//	cur->next = bb_history;
-//	bb_history = cur;
 
 	// print bb identifier
 	fprintf(fp, ".BB.%s.%d {\n", bb->fn_name, bb->bb_no);
@@ -211,40 +197,13 @@ void print_basic_block(struct basic_block *bb)
 	}
 
 	fprintf(fp, "}\n");
-
-//	// print children
-//	print_basic_block(bb->next_def);
-//	print_basic_block(bb->next_cond);
-
-	// TODO: remove
-//	switch(bb->branch){
-//		case NEVER:		break;
-//		case ALWAYS:	fprintf(fp, "BR .BB.%s.%d\n", bb->prev->fn_name, bb->prev->bb_no);
-//		// case BR_LT:		fprintf(fp, "BRLT .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev->bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
-//		// case BR_GT:		fprintf(fp, "BRGT .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
-//		// case BR_EQ:		fprintf(fp, "BREQ .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
-//		// case BR_NEQ:	fprintf(fp, "BRNE .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
-//		// case BR_LTEQ:	fprintf(fp, "BRLE .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
-//		// case BR_GTEQ:	fprintf(fp, "BRGE .BB.%s.%d, .BB.%s.%d\n", bb->prev.fn_name, bb->prev.bb_no, bb->next_cond.fn_name, bb->next_cond.bb_no);
-//
-//	}
-
-
 }
 
-// TODO: add documentation
-// 	in documentation: this should only happen after finalize_bb_list
-void print_basic_blocks(struct basic_block *bb)
+void print_basic_blocks()
 {
 	struct basic_block *iter;
 
 	_LL_FOR(bb_ll, iter, next) {
 		print_basic_block(iter);
 	}
-
-	// TODO: remove
-//	// print
-//	print_basic_block(bb);
-//	print_basic_blocks(bb->next_def);
-//	print_basic_blocks(bb->next_cond);
 }

@@ -9,19 +9,6 @@
 #include <quads/quads.h>
 #include <parser/astnode.h>
 
-// TODO: remove; is replaced with condition codes (enum cc), which are not
-// 	specific to branching
-//enum branches {
-//	NEVER=0,
-//	ALWAYS=1,
-//	BR_LT,
-//	BR_GT,
-//	BR_EQ,
-//	BR_NEQ,
-//	BR_LTEQ,
-//	BR_GTEQ,
-//};
-
 /**
  * storing the current loop continue/break points
  */
@@ -30,7 +17,9 @@ struct loop {
 };
 
 /**
- * TODO: need documentation
+ * generate for loop quads
+ *
+ * @param stmt		astnode representation of for statement
  */
 void generate_for_quads(union astnode *stmt);
 
@@ -150,13 +139,11 @@ void gen_ret_quads(union astnode *stmt);
 void link_bb(enum cc cc, struct basic_block *bb_def,
 	struct basic_block *bb_cond);
 
-// TODO: remove
-//struct basic_block *link_basic_block(struct basic_block *bb,
-//	enum branches branch, struct basic_block *prev,
-//	struct basic_block *next);
-
 /**
- * TODO: need documentation
+ * Generates do-while statement. Almost the same as a while loop but the initial
+ * jump is simply a fallthrough to the body (rather than a jump to the cond)
+ *
+ * @param stmt		astnode representation of do-while statement
  */
 void generate_do_while_quads(union astnode *stmt);
 

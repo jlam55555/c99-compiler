@@ -3,20 +3,9 @@
 #include <quads/exprquads.h>
 #include <malloc.h>
 
-// TODO: logical operators and implicit control flow
-
 // used to hold state information about the current loops; information for
 // parent loops is stored on the stack frame
 static struct loop *cur_loop;
-
-// TODO: do we need this? see example in while loop -- we can just save the
-// 	prev cur_loop value and restore it after we're done
-//struct loop *loop_new(void)
-//{
-//	struct loop *lp = malloc(sizeof(struct loop));
-//	lp->prev = cur_loop;
-//	return lp;
-//}
 
 void generate_for_quads(union astnode *stmt)
 {
@@ -298,16 +287,3 @@ void link_bb(enum cc cc, struct basic_block *bb_def,
 	// an error;
 	cur_bb->finalized = 1;
 }
-
-// TODO: remove
-//struct basic_block *link_basic_block(struct basic_block *bb,
-//	enum branches branch, struct basic_block *bb_true,
-//	struct basic_block *bb_false)
-//{
-//	bb->branch = branch;
-//
-//	bb->prev = prev;
-//	bb->next_cond = next;
-//
-//	return bb;
-//}

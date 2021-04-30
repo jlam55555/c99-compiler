@@ -51,12 +51,6 @@ enum opcode {
 	OC_CMP,		// CMP val1, val2
 	OC_SETCC,	// target = SETCC type
 
-	// TODO: remove
-	// OC_SETE, OC_SETNE, OC_SETL, OC_SETLE, OC_SETG, OC_SETGE, // target=SETcc
-
-	// TODO: remove
-//	OC_JMPE, OC_JMPNE, OC_JETL, OC_JMPLE, OC_JMPG, OC_JMPGE, // label=JMPcc
-
 	// generic cast operation -- may be noop, may not; exact implementation
 	// is deferred to the target code generation stage; cast information
 	// is stored in target and src type declaration info
@@ -121,9 +115,7 @@ struct addr {
 		unsigned tmpid;
 	} val;
 
-	// TODO: will probably need to associate each struct addr instance
-	// 	with a type, especially in the case of casting, or finding the
-	// 	type of deeply nested expressions, or determining l/rvalues
+	// astnode representation of addr type
 	union astnode *decl;
 };
 
@@ -147,9 +139,6 @@ struct basic_block {
 	// basic block identifier
 	char *fn_name;
 	int bb_no;
-
-	// TODO: remove
-//	enum branches branch;
 
 	enum cc branch_cc;
 

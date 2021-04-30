@@ -168,9 +168,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 		}
 
 		quad_new(OC_CALL, dest, src1, src2->next);
-
-		// TODO: return a value
-		return NULL;
+		return dest;
 
 	// unary operator
 	case NT_UNOP:
@@ -223,7 +221,6 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 			return dest;
 		}
 
-		// TODO: implement these
 		// lvalue unops: & (addressof), ++, -- (post inc/dec)
 		switch (expr->unop.op) {
 		// pointer deref
@@ -236,6 +233,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 			// lvalue is the argument to the addressof expression
 			return gen_lvalue(expr->unop.arg, NULL, dest, 1);
 
+		// TODO: implement postinc/postdec
 		// postincrement/decrement operators
 		case PLUSPLUS:
 			NYI("postinc");
@@ -274,9 +272,6 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 			return gen_assign(expr, dest);
 
 		case LOGAND:
-			// TODO: hidden control flow
-			NYI("logical AND");
-
 			if (!dest && !cc) {
 				// this would return a logical
 				dest = tmp_addr_new(create_size_t());
@@ -364,8 +359,8 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 			}
 			return dest;
 
+		// TODO: implement LOGOR (same idea as LOGAND)
 		case LOGOR:
-			// TODO: hidden control flow
 			NYI("logical OR");
 			break;
 		}
@@ -498,7 +493,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 			break;
 
 		// addition and subtraction already taken care of
-
+		// arithmetic operators
 		case '*':	op = OC_MUL; goto basicop;
 		case '/':	op = OC_DIV; goto basicop;
 		case '%':	op = OC_MOD; goto basicop;
@@ -509,8 +504,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 			quad_new(op, dest, src1, src2);
 			return dest;
 
-		// TODO: implement these relational operators, and emit
-		// 	SETcc operations when necessary
+		// relational operators
 		case '<':	tmp_cc = CC_L; goto relop;
 		case LTEQ:	tmp_cc = CC_LE; goto relop;
 		case '>':	tmp_cc = CC_G; goto relop;
@@ -538,6 +532,10 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 			return dest;
 
 		// TODO: member access
+		case INDSEL:
+		case '.':
+			NYI("struct/union member access");
+			break;
 		}
 		break;
 

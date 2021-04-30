@@ -98,10 +98,8 @@ struct addr *tmp_addr_new(union astnode *decl)
 	return addr;
 }
 
-// TODO: convert this so that it returns the basic block that it creates
 void gen_stmt_quads(union astnode *stmt)
 {
-
 	// end of recursion
 	if (!stmt) {
 		return;
@@ -126,21 +124,6 @@ void gen_stmt_quads(union astnode *stmt)
 		NYI("generic label statements");
 		break;
 
-//		new_bb = basic_block_new();
-//
-//		// TODO: associate label/case astnode with this bb
-//
-//		// TODO: name basic block with the label, not a number
-//
-//		bb->next_def = new_bb;
-//		bb = new_bb;
-//
-//		// TODO: make labelled statements flat? matches syntax better
-//		// 	that way; this also doesn't work correctly with multiple
-//		// 	nested labels
-////		gen_stmt_quads(stmt->stmt_label.body, bb);
-//		break;
-
 	// unconditional jump statements; terminate current basic block
 	// (but have to keep going in case of labels further on)
 	case NT_STMT_RETURN:
@@ -157,7 +140,6 @@ void gen_stmt_quads(union astnode *stmt)
 		break;
 
 	// conditional jump statement
-	// TODO: also ternary?
 	case NT_STMT_IFELSE:
 		generate_if_else_quads(stmt);
 		break;
@@ -176,7 +158,6 @@ void gen_stmt_quads(union astnode *stmt)
 		break;
 
 	default:
-		// TODO: are any statement types missed?
 		NYI("other stmt types quad generation");
 	}
 
@@ -184,8 +165,14 @@ void gen_stmt_quads(union astnode *stmt)
 	gen_stmt_quads(LL_NEXT(stmt));
 }
 
-// reverse basic blocks
-// TODO: document this
+/**
+ * reverse order of basic blocks in bb_ll
+ *
+ * The singly-linked basic block linked-list bb_ll is built in reverse just like
+ * declarator chains and quad lists for efficiency reasons
+ *
+ * This is performed once a basic block is finalized.
+ */
 static void finalize_bb_list(void)
 {
 	struct basic_block *a, *b, *c;
