@@ -12,8 +12,10 @@
 
 // current basic block being generated; easier to keep as a global variable
 // because it's a pain to pass around during recursive control flow basic
-// block generation
-extern struct basic_block *cur_bb;
+// block generation;
+// bb_ll is a linked list of the basic blocks in the desired order, which
+// is controlled by adding basic blocks with bb_ll_push()
+extern struct basic_block *cur_bb, *bb_ll;
 
 /**
  * List of opcodes for the quad IR
@@ -149,14 +151,46 @@ struct basic_block {
 	// next_def is default (fall-through) BB
 	// next_cond is non-default (conditional) BB
 	struct basic_block *next_def, *next_cond;
+
+	// to store a regular linked list of basic blocks in order of
+	// generation (for bb_ll); don't confuse this with next_def, next_cond
+	struct basic_block *next;
+
+	// indicate whether bb is finalized (i.e., quads reversed)
+	// this gets set to 1 in link_bb(); allows us to detect when quads
+	// are being generated in a defunct basic_block
+	int finalized;
 };
 
 /**
  * generates a new basic block with a unique identifier
  *
+ * this basic block may be added to the linearized linked-list of basic blocks
+ * now, or it may be added after manually using the bb_ll_push function
+ *
+ * @param add_to_ll	whether to add the bb to the linearized ll now
  * @return		a new basic block
  */
-struct basic_block *basic_block_new(void);
+struct basic_block *basic_block_new(int add_to_ll);
+
+/**
+ * adds the basic block to the linearized set of basic blocks. Calling this
+ * manually allows you to set the position of a basic block in the linearization
+ * of the basic blocks
+ *
+ * This MUST be called for every basic block we want to generate target code
+ * for (i.e., not dummy basic blocks). Usually it will be called in
+ * basic_block_new() if add_to_ll is set. If add_to_ll=0, then we delay the
+ * insertion of this basic block into bb_ll, and bb_ll_push() MUST be called
+ * manually.
+ *
+ * This is desirable in the case of certain control flow structures when we want
+ * to put this basic block at a specific position to optimize the number of
+ * jumps; see usage examples in cfquads.c
+ *
+ * @param bb 		basic block to add to the linearized set
+ */
+void bb_ll_push(struct basic_block *bb);
 
 /**
  * generates a dummy basic block when we don't want to emit quads (e.g., in

@@ -3,18 +3,20 @@
 #include <quads/exprquads.h>
 #include <malloc.h>
 
-// TODO: logical operators
+// TODO: logical operators and implicit control flow
 
 // used to hold state information about the current loops; information for
 // parent loops is stored on the stack frame
 static struct loop *cur_loop;
 
-struct loop *loop_new(void)
-{
-	struct loop *lp = malloc(sizeof(struct loop));
-	lp->prev = cur_loop;
-	return lp;
-}
+// TODO: do we need this? see example in while loop -- we can just save the
+// 	prev cur_loop value and restore it after we're done
+//struct loop *loop_new(void)
+//{
+//	struct loop *lp = malloc(sizeof(struct loop));
+//	lp->prev = cur_loop;
+//	return lp;
+//}
 
 void generate_for_quads(union astnode *stmt)
 {
@@ -61,29 +63,38 @@ void generate_do_while_quads(union astnode *stmt)
 
 void generate_while_quads(union astnode *stmt)
 {
-	NYI("while quad generation");
-
 	struct basic_block *bb_initjmp, *bb_body, *bb_cond, *bb_next;
+	struct loop *prev_loop, loop;
 
-	bb_initjmp = basic_block_new();
-	bb_body = basic_block_new();
-	bb_cond = basic_block_new();
-	bb_next = basic_block_new();
+	bb_body = basic_block_new(0);
+	bb_cond = basic_block_new(0);
+	bb_next = basic_block_new(0);
 
-	// first bb is simply a JMP to the condition
-	cur_bb = bb_initjmp;
+	// save previous loop and create new one
+	prev_loop = cur_loop;
+	cur_loop = &loop;
+	cur_loop->bb_break = bb_next;
+	cur_loop->bb_cont = bb_cond;
+
+	// in current bb, simply JMP to the condition
 	link_bb(CC_ALWAYS, bb_cond, NULL);
 
 	// generate body quads like normal
 	cur_bb = bb_body;
+	bb_ll_push(cur_bb);
 	gen_stmt_quads(stmt->stmt_while.body);
 	link_bb(CC_ALWAYS, bb_cond, NULL);
 
 	// generate condition quads
 	cur_bb = bb_cond;
+	bb_ll_push(cur_bb);
 	generate_conditional_quads(stmt->stmt_while.cond, bb_body, bb_next, 0);
 
+	// restore prev loop
+	cur_loop = prev_loop;
+
 	cur_bb = bb_next;
+	bb_ll_push(cur_bb);
 
 //	struct basic_block *bb_cond = basic_block_new();
 //	struct basic_block *bb_body = basic_block_new();
@@ -110,12 +121,13 @@ void generate_while_quads(union astnode *stmt)
 
 void generate_if_else_quads(union astnode *expr)
 {
-	struct basic_block *bb_true = basic_block_new();
-	struct basic_block *bb_false = basic_block_new();
-	struct basic_block *bb_next;
+	struct basic_block *bb_true, *bb_false, *bb_next;
+
+	bb_true = basic_block_new(0);
+	bb_false = basic_block_new(0);
 
 	if (expr->stmt_if_else.elsestmt) {
-		bb_next = basic_block_new();
+		bb_next = basic_block_new(0);
 	} else {
 		bb_next = bb_false;
 	}
@@ -125,17 +137,20 @@ void generate_if_else_quads(union astnode *expr)
 
 	// generate statements for true branch
 	cur_bb = bb_true;
+	bb_ll_push(cur_bb);
 	gen_stmt_quads(expr->stmt_if_else.ifstmt);
 	link_bb(CC_ALWAYS, bb_next, NULL);
 
 	// generate statements for else branch
 	if (expr->stmt_if_else.elsestmt) {
 		cur_bb = bb_false;
+		bb_ll_push(cur_bb);
 		gen_stmt_quads(expr->stmt_if_else.elsestmt);
 		link_bb(CC_ALWAYS, bb_next, NULL);
 	}
 
 	cur_bb = bb_next;
+	bb_ll_push(cur_bb);
 }
 
 void generate_conditional_quads(union astnode *expr,
@@ -170,9 +185,9 @@ void generate_conditional_quads(union astnode *expr,
 			case CC_GE: cc = CC_L; break;
 		}
 
-		link_bb(cc, bb_false, bb_true);
-	} else {
 		link_bb(cc, bb_true, bb_false);
+	} else {
+		link_bb(cc, bb_false, bb_true);
 	}
 
 	// TODO: remove
@@ -196,13 +211,30 @@ void generate_conditional_quads(union astnode *expr,
 //	}
 }
 
-void generate_cont_break_quads(union astnode *stmt, struct basic_block *bb)
+void gen_jmp_quads(union astnode *stmt)
 {
-	NYI("continue/break quad generation");
+	// non-fatal error if break/continue not within loop
+	if (!cur_loop) {
+		yyerror("break/continue not within loop; ignoring");
+		return;
+	}
 
-//	if (NT(stmt)) {
-//		link_basic_block(bb, ALWAYS, cur_loop->bb_break, NULL);
-//	} else {
+	switch (NT(stmt)) {
+	case NT_STMT_BREAK:
+		link_bb(CC_ALWAYS, cur_loop->bb_break, NULL);
+		return;
+	case NT_STMT_CONT:
+		link_bb(CC_ALWAYS, cur_loop->bb_cont, NULL);
+		return;
+	}
+
+	// shouldn't reach this point
+	yyerror_fatal("quadgen: invalid jmp (continue/break) statement");
+
+	// TODO: remove
+//	if (NT(stmt) == NT_STMT_BREAK) {
+//		link_bb(CC_ALWAYS, cur_loop->bb_break);
+//	} else if {
 //		if(NT(stmt)) {
 //			link_basic_block(bb, ALWAYS, cur_loop->bb_cont, NULL);
 //		}
@@ -240,13 +272,24 @@ static void reverse_quads(void)
 void link_bb(enum cc cc, struct basic_block *bb_def,
 	struct basic_block *bb_cond)
 {
+	// may already be finalized if break/continue/return already called
+	// in this block
+	if (cur_bb->finalized) {
+		return;
+	}
+
 	cur_bb->branch_cc = cc;
 
 	cur_bb->next_def = bb_def;
 	cur_bb->next_cond = bb_cond;
 
-	// reverse all quads in cur_bb; see function comment for an explanation
+	// reverse all quads in cur_bb; see function comment for an
+	// explanation
 	reverse_quads();
+
+	// set basic block finished -- anything after this will throw
+	// an error;
+	cur_bb->finalized = 1;
 }
 
 // TODO: remove

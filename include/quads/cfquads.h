@@ -9,8 +9,8 @@
 #include <quads/quads.h>
 #include <parser/astnode.h>
 
-// TODO: remove; is replaced with condition codes, which are not specific
-// 	to branching
+// TODO: remove; is replaced with condition codes (enum cc), which are not
+// 	specific to branching
 //enum branches {
 //	NEVER=0,
 //	ALWAYS=1,
@@ -23,12 +23,10 @@
 //};
 
 /**
- * TODO: need documentation
+ * storing the current loop continue/break points
  */
-// TODO: move this to quads.h?
 struct loop {
 	struct basic_block *bb_cont, *bb_break;
-	struct loop *prev;
 };
 
 /**
@@ -113,6 +111,19 @@ void generate_if_else_quads(union astnode *expr);
  */
 void generate_conditional_quads(union astnode *expr,
 	struct basic_block *bb_true, struct basic_block *bb_false, int invert);
+
+/**
+ * handling jump (continue/break) quads (not currently supporting goto)
+ *
+ * return statement handled separately because it generates a quad and handles
+ * a value
+ *
+ * this calls link_bb() and thus end the block; doesn't actually generate
+ * any quads
+ *
+ * @param stmt		astnode continue/break stmt
+ */
+void gen_jmp_quads(union astnode *stmt);
 
 /**
  * links the current basic block to its successor(s), and reverses the quads

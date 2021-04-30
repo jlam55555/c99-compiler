@@ -15,18 +15,22 @@
 void print_quad(struct quad *quad);
 
 /**
- * Prints a single basic block
+ * Prints a single basic block and its successors, recursively
+ *
+ * notes:
+ * - if called on the root note, will print the entire CFG
+ * - prevents duplicates by storing a ll of visited bbs
  *
  * @param bb			basic block object to print
  */
 void print_basic_block(struct basic_block *bb);
 
 /**
- * Prints a linked-list of basic blocks, without repetition (to prevent
- * infinite loops)
+ * print the list of basic blocks stored in bb_ll
  *
- * @param bb 			head of basic block linked-list
+ * make sure to call this after calling finalize_bb_ll (quads.c) so that
+ * the basic blocks are in the correct order
  */
-void print_basic_blocks(struct basic_block *bb);
+void print_basic_blocks();
 
 #endif	// QUADPRINTUTILSH

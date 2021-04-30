@@ -209,12 +209,24 @@ Fixes (from previous assignment):
         objects)
 - 4/29/21: continuing expression/control flow quad generation
     - refactored gen_rvalue() to work for setting condition codes
+    - refactored working bb into global cur_bb, which makes recursive bb control
+        flow generation much easier (and more like Hak's notes)
     - introduced enum cc with condition codes (for results of relational
         operators, and for conditional jumps), and OC_SETcc opcodes
-    - prevent basic blocks from being printed multiple times
     - fixed if statements quad generation
     - implemented condition inversion in generate_conditional_quads()
+    - implemented basic blocks "history," now bbs not printed multiple times
+    - implemented reversal of basic block quads once link_bb() is called on a
+        bb (calling this indicates that a bb is complete)
+    - implemented an explicit linearization of basic blocks using bb_ll_push(),
+        which may be called when calling basic_block_new() with add_to_ll set,
+        or by manually calling bb_ll_push() later (which may be desirable in
+        control flow statements); this linearization order is stored in the
+        basic block linked list bb_ll
+    - implemented break/continue statements in loops
     - improved visual printing of basic blocks and quads using a {block} format
+    - updated print_basic_blocks() to print in the explicit linearization order
+        dictated by bb_ll
     - TODO: set correct output type based on input types (implicit conversions)
     - TODO: implement all operations
     - TODO: warn if statement is useless (i.e., no side effects)
