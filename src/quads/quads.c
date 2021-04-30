@@ -144,7 +144,7 @@ void gen_stmt_quads(union astnode *stmt)
 	// unconditional jump statements; terminate current basic block
 	// (but have to keep going in case of labels further on)
 	case NT_STMT_RETURN:
-		NYI("return statement quad generation");
+		gen_ret_quads(stmt);
 		break;
 
 	case NT_STMT_CONT:
@@ -211,6 +211,7 @@ static void finalize_bb_list(void)
 struct basic_block *generate_quads(union astnode *fn_decl)
 {
 	struct basic_block *fn_bb;
+	struct addr *tmp;
 
 	// new function was just declared, update identifiers
 	fn_name = strdup(fn_decl->decl.ident);
@@ -224,6 +225,15 @@ struct basic_block *generate_quads(union astnode *fn_decl)
 
 	// recursively generate quads for each statement
 	gen_stmt_quads(fn_decl->decl.fn_body);
+
+	// add implicit return here
+	// assume returns an integer type, implicit return 0;
+	if (!cur_bb->ll || cur_bb->ll->opcode != OC_RET) {
+		tmp = addr_new(AT_CONST, create_int());
+		*((uint64_t*)tmp->val.constval) = 0;
+
+		quad_new(OC_RET, NULL, tmp, NULL);
+	}
 
 	// need to call this to finalize the last BB (i.e., reverse its quads)
 	link_bb(CC_ALWAYS, NULL, NULL);

@@ -17,6 +17,8 @@ char *opcode2str(enum opcode oc)
 	case OC_MOV:	return "MOV";
 	case OC_CMP:	return "CMP";
 	case OC_CALL:	return "CALL";
+	case OC_RET:	return "RETURN";
+	case OC_SETCC:	return "SETCC";
 
 	// pseudo-opcode
 	case OC_CAST:	return "CAST";
@@ -114,25 +116,29 @@ void print_quad(struct quad *quad)
 	fprintf(fp, "%s ", opcode2str(quad->opcode));
 
 	// print source addr (if applicable)
-	print_addr(quad->src1);
-	if (quad->src2) {
-		fprintf(fp, ", ");
+	// (0- and 1-operand opcodes exist)
+	if (quad->src1) {
+		print_addr(quad->src1);
+		
+		if (quad->src2) {
+			fprintf(fp, ", ");
 
-		// regular opcodes
-		if (quad->opcode != OC_CALL) {
-			print_addr(quad->src2);
-		}
-		// fncall opcode: ll of fncall arglist
-		else {
-			fprintf(fp, "(arglist");
-			_LL_FOR(quad->src2, iter, next) {
-				fprintf(fp, " ");
-				print_addr(iter);
+			// regular opcodes
+			if (quad->opcode != OC_CALL) {
+				print_addr(quad->src2);
 			}
-			fprintf(fp, ")");
+			// fncall opcode: ll of fncall arglist
+			else {
+				fprintf(fp, "(arglist");
+				_LL_FOR(quad->src2, iter, next) {
+					fprintf(fp, " ");
+					print_addr(iter);
+				}
+				fprintf(fp, ")");
+			}
 		}
 	}
-
+	
 	fprintf(fp, "\n");
 }
 

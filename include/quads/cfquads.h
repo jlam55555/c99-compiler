@@ -126,6 +126,13 @@ void generate_conditional_quads(union astnode *expr,
 void gen_jmp_quads(union astnode *stmt);
 
 /**
+ * handling return quads
+ * @param stmt
+*/
+void gen_ret_quads(union astnode *stmt);
+
+
+/**
  * links the current basic block to its successor(s), and reverses the quads
  * in the current bb
  *

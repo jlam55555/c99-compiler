@@ -295,6 +295,11 @@ void gen_jmp_quads(union astnode *stmt)
 //	}
 }
 
+void gen_ret_quads(union astnode *stmt){
+	struct addr *addr_ret = gen_rvalue(stmt->stmt_return.rt, NULL, NULL);
+	quad_new(OC_RET, NULL, addr_ret, NULL);
+}
+
 /**
  * reverse quads in cur_bb when it is complete (i.e., in link_bb)
  *

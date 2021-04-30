@@ -1,5 +1,6 @@
 #include <quads/exprquads.h>
 #include <quads/sizeof.h>
+#include <quads/cfquads.h>
 #include <parser.tab.h>
 
 /**
@@ -71,6 +72,18 @@ union astnode *create_size_t(void)
 	return ts;
 }
 
+union astnode *create_int(void)
+{
+	union astnode *ts;
+
+	ALLOC_TYPE(ts, NT_TS_SCALAR);
+	ts->ts_scalar.basetype = BT_INT;
+	ts->ts_scalar.modifiers.lls = LLS_UNSPEC;
+	ts->ts_scalar.modifiers.sign = SIGN_SIGNED;
+
+	return ts;
+}
+
 struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 {
 	struct addr *src1, *src2, *tmp, *tmp2;
@@ -78,6 +91,7 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 	struct basic_block *tmp_bb;
 	enum addr_mode mode;
 	enum opcode op;
+	enum cc tmp_cc;
 	union astnode *ts, *iter;
 
 	// null expression
@@ -253,9 +267,107 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 
 	// binary operator
 	case NT_BINOP:
-		// special binop: assignment
-		if (expr->binop.op == '=') {
+		// special binops: assignment, LOGOR/LOGAND (implicit control
+		// flow)
+		switch (expr->binop.op) {
+		case '=':
 			return gen_assign(expr, dest);
+
+		case LOGAND:
+			// TODO: hidden control flow
+			NYI("logical AND");
+
+			if (!dest && !cc) {
+				// this would return a logical
+				dest = tmp_addr_new(create_size_t());
+			}
+
+			/**
+			 * rewrite p&&q => if(p) q else 0;
+			 * 
+			 * cases (note dest/cc mutually exclusive):
+			 * - if no dest/cc specified, create dest, create new
+			 * 	temporary as usual
+			 * - if dest specified, output to dest as usual
+			 * - if cc specified, get condition code of q, make
+			 * 	else statement match (e.g., if q sets < cc, then
+			 * 	output CMP 1,0)
+			 * 
+			 * TODO: move this to its own file
+			 */
+			enum cc tmp_cc;
+			struct basic_block *bb_true, *bb_false, *bb_next;
+			int cmp_val;
+
+			bb_true = basic_block_new(0);
+			bb_false = basic_block_new(0);
+			bb_next = basic_block_new(0);
+
+			generate_conditional_quads(expr->binop.left,
+				bb_true, bb_false, 1);
+
+			cur_bb = bb_true;
+			bb_ll_push(cur_bb);
+			if (cc) {
+				tmp = gen_rvalue(expr->binop.right, NULL,
+					&tmp_cc);
+				if (tmp_cc == CC_UNSPEC) {
+					tmp2 = addr_new(AT_CONST, create_int());
+					*((uint64_t*)tmp2->val.constval) = 0;
+
+					quad_new(OC_CMP, NULL, tmp, tmp2);
+					tmp_cc = CC_NE;
+				}
+			} else {
+				gen_rvalue(expr->binop.right, dest, NULL);
+			}
+			link_bb(CC_ALWAYS, bb_next, NULL);
+
+			cur_bb = bb_false;
+			bb_ll_push(cur_bb);
+			
+			// generate expression that will always be false
+			if (cc) {
+				switch (tmp_cc) {
+				case CC_L:
+				case CC_LE:
+				case CC_E:
+					cmp_val = -1;
+					break;
+				case CC_G:
+				case CC_GE:
+					cmp_val = 1;
+					break;
+				case CC_NE:
+					cmp_val = 0;
+					break;
+				}
+
+				tmp = addr_new(AT_CONST, create_int());
+				*((uint64_t*)tmp->val.constval) = 0;
+				tmp2 = addr_new(AT_CONST, create_int());
+				*((uint64_t*)tmp2->val.constval) = cmp_val;
+				quad_new(OC_CMP, NULL, tmp, tmp2);
+			} else {
+				tmp = addr_new(AT_CONST, create_int());
+				*((uint64_t*)tmp->val.constval) = 0;
+				quad_new(OC_MOV, dest, tmp, NULL);
+			}
+			link_bb(CC_ALWAYS, bb_next, NULL);
+
+			cur_bb = bb_next;
+			bb_ll_push(cur_bb);
+
+			// return value and set cc
+			if (cc) {
+				*cc = tmp_cc;
+			}
+			return dest;
+
+		case LOGOR:
+			// TODO: hidden control flow
+			NYI("logical OR");
+			break;
 		}
 
 		src1 = gen_rvalue(expr->binop.left, NULL, NULL);
@@ -364,16 +476,6 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 			quad_new(OC_CAST, dest, src2, NULL);
 			return dest;
 
-		case LOGAND:
-			// TODO: hidden control flow
-			NYI("logical AND");
-			break;
-
-		case LOGOR:
-			// TODO: hidden control flow
-			NYI("logical OR");
-			break;
-
 		// TODO: implement these
 		case SHL:
 			NYI("left shift");
@@ -420,29 +522,31 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 
 		// TODO: implement these relational operators, and emit
 		// 	SETcc operations when necessary
-		case '<':
-			NYI("lt comparison");
-			break;
+		case '<':	tmp_cc = CC_L; goto rel;
+		case LTEQ:	tmp_cc = CC_LE; goto rel;
+		case '>':	tmp_cc = CC_G; goto rel;
+		case GTEQ:	tmp_cc = CC_GE; goto rel;
+		case EQEQ:	tmp_cc = CC_E; goto rel;
+		case NOTEQ:	tmp_cc = CC_NE; goto rel;
+		rel:
+			// note: dest and cc should be mutually exclusive,
+			// but this isn't checked here
+			if (!dest && !cc) {
+				// create an integer type
+				dest = tmp_addr_new(create_size_t());
+			}
 
-		case LTEQ:
-			NYI("lte comparison");
-			break;
+			quad_new(OC_CMP, dest, src1, src2);
 
-		case '>':
-			NYI("gt comparison");
-			break;
+			if (!cc) {
+				tmp = addr_new(AT_CONST, create_int());
+				*((uint64_t*)tmp->val.constval) = tmp_cc;
 
-		case GTEQ:
-			NYI("gte comparison");
-			break;
-
-		case EQEQ:
-			NYI("eqeq comparison");
-			break;
-
-		case NOTEQ:
-			NYI("noteq comparison");
-			break;
+				quad_new(OC_SETCC, dest, tmp, NULL);
+			} else {
+				*cc = tmp_cc;
+			}
+			return dest;
 
 		// TODO: member access
 		}
@@ -624,6 +728,11 @@ struct addr *gen_assign(union astnode *expr, struct addr *target)
 {
 	struct addr *dest, *src;
 	enum addr_mode mode;
+
+	// e.g., in the case of empty for assignment
+	if (!expr) {
+		return NULL;
+	}
 
 	if (NT(expr) != NT_BINOP || expr->binop.op != '=') {
 		yyerror_fatal("quadgen: gen_assign(): not an assignment");

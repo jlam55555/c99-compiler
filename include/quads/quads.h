@@ -49,7 +49,10 @@ enum opcode {
 	// JMPcc will be generated in target generation phase, currently
 	// indicated by bb->branch_cc
 	OC_CMP,		// CMP val1, val2
-	OC_SETE, OC_SETNE, OC_SETL, OC_SETLE, OC_SETG, OC_SETGE, // target=SETcc
+	OC_SETCC,	// target = SETCC type
+
+	// TODO: remove
+	// OC_SETE, OC_SETNE, OC_SETL, OC_SETLE, OC_SETG, OC_SETGE, // target=SETcc
 
 	// TODO: remove
 //	OC_JMPE, OC_JMPNE, OC_JETL, OC_JMPLE, OC_JMPG, OC_JMPGE, // label=JMPcc
@@ -58,6 +61,8 @@ enum opcode {
 	// is deferred to the target code generation stage; cast information
 	// is stored in target and src type declaration info
 	OC_CAST,	// target = CAST src
+
+	OC_RET,		//return opcode
 };
 
 /**

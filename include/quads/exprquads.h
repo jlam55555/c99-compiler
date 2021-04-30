@@ -20,6 +20,14 @@
 union astnode *create_size_t(void);
 
 /**
+ * helper function to generate a typespec emulating int (e.g., for value of
+ * a relational operator)
+ *
+ * @return		(regular signed) int astnode typespec representation
+ */
+union astnode *create_int(void);
+
+/**
  * iteratively and recursively generates a linked-list of quads for an
  * (r-value) expression; corresponds to function of same name in lecture notes
  *
