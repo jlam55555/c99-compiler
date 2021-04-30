@@ -20,12 +20,53 @@ static struct loop *cur_loop;
 
 void generate_for_quads(union astnode *stmt)
 {
-	NYI("for loop quad generation");
+	struct loop *prev_loop, loop;
+	struct basic_block *bb_cond = basic_block_new(0);
+	struct basic_block *bb_body = basic_block_new(0);
+	struct basic_block *bb_update = basic_block_new(0);
+	struct basic_block *bb_next = basic_block_new(0);
 
-//	struct basic_block *bb_cond = basic_block_new();
-//	struct basic_block *bb_body = basic_block_new();
-//	struct basic_block *bb_update = basic_block_new();
-//	struct basic_block *bb_next = basic_block_new();
+	prev_loop = cur_loop;
+	cur_loop = &loop;
+	cur_loop->bb_cont = bb_update;
+	cur_loop->bb_break = bb_next;
+
+	//Initial statment
+	if (stmt->stmt_for.init) {
+		gen_assign(stmt->stmt_for.init, NULL);
+	}
+
+	//jump to condition
+	link_bb(CC_ALWAYS, bb_cond, NULL);
+	cur_bb = bb_cond;
+	bb_ll_push(cur_bb);
+	if (stmt->stmt_for.cond) {
+		generate_conditional_quads(stmt->stmt_for.cond, bb_body,
+			bb_next, 0);
+	} else {
+		link_bb(CC_ALWAYS, bb_body, NULL);
+	}
+
+	//gen body quad
+	cur_bb = bb_body;
+	bb_ll_push(cur_bb);
+	gen_stmt_quads(stmt->stmt_for.body);
+	link_bb(CC_ALWAYS, bb_update, NULL);
+
+	//link to update
+	cur_bb = bb_update;
+	bb_ll_push(cur_bb);
+	// gen_stmt_quads(stmt->stmt_for.update);
+	gen_rvalue(stmt->stmt_for.update, NULL, NULL);
+
+	link_bb(CC_ALWAYS, bb_cond, NULL);
+
+	// restore prev loop
+	cur_loop = prev_loop;
+
+	cur_bb = bb_next;
+	bb_ll_push(cur_bb);
+
 //
 //	cur_loop = loop_new();
 //	// Continue and break points
@@ -34,31 +75,44 @@ void generate_for_quads(union astnode *stmt)
 //
 //	// gen_assign(stmt->stmt_for.init);
 }
+
+
 void generate_do_while_quads(union astnode *stmt)
 {
-	NYI("do while quad generation");
+	struct basic_block *bb_initjmp, *bb_body, *bb_cond, *bb_next;
+	struct loop *prev_loop, loop;
 
-//	struct basic_block *bb_cond = basic_block_new();
-//	struct basic_block *bb_body = basic_block_new();
-//	struct basic_block *bb_next = basic_block_new();
-//
-//	cur_loop = loop_new();
-//	// Continue and break points
-//	cur_loop->bb_cont = bb_cond;
-//	cur_loop->bb_break = bb_next;
-//
-//	link_basic_block(bb, ALWAYS, bb_body, NULL);
-//	bb = bb_body;
-//
-//	gen_stmt_quads(stmt->stmt_while.body, bb);
-//
-//	link_basic_block(bb, ALWAYS, bb_cond, NULL);
-//	bb = bb_cond;
-//
-//	generate_conditional_quads(stmt->stmt_while.cond, bb, bb_body, bb_next);
-//
-//	bb = bb_next;
-//	cur_loop = cur_loop->prev;
+	bb_body = basic_block_new(0);
+	bb_cond = basic_block_new(0);
+	bb_next = basic_block_new(0);
+
+	// save previous loop and create new one
+	prev_loop = cur_loop;
+	cur_loop = &loop;
+	cur_loop->bb_cont = bb_cond;
+	cur_loop->bb_break = bb_next;
+
+	// in current bb set JMP to body
+	link_bb(CC_ALWAYS, bb_body, NULL);
+
+	// Generate body quad
+	cur_bb = bb_body;
+	bb_ll_push(cur_bb);
+	gen_stmt_quads(stmt->stmt_do_while.body);
+
+	//link to condition
+	link_bb(CC_ALWAYS, bb_cond, NULL);
+	cur_bb = bb_cond;
+	bb_ll_push(cur_bb);
+	generate_conditional_quads(stmt->stmt_do_while.cond, bb_body, bb_next, 0);
+
+	// restore prev loop
+	cur_loop = prev_loop;
+
+	cur_bb = bb_next;
+	bb_ll_push(cur_bb);
+
+
 }
 
 void generate_while_quads(union astnode *stmt)
