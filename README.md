@@ -227,6 +227,7 @@ Fixes (from previous assignment):
     - improved visual printing of basic blocks and quads using a {block} format
     - updated print_basic_blocks() to print in the explicit linearization order
         dictated by bb_ll
+    - emit fatal warning on typedef
     - TODO: set correct output type based on input types (implicit conversions)
     - TODO: implement all operations
     - TODO: warn if statement is useless (i.e., no side effects)

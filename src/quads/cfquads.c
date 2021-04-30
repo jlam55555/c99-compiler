@@ -67,13 +67,6 @@ void generate_for_quads(union astnode *stmt)
 	cur_bb = bb_next;
 	bb_ll_push(cur_bb);
 
-//
-//	cur_loop = loop_new();
-//	// Continue and break points
-//	cur_loop->bb_cont = bb_cond;
-//	cur_loop->bb_break = bb_next;
-//
-//	// gen_assign(stmt->stmt_for.init);
 }
 
 
@@ -150,27 +143,7 @@ void generate_while_quads(union astnode *stmt)
 	cur_bb = bb_next;
 	bb_ll_push(cur_bb);
 
-//	struct basic_block *bb_cond = basic_block_new();
-//	struct basic_block *bb_body = basic_block_new();
-//	struct basic_block *bb_next = basic_block_new();
-//
-//	cur_loop = loop_new();
-//	// Continue and break points
-//	cur_loop->bb_cont = bb_cond;
-//	cur_loop->bb_break = bb_next;
-//
-//	link_basic_block(bb, ALWAYS, bb_cond, NULL);
-//	bb = bb_cond;
-//
-//	generate_conditional_quads(stmt->stmt_while.cond, bb, bb_body, bb_next);
-//
-//	bb = bb_body;
-//	gen_stmt_quads(stmt->stmt_while.body, bb);
-//
-//	link_basic_block(bb, ALWAYS, bb_cond, NULL);
-//
-//	bb = bb_next;
-//	cur_loop = cur_loop->prev;
+
 }
 
 void generate_if_else_quads(union astnode *expr)
@@ -244,25 +217,7 @@ void generate_conditional_quads(union astnode *expr,
 		link_bb(cc, bb_false, bb_true);
 	}
 
-	// TODO: remove
-//	switch(expr->generic.type) {
-//	case NT_BINOP:;
-//		struct addr *addr1 = gen_rvalue(expr->binop.left, NULL, bb);
-//		struct addr *addr2 = gen_rvalue(expr->binop.right, NULL, bb);
-//		quad_new(bb, OC_CMP, NULL, addr1, addr2);
-//
-//		// struct addr *addr_bt = gen
-//		switch(expr->binop.op) {
-//		case '<':	link_basic_block(bb, BR_LT, bb_true, bb_false);	break;
-//		case '>':	link_basic_block(bb, BR_GT, bb_true, bb_false);	break;
-//		case LTEQ:	link_basic_block(bb, BR_LTEQ, bb_true, bb_false);	break;
-//		case GTEQ:	link_basic_block(bb, BR_GTEQ, bb_true, bb_false);	break;
-//		case EQEQ:	link_basic_block(bb, BR_EQ, bb_true, bb_false);	break;
-//		case NOTEQ:	link_basic_block(bb, BR_NEQ, bb_true, bb_false);	break;
-//		default:	yyerror("binop in conditional expr\n");
-//		}
-//		break;
-//	}
+
 }
 
 void gen_jmp_quads(union astnode *stmt)
@@ -285,14 +240,7 @@ void gen_jmp_quads(union astnode *stmt)
 	// shouldn't reach this point
 	yyerror_fatal("quadgen: invalid jmp (continue/break) statement");
 
-	// TODO: remove
-//	if (NT(stmt) == NT_STMT_BREAK) {
-//		link_bb(CC_ALWAYS, cur_loop->bb_break);
-//	} else if {
-//		if(NT(stmt)) {
-//			link_basic_block(bb, ALWAYS, cur_loop->bb_cont, NULL);
-//		}
-//	}
+
 }
 
 void gen_ret_quads(union astnode *stmt){

@@ -1,5 +1,6 @@
 #include <parser/astnode.h>
 #include <parser/printutils.h>
+#include <parser/scope.h>
 #include <quads/printutils.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -84,8 +85,17 @@ void print_addr(struct addr *addr)
 		break;
 
 	// print symbol table value
-	case AT_AST:
-		fprintf(fp, "symbol:%s]", addr->val.astnode->decl.ident);
+	case AT_AST:;
+		// get scope
+		// TODO: associate each variable with its scope
+		enum scope_type st = get_scope(addr->val.astnode->decl.ident,
+			NS_IDENT)->type;		
+
+		// TODO: if local, check if regular or parameter
+
+		fprintf(fp, "%s symbol:%s]",
+			st == ST_FILE ? "global" : "local",
+			addr->val.astnode->decl.ident);
 		break;
 
 	default:

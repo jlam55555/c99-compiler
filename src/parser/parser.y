@@ -291,7 +291,7 @@ initdecl:	declarator							{$$=$1;}
 		;
 
 /* 6.7.1 storage class specifier */
-scspec:		TYPEDEF								{/*not implementing this*/}
+scspec:		TYPEDEF								{yyerror_fatal("typedef not implemented");}
 		| EXTERN							{ALLOC_SET_SCSPEC($$,SC_EXTERN);}
 		| STATIC							{ALLOC_SET_SCSPEC($$,SC_STATIC);}
 		| AUTO								{ALLOC_SET_SCSPEC($$,SC_AUTO);}
