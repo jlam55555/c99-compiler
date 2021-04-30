@@ -44,6 +44,7 @@ void print_addr(struct addr *addr)
 {
 	FILE *fp = stdout;
 	unsigned char *constval;
+	enum scope_type st;
 
 	if (!addr) {
 		yyerror_fatal("quadgen: addr should not be NULL"
@@ -85,16 +86,16 @@ void print_addr(struct addr *addr)
 		break;
 
 	// print symbol table value
-	case AT_AST:;
-		// get scope
-		// TODO: associate each variable with its scope
-		enum scope_type st = get_scope(addr->val.astnode->decl.ident,
-			NS_IDENT)->type;		
+	case AT_AST:
+		// get scope; proto scopes are fully promoted to function scopes
+		// so we have to check the is_proto member to see if a local
+		// var is from the prototype or not
+		st = addr->val.astnode->decl.is_proto ? ST_PROTO
+			: addr->val.astnode->decl.scope->type;
 
-		// TODO: if local, check if regular or parameter
-
-		fprintf(fp, "%s symbol:%s]",
-			st == ST_FILE ? "global" : "local",
+		fprintf(fp, "%s:%s]",
+			st == ST_FILE ? "globalvar" :
+			st == ST_PROTO ? "protovar" : "localvar",
 			addr->val.astnode->decl.ident);
 		break;
 

@@ -19,6 +19,7 @@ void scope_set_fndef()
 void scope_push(enum scope_type type)
 {
 	int i;
+	struct symtab *st;
 
 	// if prototype_hold is set and a new non-function scpoe is created,
 	// then clear held prototype
@@ -42,6 +43,15 @@ void scope_push(enum scope_type type)
 		}
 		// top-level function scope, promote existing prototype scope
 		else if (scope_pos == 1 && prototype_hold) {
+			// indicate all variables in prototype scope are
+			// from prototype scope
+			for (i = 0, st = &scope_stack[1].ns[NS_IDENT];
+				i < st->capacity; ++i) {
+				if (st->bs[i]) {
+					st->bs[i]->value->decl.is_proto = 1;
+				}
+			}
+
 			scope_stack[1].type = ST_FUNC;
 			prototype_hold = 0;
 			// TODO: check that there are no abstract declarators?
@@ -138,8 +148,9 @@ static int extern_redeclaration(char *ident, enum name_space ns,
 }
 
 // inserts symbol at enclosing scope (or at function scope for labels)
-void scope_insert(char *ident, enum name_space ns, union astnode *node)
+struct scope *scope_insert(char *ident, enum name_space ns, union astnode *node)
 {
+	struct scope *scope;
 
 	// declaration while holding means break holding
 	if (prototype_hold && !is_fndef) {
@@ -165,13 +176,15 @@ void scope_insert(char *ident, enum name_space ns, union astnode *node)
 			// allow for redeclaration if already defined
 			if (extern_redeclaration(ident, ns, node)) {
 				is_fndef = 0;
-				return;
+				return NULL;
 			}
 		}
 	}
 
-	symtab_insert(&scope_stack[is_fndef?0:scope_pos].ns[ns], ident, node);
+	scope = &scope_stack[is_fndef?0:scope_pos];
+	symtab_insert(&scope->ns[ns], ident, node);
 	is_fndef = 0;
+	return scope;
 }
 
 // traverses up the stack to lookup a symbol

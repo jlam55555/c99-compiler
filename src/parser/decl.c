@@ -173,6 +173,7 @@ void decl_install(union astnode *decl, union astnode *declspec)
 {
 	FILE *fp = stdout;
 	char *ident;
+	struct scope *scope;
 
 	// get ident from declarator
 	ident = decl->decl.ident;
@@ -185,7 +186,15 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	decl->decl.filename = filename;
 
 	// insert into symbol table
-	scope_insert(ident, NS_IDENT, decl);
+	if (!(scope = scope_insert(ident, NS_IDENT, decl))) {
+		// redeclaration of extern variable
+		return;
+	}
+
+	// associate symbol scope with declaration
+	// (this will be useful for quads, when the scope is no longer
+	// on the stack)
+	decl->decl.scope = scope;
 
 	// fill in missing fields of declspec; this has to go after
 	// scope_insert because it depends on which scope it gets inserted into

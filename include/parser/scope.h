@@ -40,13 +40,16 @@ void scope_pop(void);
 
 /**
  * Insert a symbol at the current scope (or at the nearest function scope, for
- * labels)
+ * labels), and returns the scope
  *
  * @param ident		symbol name
  * @param ns		namespace to insert symbol
  * @param node		astnode representing symbol
+ * @return		scope which the symbol is inserted into, or NULL if
+ * 			redeclaration of extern
  */
-void scope_insert(char *ident, enum name_space ns, union astnode *node);
+struct scope *scope_insert(char *ident, enum name_space ns,
+	union astnode *node);
 
 /**
  * Recursive lookup of ident up the scope stack

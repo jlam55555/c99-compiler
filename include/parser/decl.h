@@ -58,6 +58,14 @@ struct astnode_decl {
 	// ident is null for abstract declarators
 	char *ident;
 
+	// scope which this symbol is inserted into
+	struct scope *scope;
+
+	// whether this variable comes from a prototype scope (for local
+	// variables only); because prototype scope become incorporated into
+	// local scope, have to distinguish it manually here
+	int is_proto;
+
 	// linked list of components -- for convenience, insert in reversed
 	// order, and then reverse when complete using when calling
 	// decl_finalize()

@@ -577,7 +577,7 @@ struct addr *gen_lvalue(union astnode *expr, enum addr_mode *mode,
 			if (NT(expr->decl.components->declspec.ts) !=
 				NT_TS_SCALAR) {
 				yyerror_fatal("struct/union lvalue"
-					      " not supported (yet)");
+					      " not supported (yet?)");
 				return NULL;
 			}
 
