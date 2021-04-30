@@ -499,36 +499,25 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 
 		// addition and subtraction already taken care of
 
-		case '*':
+		case '*':	op = OC_MUL; goto basicop;
+		case '/':	op = OC_DIV; goto basicop;
+		case '%':	op = OC_MOD; goto basicop;
+		basicop:
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
-			quad_new(OC_MUL, dest, src1, src2);
-			return dest;
-
-		case '/':
-			if (!dest) {
-				dest = tmp_addr_new(src1->decl);
-			}
-			quad_new(OC_MUL, dest, src1, src2);
-			return dest;
-
-		case '%':
-			if (!dest) {
-				dest = tmp_addr_new(src1->decl);
-			}
-			quad_new(OC_MOD, dest, src1, src2);
+			quad_new(op, dest, src1, src2);
 			return dest;
 
 		// TODO: implement these relational operators, and emit
 		// 	SETcc operations when necessary
-		case '<':	tmp_cc = CC_L; goto rel;
-		case LTEQ:	tmp_cc = CC_LE; goto rel;
-		case '>':	tmp_cc = CC_G; goto rel;
-		case GTEQ:	tmp_cc = CC_GE; goto rel;
-		case EQEQ:	tmp_cc = CC_E; goto rel;
-		case NOTEQ:	tmp_cc = CC_NE; goto rel;
-		rel:
+		case '<':	tmp_cc = CC_L; goto relop;
+		case LTEQ:	tmp_cc = CC_LE; goto relop;
+		case '>':	tmp_cc = CC_G; goto relop;
+		case GTEQ:	tmp_cc = CC_GE; goto relop;
+		case EQEQ:	tmp_cc = CC_E; goto relop;
+		case NOTEQ:	tmp_cc = CC_NE; goto relop;
+		relop:
 			// note: dest and cc should be mutually exclusive,
 			// but this isn't checked here
 			if (!dest && !cc) {

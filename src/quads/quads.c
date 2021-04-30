@@ -9,7 +9,7 @@ struct basic_block *cur_bb, *bb_ll;
 
 // current function name and basic block number
 static char *fn_name;
-static int bb_no, tmp_no;
+static int bb_no, tmp_no = 1;
 
 struct basic_block *basic_block_new(int add_to_ll)
 {
@@ -215,7 +215,7 @@ struct basic_block *generate_quads(union astnode *fn_decl)
 
 	// new function was just declared, update identifiers
 	fn_name = strdup(fn_decl->decl.ident);
-	bb_no = 0;
+	bb_no = 1;
 
 	// clear basic block linked list
 	bb_ll = NULL;
