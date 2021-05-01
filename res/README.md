@@ -4,3 +4,4 @@ This directory mostly contains test cases and assignment sheets.
 - ptests: parser tests
 - dtests: declaration tests
 - stests: statement tests
+- qtests: quad tests

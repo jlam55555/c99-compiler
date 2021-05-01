@@ -1,4 +1,0 @@
-#ifndef ASTNODEGENERICH
-#define ASTNODEGENERICH
-
-#endif

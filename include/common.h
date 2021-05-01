@@ -10,6 +10,14 @@
 #ifndef COMMONH
 #define COMMONH
 
+// basic debugging info -- like the level in Hak's output
+#define DEBUG 1
+
+// extra debugging for debugging errors -- e.g., types for struct addr,
+// quads used in generation of sizeof operand (usually not emitted)
+#define DEBUG2 0
+
+// all astnode types
 enum astnode_type {
 	// terminals
 	NT_NUMBER,
@@ -39,7 +47,6 @@ enum astnode_type {
 	// statement types
 	NT_STMT_EXPR,
 	NT_STMT_LABEL,
-	NT_STMT_CASE,
 	NT_STMT_COMPOUND,
 	NT_STMT_IFELSE,
 	NT_STMT_SWITCH,
@@ -96,8 +103,8 @@ extern int indi;
 	for (indi = 0; indi < (depth); indi++) \
 		fprintf(stdout, "  ");
 
-// indicates a feature is not yet implemented; somewhat equivalent to a TODO
-// (not that it will not be implemented)
+// indicates a feature is not yet implemented; somewhat equivalent to a to-do
+// (not that it will not be implemented); not fatal
 #define NYI(what) yyerror(#what " not yet implemented");
 
 #endif	// COMMONH
