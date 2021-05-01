@@ -14,6 +14,7 @@
 #include <parser/decl.h>
 #include <parser/stmt.h>
 #include <quads/quads.h>
+#include <asmgen/asm.h>
 #include <stdio.h>
 
 int yydebug;
@@ -549,7 +550,9 @@ funcdef:	declspeclist declarator {decl_check_fndef($2);scope_set_fndef();decl_in
 										 /*print function body*/
 										 print_astnode($$);
 										 /*generate quads for this function*/
-										 generate_quads($$);}
+										 struct basic_block *quads=generate_quads($$);
+										 /*generate target code for this function*/
+										 generate_asm($$,quads);}
 		;
 
 %%

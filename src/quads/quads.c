@@ -233,5 +233,5 @@ struct basic_block *generate_quads(union astnode *fn_decl)
 	print_basic_blocks();
 #endif
 
-	return fn_bb;
+	return bb_ll;
 }

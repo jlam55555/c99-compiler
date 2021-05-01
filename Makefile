@@ -4,7 +4,7 @@ CMAKEFLAGS?=
 
 # perform a CMake out-of-source build
 # (or configure IDE to do the same)
-.PHONY:
+.PHONY: build
 build:
 	mkdir -p $(BUILDDIR)
 	$(CMAKE) $(CMAKEFLAGS) -B$(BUILDDIR) -S.

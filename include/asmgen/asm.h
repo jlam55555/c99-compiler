@@ -20,7 +20,6 @@ enum asm_opcode {
 	AOC_DIV,
 	AOC_CALL,
 	AOC_RET,
-    
 };
 
 // x86_64 instruction sizes
@@ -37,6 +36,7 @@ enum asm_pseudo_opcode {
 	APOC_COMM,
 	APOC_GLOBL,
 	APOC_SIZE,
+	APOC_TYPE,
 
 	APOC_TEXT,
 	APOC_BSS,
@@ -65,15 +65,18 @@ enum asm_reg_name {
 	AR_8, AR_9, AR_10, AR_11, AR_12, AR_13, AR_14, AR_15
 };
 
+// macro for x86 asm components -- similar to union astnode generic
+#define _ASM_COMPONENT \
+	enum asm_component_type type; \
+	union asm_component *next; \
+	char *comment;	// optional comment to be printed in assembly
+
+// see asm_component
 enum asm_component_type {
 	ACT_INST,
 	ACT_DIR,
 	ACT_LABEL,
 };
-
-#define _ASM_COMPONENT \
-	enum asm_component_type type; \
-	union asm_component *next;
 
 // x86 asm instruction
 struct asm_inst {
@@ -109,6 +112,7 @@ struct asm_reg {
 struct asm_addr {
 	enum asm_addr_mode mode;
 	union {
+		struct addr addr;
 		struct asm_reg reg;
 		// TODO: add more types here as necessary for the different
 		// 	addressing modes
@@ -125,6 +129,10 @@ union asm_component {
 	struct asm_dir dir;
 	struct asm_label label;
 };
+
+// macros for asm language components
+#define ADD_COMMENT(var, cmt) \
+	(var)->generic.comment = cmt;
 
 #define ALLOC_AC(var, typ) \
 	(var) = calloc(1, sizeof(union asm_component)); \
@@ -147,7 +155,7 @@ struct asm_inst *select_asm_inst(struct quad *quad, enum asm_size *size);
 // calling functions
 
 // begin generating assembly from a basic_block list
-void generate_asm(struct basic_block *bb_ll);
+void generate_asm(union astnode *fndecl, struct basic_block *bb_ll);
 
 // print out assembly output
 void print_asm();
