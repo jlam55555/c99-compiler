@@ -21,6 +21,15 @@ This will build to the `build` directory.
 
 ---
 
+### Running testcases
+(Up to quad generation)
+```bash
+$ gcc -E res/qtests/tc1.c | make run
+```
+Four testcases are provided, `res/qtests/tc[1-4].c`.
+
+---
+
 ### Code Style
 Code style roughly follows the [Linux kernel coding style][styleguide], which
 itself has an affinity for K&R conventions.
