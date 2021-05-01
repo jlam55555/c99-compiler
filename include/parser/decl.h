@@ -18,6 +18,9 @@
 #include <common.h>
 #include <lexer/errorutils.h>
 
+// linked list of all the global variables
+extern union astnode *global_vars;
+
 // need a second linked-list pointer *of since the generic *next may be used
 // for linking declarators together (e.g., in parameter type list)
 #define _ASTNODE_DECLARATOR_COMPONENT\
@@ -71,7 +74,9 @@ struct astnode_decl {
 	// decl_finalize()
 	union astnode *components;
 
-	// declspec (to be added
+	// declspec (also redundantly in the component chain, because it
+	// includes the typespec -- in hindsight it would've been smarter to
+	// separate storage class from the typespec)
 	union astnode *declspec;
 
 	// function body (for defined functions only)
@@ -83,6 +88,12 @@ struct astnode_decl {
 
 	// indicates whether it is an implicit declaration
 	int is_implicit;
+
+	// need a list of global symbols for target code generation
+	union astnode *global_next;
+	
+	// for local variables: need offset for target code generation
+	int offset;
 };
 
 /**

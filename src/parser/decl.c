@@ -6,6 +6,8 @@
 #include <parser/scope.h>
 #include <parser/printutils.h>
 
+union astnode *global_vars;
+
 union astnode *decl_new(char *ident)
 {
 	union astnode *decl;
@@ -203,6 +205,13 @@ void decl_install(union astnode *decl, union astnode *declspec)
 
 	// check fndecl (will have no effect if not a function declaration)
 	decl_check_fndecl(decl);
+
+	// add this variable to the linked list of variables (either global
+	// or local); if in global scope or has static/extern duration, then
+	// global; else local
+	// TODO: confirm that it is global scope or static/extern
+	decl->decl.global_next = global_vars;
+	global_vars = decl;
 
 #if DEBUG
 	print_symbol(decl, 1, 0);

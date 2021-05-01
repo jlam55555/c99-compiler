@@ -7,18 +7,23 @@
 #include <parser.tab.h>
 #include <parser/astnode.h>
 #include <parser/scope.h>
+#include <parser/decl.h>
+#include <asmgen/asm.h>
 
 int main(void)
 {
-	#if YYDEBUG
+#if YYDEBUG
 	yydebug = 1;
-	#endif
+#endif
 
 	// create default global scope
 	scope_push(0);
 
 	// begin parsing
 	yyparse();
+
+	// after file is complete, add global vars to output
+	gen_globalvar_asm(global_vars);
 }
 
 // declared in parser.h

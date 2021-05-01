@@ -18,8 +18,13 @@ enum asm_opcode {
 	AOC_SUB,
 	AOC_MUL,
 	AOC_DIV,
+	AOC_MOD,
 	AOC_CALL,
 	AOC_RET,
+	AOC_CMP,
+	AOC_JMP,
+	AOC_JE,
+	AOC_JNE,
 };
 
 // x86_64 instruction sizes
@@ -111,6 +116,7 @@ struct asm_reg {
 // x86 asm instruction src/dest operand
 struct asm_addr {
 	enum asm_addr_mode mode;
+	enum asm_size size;
 	union {
 		struct addr addr;
 		struct asm_reg reg;
@@ -159,5 +165,8 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll);
 
 // print out assembly output
 void print_asm();
+
+// generate assembly for global variables
+void gen_globalvar_asm(union astnode *globals);
 
 #endif // asmgen.h

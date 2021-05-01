@@ -157,6 +157,9 @@ Unresolved (from previous assignment):
 - Recursive declaration validation
 - Convert array to pointers in function parameter lists
 
+##### Target Code Generation
+TODO: document this
+
 ---
 
 ### Changelog
@@ -274,6 +277,19 @@ Unresolved (from previous assignment):
         including a new addr type for strings (AT_STRING)
     - emit fatal warning on typedef (rather than SEGFAULT)
     - cleanup of many to-do items, documentation of broken/missing items
+- 5/1/21: beginning target code generation
+    - fixed Makefile so that build is actually a .PHONY target now
+    - created a host of data structures for representing components of the
+        x86_64 language
+    - implemented some translation of quads to these new data structures
+    - implemented some printing functions for asm components in AT&T syntax
+    - implemented linked list of global variables for target directives
+    - implemented function prologue/epilogue
+    - TODO: register allocation
+    - TODO: need to distinguish between extern and non-extern
+    - TODO: need to find local variable offsets in every function
+    - TODO: finish converting quads over
+    - TODO: finish printing functions for all addr types
 
 ---
   

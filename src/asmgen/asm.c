@@ -60,6 +60,7 @@ struct asm_addr *reg2addr(enum asm_reg_name name, enum asm_size size)
 	struct asm_addr *addr = calloc(1, sizeof(struct asm_addr));
 
 	addr->mode = AAM_REGISTER;
+	addr->size = size;
 	addr->value.reg.name = name;
 	addr->value.reg.size = size;
 
@@ -79,10 +80,10 @@ struct asm_addr *addr2asmaddr(struct addr *addr)
 	
 	switch(addr->size)
 	{
-		case 1:	break;
-		case 2:	break;
-		case 4:	break;
-		case 8:	break;
+		case 1:	asm_addr->size = AS_B;	break;
+		case 2:	asm_addr->size = AS_W;	break;
+		case 4:	asm_addr->size = AS_L;	break;
+		case 8:	asm_addr->size = AS_Q;	break;
 	}
 	
 	asm_addr->value.addr = *addr;
@@ -92,44 +93,82 @@ struct asm_addr *addr2asmaddr(struct addr *addr)
 
 }
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 //select the opcodes and find the size 
 struct asm_inst *select_asm_inst(struct quad *quad, enum asm_size *size)
 {
 	struct asm_inst *inst;
-	struct asm_addr *tmp1;
-	struct asm_addr *tmp2;
+	struct asm_addr *tmp1, *tmp2, *tmp3;
+	struct asm_addr *src1, *src2, *dest;
+	enum asm_size size_tmp;
 
 	switch(quad->opcode)
 	{
 		case OC_MOV:;
-			
-			tmp1 = reg2addr(AR_A, AS_Q);
-			tmp2 = reg2addr(AR_C, AS_Q);
-			//if (quad->src1.size)
-			// {
-				
-			// }
-		//arithmetic
-    	case OC_ADD:;
-			tmp1 = reg2addr(AR_A, AS_Q);
-			tmp2 = reg2addr(AR_C, AS_Q);
-			//asm_inst_new(AOC_MOV, )
-		// case OC_SUB: 
-		// case OC_MUL: 
-		// case OC_DIV: 
+			src1 = addr2asmaddr(quad->src1);
+			dest = addr2asmaddr(quad->dest);
+			asm_inst_new(AOC_MOV, src1, dest, src1->size);
+			break;
 
-		// case OC_MOD:
+		//arithmetic
+    	case OC_ADD:
+			src1 = addr2asmaddr(quad->src1);
+			src2 = addr2asmaddr(quad->src2);
+			dest = addr2asmaddr(quad->dest);
+			size_tmp = MAX(src1->size, src2->size);
+			tmp1 = reg2addr(AR_A, size_tmp);
+			asm_inst_new(AOC_MOV, src1, tmp1, size_tmp);
+			asm_inst_new(AOC_ADD, src2, tmp1, size_tmp);
+			asm_inst_new(AOC_MOV, tmp1, dest, size_tmp);
+			break;
+
+		case OC_SUB:
+			src1 = addr2asmaddr(quad->src1);
+			src2 = addr2asmaddr(quad->src2);
+			dest = addr2asmaddr(quad->dest);
+			size_tmp = MAX(src1->size, src2->size);
+			tmp1 = reg2addr(AR_A, size_tmp);
+			asm_inst_new(AOC_MOV, src1, tmp1, size_tmp);
+			asm_inst_new(AOC_SUB, src2, tmp1, size_tmp);
+			asm_inst_new(AOC_MOV, tmp1, dest, size_tmp);
+			break;
+
+		case OC_MUL:
+			src1 = addr2asmaddr(quad->src1);
+			src2 = addr2asmaddr(quad->src2);
+			dest = addr2asmaddr(quad->dest);
+			size_tmp = MAX(src1->size, src2->size);
+			tmp1 = reg2addr(AR_A, size_tmp);
+			asm_inst_new(AOC_MOV, src1, tmp1, size_tmp);
+			asm_inst_new(AOC_MUL, src2, tmp1, size_tmp);
+			asm_inst_new(AOC_MOV, tmp1, dest, size_tmp);
+			break;
+
+		case OC_DIV:
+			break;
+			
+
+		case OC_MOD:
+			break;
+
 		
 		// case OC_LEA:
 
 		// case OC_CALL:
+
+		case OC_CMP:
+			break;
+			
+		case OC_SETCC:
+			break;
 
 		case OC_RET:;
 			struct asm_addr *reg_ret = reg2addr(AR_A, AS_Q);
 			asm_inst_new(AOC_MOV, addr2asmaddr(quad->src1), reg_ret, AS_NONE);
 			asm_inst_new(AOC_LEAVE, NULL, NULL, AS_NONE);
 			asm_inst_new(AOC_RET, NULL, NULL, AS_NONE);
-		
+			break;
 	}
 }
 
@@ -323,10 +362,14 @@ void print_asm_inst(struct asm_inst *inst)
 	case AOC_LEAVE:	inst_text = "leave"; break;
 	case AOC_ADD:	inst_text = "add"; break;
 	case AOC_SUB:	inst_text = "sub"; break;
-	case AOC_MUL:	inst_text = "mul"; break;
-	case AOC_DIV:	inst_text = "div"; break;
+	case AOC_MUL:	inst_text = "imul"; break;
+	case AOC_DIV:	inst_text = "idiv"; break;
 	case AOC_CALL:	inst_text = "call"; break;
 	case AOC_RET:	inst_text = "ret"; break;
+	case AOC_CMP:	inst_text = "cmp"; break;
+	case AOC_JMP:	inst_text = "jmp"; break;
+	case AOC_JE:	inst_text = "je"; break;
+	case AOC_JNE:	inst_text = "jne"; break;
 	}
 
 	switch (inst->size) {
@@ -418,5 +461,18 @@ void print_asm()
 			print_asm_label(&iter->label);
 			break;
 		}
+	}
+}
+
+void gen_globalvar_asm(union astnode *globals)
+{
+	FILE *fp = stdout;
+	union astnode *iter;
+
+	// clear current asm code
+	asm_out = NULL;
+
+	_LL_FOR(globals, iter, decl.global_next) {
+		// TODO: emit instructions for all these global variables
 	}
 }
