@@ -100,8 +100,9 @@ struct addr {
 	// linked list (e.g., for fncall arglist)
 	struct addr *next;
 
-	// reference to astnode, temporary (pseudo-register), constant value
-	enum addr_type { AT_AST, AT_TMP, AT_CONST } type;
+	// reference to astnode, temporary (pseudo-register), constant value,
+	// string literal
+	enum addr_type { AT_AST, AT_TMP, AT_CONST, AT_STRING } type;
 
 	// size in bytes of the operand; since we're only dealing with scalar
 	// types here, this should never exceed the size of the arch. register

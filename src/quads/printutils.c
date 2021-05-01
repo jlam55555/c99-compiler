@@ -1,5 +1,5 @@
+#include <lexer/stringutils.h>
 #include <parser/astnode.h>
-#include <parser/printutils.h>
 #include <parser/scope.h>
 #include <quads/printutils.h>
 #include <stdio.h>
@@ -105,6 +105,11 @@ void print_addr(struct addr *addr)
 			st == ST_FILE ? "globalvar" :
 			st == ST_PROTO ? "protovar" : "localvar",
 			decl->decl.ident);
+		break;
+
+	case AT_STRING:
+		fprintf(fp, "string:\"%s\"]",
+	  		print_string(&addr->val.astnode->string.string));
 		break;
 
 	default:

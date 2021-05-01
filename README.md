@@ -131,6 +131,11 @@ Not (fully?) implemented:
 - sizeof struct may be incorrect: for now, simply sums the sizes of its
     component members (since we're not really implementing struct lvalues at
     all, this is a lesser worry)
+- function prototypes are allowed in the syntax, but they (currently) are not
+    at all type-checked during quad generation; it is left to the programmer
+    to make sure the types are correct
+- functions have an implicit return 0; appended to their function body if the
+    last statement is not a return statement
 
 Unresolved (from previous assignment):
 - Labels should be inserted into the symbol table, and unresolved goto labels
@@ -256,6 +261,8 @@ Unresolved (from previous assignment):
     - implemented relational (comparison) operators; depending on the target,
         either emit a SETCC opcode (if set to variable/used as intermediate
         value) or do not (condition code will be used by branching statement)
+    - implemented quad generation for character and string literal constants,
+        including a new addr type for strings (AT_STRING)
     - emit fatal warning on typedef (rather than SEGFAULT)
     - cleanup of many to-do items, documentation of broken/missing items
 

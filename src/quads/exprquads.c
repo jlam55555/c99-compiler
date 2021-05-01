@@ -89,10 +89,9 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 	struct addr *src1, *src2, *tmp, *tmp2;
 	struct quad *quad;
 	struct basic_block *tmp_bb;
-	enum addr_mode mode;
 	enum opcode op;
 	enum cc tmp_cc;
-	union astnode *ts, *iter;
+	union astnode *ts, *ts_tmp, *iter;
 
 	// null expression
 	// this shouldn't happen but this is here as a safety measure
@@ -124,6 +123,37 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 
 		return gen_lvalue(expr, NULL, dest, 0);
 
+	// constant string literal
+	case NT_STRING:
+		// set up character pointer declaration
+		ALLOC_TYPE(ts, NT_TS_SCALAR);
+		ts->ts_scalar.basetype = BT_CHAR;
+		ts->ts_scalar.modifiers.sign = SIGN_SIGNED;
+
+		ALLOC_TYPE(ts_tmp, NT_DECLSPEC);
+		ts_tmp->declspec.ts = ts;
+
+		ALLOC_TYPE(ts, NT_DECLARATOR_POINTER);
+		ts->decl_pointer.of = ts_tmp;
+
+		src1 = addr_new(AT_STRING, ts);
+		src1->val.astnode = expr;
+
+		goto constliteral;
+
+	// constant character
+	case NT_CHARLIT:
+		// assume 1-byte character (i.e., not wide)
+		ALLOC_TYPE(ts, NT_TS_SCALAR);
+		ts->ts_scalar.basetype = BT_CHAR;
+		ts->ts_scalar.modifiers.sign = SIGN_SIGNED;
+
+		src1 = addr_new(AT_CONST, ts);
+		*((uint64_t*)src1->val.constval) =
+			(uint64_t)expr->charlit.charlit.value.none;
+
+		goto constliteral;
+
 	// constant number
 	case NT_NUMBER:
 		// don't support expressions with non-integral types
@@ -138,6 +168,9 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 		*((uint64_t *)src1->val.constval) =
 			*((uint64_t *)expr->num.buf);
 
+		goto constliteral;
+
+	constliteral:
 		if (dest) {
 			quad_new(OC_MOV, dest, src1, NULL);
 		} else {
