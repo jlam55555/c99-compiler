@@ -99,6 +99,9 @@ struct astnode_decl {
 	
 	// for local variables: need offset for target code generation
 	int offset;
+
+	// for static variables with the same name
+	char *static_uid;
 };
 
 /**

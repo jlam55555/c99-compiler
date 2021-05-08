@@ -116,6 +116,12 @@ struct addr {
 		unsigned tmpid;
 	} val;
 
+	// memory offset for pseudo-registers (AT_TMP addr values) 
+	// (this is due to us using a really simple (bad) register
+	// "allocation" model -- every temporary value is memory-backed);
+	// this has no meaning for non-tmp vals
+	int offset;
+
 	// astnode representation of addr type
 	union astnode *decl;
 };

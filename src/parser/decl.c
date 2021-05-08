@@ -177,6 +177,12 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	char *ident;
 	struct scope *scope;
 	union astnode *sc;
+	unsigned static_id;
+	union astnode *iter;
+
+	// note: this limits static variable names to be <256 characters long,
+	// which (should?) be plenty long enough
+	char static_uid_buf[256];
 
 	// get ident from declarator
 	ident = decl->decl.ident;
@@ -199,8 +205,7 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	// on the stack)
 	decl->decl.scope = scope;
 
-	// if prototype scope, indicate that on the variable, since prototype
-	// scope will later be "merged" into function scope
+	// indicate variable type
 	if (scope->type == ST_PROTO) {
 		decl->decl.is_proto = 1;
 	}
@@ -213,13 +218,25 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	// check fndecl (will have no effect if not a function declaration)
 	decl_check_fndecl(decl);
 
+	// special treatment for static variables: give it a unique identifier
+	sc = decl->decl.declspec->declspec.sc;
+	if (sc->sc.scspec == SC_STATIC) {
+		static_id = 0;
+		_LL_FOR(global_vars, iter, decl.symbol_next) {
+			if (!strcmp(iter->decl.ident, decl->decl.ident)) {
+				++static_id;
+			}
+		}
+
+		sprintf(static_uid_buf, "%s.%d", decl->decl.ident, static_id+1);
+		decl->decl.static_uid = strdup(static_uid_buf);
+	}
+
 	// add this variable to the linked list of variables (either global
 	// or local); if in global scope or has static/extern duration, then
 	// global; else local; calculate offset from base pointer
 	// TODO: confirm that it is global scope or static/extern
 	if (NT(decl->decl.components) != NT_DECLARATOR_FUNCTION) {
-		sc = decl->decl.declspec->declspec.sc;
-
 		// global scope
 		if (sc->sc.scspec == SC_STATIC || sc->sc.scspec == SC_EXTERN
 			|| scope->type == ST_FILE) {
