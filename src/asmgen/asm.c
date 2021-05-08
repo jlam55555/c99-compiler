@@ -103,6 +103,7 @@ struct asm_addr *addr2asmaddr(struct addr *addr)
 //select the opcodes and find the size 
 struct asm_inst *select_asm_inst(struct quad *quad)
 {
+	union asm_component *cmp;
 	struct asm_inst *inst;
 	struct asm_addr *tmp1, *tmp2, *tmp3;
 	struct asm_addr *src1, *src2, *dest;
@@ -117,7 +118,7 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			break;
 
 		//arithmetic
-    	case OC_ADD:
+    		case OC_ADD:
 			src1 = addr2asmaddr(quad->src1);
 			src2 = addr2asmaddr(quad->src2);
 			dest = addr2asmaddr(quad->dest);
@@ -198,9 +199,9 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 		case OC_LEA:;
 			src1 = addr2asmaddr(quad->src1);
 			dest = addr2asmaddr(quad->dest);
-			tmp1 = reg2addr(AR_A, src1->size);
-			asm_inst_new(AOC_LEA, src1, tmp1, src1->size);
-			asm_inst_new(AOC_MOV, tmp1, dest, tmp1->size);
+			tmp1 = reg2addr(AR_A, AS_Q);
+			asm_inst_new(AOC_LEA, src1, tmp1, AS_Q);
+			asm_inst_new(AOC_MOV, tmp1, dest, AS_Q);
 			break;
 		
 		case OC_LOAD:;
@@ -212,21 +213,26 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			tmp3 = reg2addr(AR_A, src1->size);
 			tmp3->mode = AAM_INDIRECT;
 
-			asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
-			asm_inst_new(AOC_MOV, dest, tmp2, tmp1->size);
-			asm_inst_new(AOC_MOV, tmp3, tmp2, tmp1->size);
+			cmp = asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
+			asm_inst_new(AOC_MOV, dest, tmp2, dest->size);
+			asm_inst_new(AOC_MOV, tmp3, tmp2, dest->size);
+
+			ADD_COMMENT(cmp, "LOAD");
 			break;
 
 		case OC_STORE:;
 			src1 = addr2asmaddr(quad->src1);
 			src2 = addr2asmaddr(quad->src2);
 			tmp1 = reg2addr(AR_A, src1->size);
-			tmp2 = reg2addr(AR_C, src1->size);
-			tmp3 = reg2addr(AR_C, src1->size);
+			tmp2 = reg2addr(AR_C, src2->size);
+			tmp3 = reg2addr(AR_C, src2->size);
 			tmp3->mode = AAM_INDIRECT;
-			asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
-			asm_inst_new(AOC_MOV, src2, tmp2, src1->size);
+
+			cmp = asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
+			asm_inst_new(AOC_MOV, src2, tmp2, src2->size);
 			asm_inst_new(AOC_MOV, tmp1, tmp3, src1->size);
+
+			ADD_COMMENT(cmp, "STORE");
 			break;
 
 		case OC_CALL:;
@@ -684,7 +690,7 @@ void print_asm_inst(struct asm_inst *inst)
 	fprintf(fp, "\t%s%s", inst_text, size_text);
 
 	if (inst->src) {
-		fprintf(fp, " ");
+		fprintf(fp, "\t");
 		print_asm_addr(inst->src);
 
 		if (inst->dest) {
