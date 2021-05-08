@@ -4,6 +4,7 @@
 #include <quads/exprquads.h>
 #include <quads/cfquads.h>
 #include <string.h>
+#include <stdio.h>
 
 struct basic_block *cur_bb, *bb_ll;
 
@@ -24,6 +25,15 @@ struct basic_block *basic_block_new(int add_to_ll)
 	}
 
 	return bb;
+}
+
+char *bb_name(struct basic_block *bb)
+{
+	char *name = malloc(10);
+	name[0] = 0;
+
+	sprintf(name, ".BB.%s.%d", bb->fn_name, bb->bb_no);
+	return name;
 }
 
 void bb_ll_push(struct basic_block *bb)

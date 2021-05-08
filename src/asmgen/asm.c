@@ -8,6 +8,9 @@
 
 union asm_component *asm_out;
 
+// x86_64 param register order; we assume no more than 6 parameters in a fncall
+static enum asm_reg_name param_reg[] = {AR_DI, AR_SI, AR_D, AR_C, AR_8, AR_9};
+
 // generate asm instruction, add to ll
 union asm_component *asm_inst_new(enum asm_opcode oc, struct asm_addr *src,
 	struct asm_addr *dest, enum asm_size size)
@@ -192,7 +195,7 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 
 		
 
-		case OC_LEA:
+		case OC_LEA:;
 			src1 = addr2asmaddr(quad->src1);
 			dest = addr2asmaddr(quad->dest);
 			tmp1 = reg2addr(AR_A, src1->size);
@@ -201,34 +204,90 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			break;
 		
 		case OC_LOAD:;
-			src1 = addr2asmaddr(quad->src1);
+			src1 = addr2asmaddr(quad->src1);			
 			dest = addr2asmaddr(quad->dest);
+
 			tmp1 = reg2addr(AR_A, src1->size);
+			tmp2 = reg2addr(AR_C, dest->size);
+			tmp3 = reg2addr(AR_A, src1->size);
+			tmp3->mode = AAM_INDIRECT;
+
 			asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
-			asm_inst_new(AOC_MOV, tmp1, dest, tmp1->size);
+			asm_inst_new(AOC_MOV, dest, tmp2, tmp1->size);
+			asm_inst_new(AOC_MOV, tmp3, tmp2, tmp1->size);
 			break;
 
-		case OC_STORE:
+		case OC_STORE:;
 			src1 = addr2asmaddr(quad->src1);
 			src2 = addr2asmaddr(quad->src2);
-			asm_inst_new(AOC_MOV, src1, src2, src1->size);
+			tmp1 = reg2addr(AR_A, src1->size);
+			tmp2 = reg2addr(AR_C, src1->size);
+			tmp3 = reg2addr(AR_C, src1->size);
+			tmp3->mode = AAM_INDIRECT;
+			asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
+			asm_inst_new(AOC_MOV, src2, tmp2, src1->size);
+			asm_inst_new(AOC_MOV, tmp1, tmp3, src1->size);
 			break;
 
 		case OC_CALL:;
-			src1 = addr2asmaddr(quad->src1);
-			asm_inst_new(AOC_CALL, src1, NULL, AS_NONE);
+			// handle fncall arguments
+			// param_reg
+			struct addr *iter;
+			int param_count = 0;
+			_LL_FOR(quad->src2, iter, next) {
+				if (param_count == 6) {
+					yyerror("not supporting more than 6"
+						" arguments in fncall");
+					break;
+				}
+
+				src2 = addr2asmaddr(iter);
+				asm_inst_new(AOC_MOV, src2,
+					reg2addr(param_reg[param_count++],
+					src2->size), src2->size);
+			}
+
+			// clear eax register (for non-vector argument list)
+			asm_inst_new(AOC_XOR, reg2addr(AR_A, AS_L),
+				reg2addr(AR_A, AS_L), AS_L);
+
+			// emit call opcode
+			struct asm_addr *addr_label = calloc(1,
+				sizeof(struct asm_addr));
+			addr_label->mode = AAM_LABEL;
+			addr_label->size = AS_Q;
+			addr_label->value.label
+				= quad->src1->val.astnode->decl.ident;
+			printf("call_label:%s", addr_label->value.label);
+			asm_inst_new(AOC_CALL, addr_label, NULL, AS_NONE);
 			if (quad->dest){
 				dest = addr2asmaddr(quad->dest);
 				tmp1 = reg2addr(AR_A, dest->size);
 				asm_inst_new(AOC_MOV, tmp1, dest, dest->size);
-				
 			}
 			break;
 
-		case OC_CMP:
+		case OC_CMP:;
+			src1 = addr2asmaddr(quad->src1);
+			src2 = addr2asmaddr(quad->src2);
+			tmp1 = reg2addr(AR_A, src1->size);
+			asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
+			asm_inst_new(AOC_CMP, src2, tmp1, src2->size);
 			break;
 			
-		case OC_SETCC:
+		case OC_SETCC:;
+			dest = addr2asmaddr(quad->dest);
+			enum asm_opcode oc;
+			switch((enum cc) *quad->src1->val.constval){
+				case CC_E:		oc = AOC_SETE; break;
+				case CC_NE: 		oc = AOC_SETNE; break;
+				case CC_L: 		oc = AOC_SETL; break;
+				case CC_LE:		oc = AOC_SETLE; break;
+				case CC_G: 		oc = AOC_SETG; break;
+				case CC_GE:		oc = AOC_SETGE; break;
+			}
+			asm_inst_new(oc, dest, NULL, AS_NONE);
+
 			break;
 
 		case OC_RET:;
@@ -295,7 +354,8 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 	struct quad *quad_iter;
 	char *fnname = strdup(fndecl->decl.ident),
 		*tmp_fnname = malloc(strlen(fndecl->decl.ident) + 3);
-	int offset = 0;
+	int offset = 0, param_count = 0;
+	struct asm_addr *asm_addr;
 	struct addr *addr;
 	FILE *fp = stdout;
 
@@ -312,6 +372,7 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 		// 	assembly file
 		if (var_iter->decl.is_proto) {
 			fprintf(fp, "proto");
+			++param_count;
 		} else {
 			fprintf(fp, "local");
 		}
@@ -353,17 +414,34 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 	asm_inst_new(AOC_MOV, reg2addr(AR_SP, AS_Q), reg2addr(AR_BP, AS_Q),
 		AS_Q);
 
-	// TODO: make second operand the size of all the local variables
+	// allocate space on the stack for all the local variables
+	// (this includes space for all of the temporary values)
 	addr = addr_new(AT_CONST, create_size_t());
 	*((uint64_t*)addr->val.constval) = -offset;
 	asm_inst_new(AOC_SUB, addr2asmaddr(addr), reg2addr(AR_SP, AS_Q),
 		AS_Q);
 
-	// TODO: copy all parameters into memory locations
+	// copy all parameters into memory locations
+	if (param_count > 6) {
+		yyerror("not supporting more than 6 function parameters");
+	}
+	_LL_FOR(fndecl->decl.fn_scope->symbols_ll, var_iter, decl.symbol_next) {
+		if (!param_count) {
+			break;
+		}
+
+		if (var_iter->decl.is_proto) {
+			addr = addr_new(AT_AST, var_iter->decl.components);
+			addr->val.astnode = var_iter;
+			asm_addr = addr2asmaddr(addr);
+			asm_inst_new(AOC_MOV, reg2addr(param_reg[--param_count],
+				asm_addr->size), asm_addr, asm_addr->size);
+		}
+	}
 
 	// FUNCTION BODY
 	_LL_FOR(bb_ll, bb_iter, next) {
-		fprintf(fp, "got basic block %s\n", bb_iter->fn_name);
+		asm_label_new(bb_name(bb_iter));
 
 		_LL_FOR(bb_iter->ll, quad_iter, next) {
 			select_asm_inst(quad_iter);
@@ -396,25 +474,32 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 // print controls and branches
 void print_CC(struct basic_block *bb){
 	FILE *fp = stdout;
-	switch(bb->branch_cc){
+	struct asm_addr *addr_label1, *addr_label2;
+	enum asm_opcode oc;
 
-		case CC_ALWAYS:
-			//asm_inst_new(AOC_JMP, );
-			break;
-		case CC_E:
-			break;
-		case CC_NE:
-			break;
-		case CC_L:
-			break;
-		case CC_LE:
-			break;
-		case CC_G:
-			break;
-		case CC_GE:
-			break;
+	if (bb->next_cond){
+		addr_label1 = calloc(1, sizeof(struct asm_addr));
+		addr_label1->mode = AAM_LABEL;
+		addr_label1->size = AS_Q;	
+		addr_label1->value.label = bb_name(bb->next_cond);
+		switch(bb->branch_cc){
+			case CC_E:	oc = AOC_JE; break;
+			case CC_NE:	oc = AOC_JNE; break;
+			case CC_L:	oc = AOC_JL; break;
+			case CC_LE:	oc = AOC_JLE; break;
+			case CC_G:	oc = AOC_JG; break;
+			case CC_GE:	oc = AOC_JGE; break;
+		}
+		asm_inst_new(oc, addr_label1, NULL, AS_NONE);
 	}
 
+	if (bb->next_def) {
+		addr_label2 = calloc(1, sizeof(struct asm_addr));
+		addr_label2->mode = AAM_LABEL;
+		addr_label2->size = AS_Q;
+		addr_label2->value.label = bb_name(bb->next_def);
+		asm_inst_new(AOC_JMP, addr_label2, NULL, AS_NONE);
+	}
 }
 
 
@@ -440,8 +525,13 @@ void print_asm_addr(struct asm_addr *addr)
 	int offset;
 
 	switch (addr->mode) {
+	case AAM_INDIRECT:
 	case AAM_REGISTER:
 		reg = &addr->value.reg;
+
+		if (addr->mode == AAM_INDIRECT) {
+			fprintf(fp, "(");
+		}
 
 		r1 = r3 = "";
 
@@ -494,6 +584,10 @@ void print_asm_addr(struct asm_addr *addr)
 
 		fprintf(fp, "%%%s%s%s", r1, r2, r3);
 
+		if (addr->mode == AAM_INDIRECT) {
+			fprintf(fp, ")");
+		}
+
 		break;
 
 	case AAM_MEMORY:
@@ -524,8 +618,9 @@ void print_asm_addr(struct asm_addr *addr)
 		}
 		break;
 
-	case AAM_INDIRECT:
-		NYI("printing indirect mode asm addr");
+	case AAM_LABEL:
+		//NYI("printing label mode asm addr")
+		fprintf(fp, "%s", addr->value.label);
 		break;
 
 	case AAM_REG_OFF:
@@ -562,8 +657,18 @@ void print_asm_inst(struct asm_inst *inst)
 	case AOC_JMP:	inst_text = "jmp"; break;
 	case AOC_JE:	inst_text = "je"; break;
 	case AOC_JNE:	inst_text = "jne"; break;
+	case AOC_JL:	inst_text = "jl"; break;
+	case AOC_JLE:	inst_text = "jle"; break;
+	case AOC_JG:	inst_text = "jg"; break;
+	case AOC_JGE:	inst_text = "jge"; break;
 	case AOC_XOR:	inst_text = "xor"; break;
 	case AOC_LEA:	inst_text = "lea"; break;
+	case AOC_SETE:	inst_text = "sete"; break;
+	case AOC_SETNE:	inst_text = "setne"; break;
+	case AOC_SETL:	inst_text = "setl"; break;
+	case AOC_SETLE:	inst_text = "setle"; break;
+	case AOC_SETG:	inst_text = "setg"; break;
+	case AOC_SETGE:	inst_text = "setge"; break;
 	}
 
 	switch (inst->size) {
@@ -670,8 +775,6 @@ void gen_globalvar_asm(union astnode *globals)
 	asm_out = NULL;
 
 	_LL_FOR(globals, iter, decl.symbol_next) {
-		// TODO: emit instructions for all these global variables
-
 		sprintf(size_buf, "%d", astnode_sizeof_symbol(iter));
 
 		dir = asm_dir_new(APOC_COMM);
@@ -683,6 +786,10 @@ void gen_globalvar_asm(union astnode *globals)
 			dir2->dir.param1 = iter->decl.static_uid;
 		} else {
 			dir->dir.param1 = iter->decl.ident;
+
+			// also emit .globl
+			dir2 = asm_dir_new(APOC_LOCAL);
+			dir2->dir.param1 = iter->decl.ident;
 		}
 		dir->dir.param2 = strdup(size_buf);
 		dir->dir.param3 = dir->dir.param2;

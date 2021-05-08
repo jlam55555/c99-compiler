@@ -25,8 +25,18 @@ enum asm_opcode {
 	AOC_JMP,
 	AOC_JE,
 	AOC_JNE,
+	AOC_JL,
+	AOC_JLE,
+	AOC_JG,
+	AOC_JGE,
 	AOC_XOR,
 	AOC_LEA,
+	AOC_SETE,
+	AOC_SETNE,
+	AOC_SETL,
+	AOC_SETLE,
+	AOC_SETG,
+	AOC_SETGE,
 };
 
 // x86_64 instruction sizes
@@ -58,6 +68,7 @@ enum asm_addr_mode {
 	AAM_MEMORY,	// a
 	AAM_INDIRECT,	// (%rbp)
 	AAM_REG_OFF,	// -4(%rbp)
+	AAM_LABEL,	// call, jmp
 };
 
 /**
@@ -123,8 +134,7 @@ struct asm_addr {
 	union {
 		struct addr *addr;
 		struct asm_reg reg;
-		// TODO: add more types here as necessary for the different
-		// 	addressing modes
+		char *label;
 	} value;
 };
 

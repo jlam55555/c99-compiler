@@ -174,6 +174,15 @@ struct basic_block {
 struct basic_block *basic_block_new(int add_to_ll);
 
 /**
+ * returns the name of a basic block as a newly-allocated string, in the format
+ * .BB.[fn name].[basic block id]
+ * 
+ * @param bb		basic block
+ * @return		basic block name
+ */
+char *bb_name(struct basic_block *bb);
+
+/**
  * adds the basic block to the linearized set of basic blocks. Calling this
  * manually allows you to set the position of a basic block in the linearization
  * of the basic blocks
