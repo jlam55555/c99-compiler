@@ -1,3 +1,5 @@
+#include <parser/scope.h>
+#include <quads/sizeof.h>
 #include <asmgen/asm.h>
 #include <stdio.h>
 #include <string.h>
@@ -96,7 +98,7 @@ struct asm_addr *addr2asmaddr(struct addr *addr)
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 //select the opcodes and find the size 
-struct asm_inst *select_asm_inst(struct quad *quad, enum asm_size *size)
+struct asm_inst *select_asm_inst(struct quad *quad)
 {
 	struct asm_inst *inst;
 	struct asm_addr *tmp1, *tmp2, *tmp3;
@@ -145,17 +147,72 @@ struct asm_inst *select_asm_inst(struct quad *quad, enum asm_size *size)
 			asm_inst_new(AOC_MOV, tmp1, dest, size_tmp);
 			break;
 
-		case OC_DIV:
+		case OC_DIV:;
+			src1 = addr2asmaddr(quad->src1);
+			src2 = addr2asmaddr(quad->src2);
+			dest = addr2asmaddr(quad->dest);
+			size_tmp = MAX(src1->size, src2->size);
+			tmp1 = reg2addr(AR_A, size_tmp);
+			tmp2 = reg2addr(AR_D, size_tmp);
+			//push %rax
+			asm_inst_new(AOC_PUSH, tmp1, NULL, AS_Q);
+			//mov src1 to %rax
+			asm_inst_new(AOC_MOV, src1, tmp1, AS_Q);
+			//push %rdx
+			asm_inst_new(AOC_PUSH, tmp2, NULL, AS_Q);
+			//clear %rdx to all 0
+			asm_inst_new(AOC_XOR, tmp2, tmp2, tmp2->size);
+			//divide by divisor src2
+			asm_inst_new(AOC_DIV, src2, NULL, size_tmp);
+			//mov result from %eax
+			asm_inst_new(AOC_MOV, tmp1, dest, size_tmp);
 			break;
 			
 
-		case OC_MOD:
+		case OC_MOD:;
+			src1 = addr2asmaddr(quad->src1);
+			src2 = addr2asmaddr(quad->src2);
+			dest = addr2asmaddr(quad->dest);
+			size_tmp = MAX(src1->size, src2->size);
+			tmp1 = reg2addr(AR_A, size_tmp);
+			tmp2 = reg2addr(AR_D, size_tmp);
+			//push %rax
+			asm_inst_new(AOC_PUSH, tmp1, NULL, AS_Q);
+			//mov src1 to %rax
+			asm_inst_new(AOC_MOV, src1, tmp1, AS_Q);
+			//push %rdx
+			asm_inst_new(AOC_PUSH, tmp2, NULL, AS_Q);
+			//clear %rdx to all 0
+			asm_inst_new(AOC_XOR, tmp2, tmp2, tmp2->size);
+			//divide by divisor src2
+			asm_inst_new(AOC_DIV, src2, NULL, size_tmp);
+			//mov result from %eax
+			asm_inst_new(AOC_MOV, tmp2, dest, size_tmp);
 			break;
 
-		
-		// case OC_LEA:
+		case OC_LOGAND:
+			break;
+			
+		case OC_LOGOR:
+			break;
 
-		// case OC_CALL:
+		case OC_LOGNOT:
+			break;		
+
+		case OC_LEA:
+			break;
+		
+		case OC_LOAD:;
+			src1 = addr2asmaddr(quad->src1);
+			dest = addr2asmaddr(quad->dest);
+
+			break;
+
+		case OC_STORE:
+			break;
+
+		case OC_CALL:
+			break;
 
 		case OC_CMP:
 			break;
@@ -169,6 +226,7 @@ struct asm_inst *select_asm_inst(struct quad *quad, enum asm_size *size)
 			asm_inst_new(AOC_LEAVE, NULL, NULL, AS_NONE);
 			asm_inst_new(AOC_RET, NULL, NULL, AS_NONE);
 			break;
+		
 	}
 }
 
@@ -219,14 +277,37 @@ static void reverse_asm_components(void)
  */
 void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 {
+	union astnode *var_iter;
 	union asm_component *component;
 	char *fnname = strdup(fndecl->decl.ident),
 		*tmp_fnname = malloc(strlen(fndecl->decl.ident) + 3);
+	unsigned offset;
 
 	// clear the current assembly
 	asm_out = NULL;
 
-	// generate prologue
+	// GET FUNCTION LOCAL VARIABLES & PARAMETERS; assign offsets to
+	// all variables
+	offset = 0;
+	_LL_FOR(fndecl->decl.fn_scope->symbols_ll, var_iter, decl.symbol_next) {
+		offset -= astnode_sizeof_symbol(var_iter);
+		var_iter->decl.offset = offset;
+
+		if (var_iter->decl.is_proto) {
+			printf("proto");
+		} else {
+			printf("local");
+		}
+		printf(" var: %s (size: %d; offset: %d)\n",
+			var_iter->decl.ident,
+			astnode_sizeof_symbol(var_iter),
+			var_iter->decl.offset);
+	}
+
+	// ALSO TREAT ALL PSEUDO-REGISTERS LIKE LOCAL VARS (give them a memory
+	// address/offset on the stack)
+
+	// FUNCTION PROLOGUE
 	asm_dir_new(APOC_TEXT);
 	asm_label_new(fndecl->decl.ident);
 	
@@ -238,7 +319,21 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 	asm_inst_new(AOC_SUB, reg2addr(AR_SP, AS_Q), reg2addr(AR_SP, AS_Q),
 		AS_Q);
 
-	// generate epilogue
+	// TODO: copy all parameters into memory locations
+
+	// FUNCTION BODY
+	struct basic_block *iter;
+	_LL_FOR(bb_ll, iter, next) {
+		printf("got basic block %s\n", iter->fn_name);
+
+		struct quad *qiter;
+		_LL_FOR(iter->ll, qiter, next) {
+			select_asm_inst(qiter);
+		}
+	}
+
+
+	// GENERATE EPILOGUE
 	asm_inst_new(AOC_LEAVE, NULL, NULL, AS_NONE);
 	asm_inst_new(AOC_RET, NULL, NULL, AS_NONE);
 
@@ -344,6 +439,9 @@ void print_asm_addr(struct asm_addr *addr)
 		break;
 	case AAM_REG_OFF:
 		NYI("printing register-offset mode asm addr");
+		break;
+	case AAM_IMMEDIATE:
+		NYI("printing immediate mode asm addr");
 		break;
 	default:
 		yyerror_fatal("unknown asm addressing mode");
@@ -472,7 +570,9 @@ void gen_globalvar_asm(union astnode *globals)
 	// clear current asm code
 	asm_out = NULL;
 
-	_LL_FOR(globals, iter, decl.global_next) {
+	_LL_FOR(globals, iter, decl.symbol_next) {
 		// TODO: emit instructions for all these global variables
+
+		printf("Got global variable: %s\n", iter->decl.ident);
 	}
 }

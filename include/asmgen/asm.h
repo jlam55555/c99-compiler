@@ -25,6 +25,7 @@ enum asm_opcode {
 	AOC_JMP,
 	AOC_JE,
 	AOC_JNE,
+	AOC_XOR,
 };
 
 // x86_64 instruction sizes
@@ -154,7 +155,7 @@ void declare_symbol(union astnode *decl);
 void dump_string(union astnode *string);
 
 // select x86-64 asm inst given quad
-struct asm_inst *select_asm_inst(struct quad *quad, enum asm_size *size);
+struct asm_inst *select_asm_inst(struct quad *quad);
 
 // select registers
 

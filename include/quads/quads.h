@@ -141,10 +141,9 @@ struct basic_block {
 	char *fn_name;
 	int bb_no;
 
-	enum cc branch_cc;
-
 	// next_def is default (fall-through) BB
 	// next_cond is non-default (conditional) BB
+	enum cc branch_cc;
 	struct basic_block *next_def, *next_cond;
 
 	// to store a regular linked list of basic blocks in order of

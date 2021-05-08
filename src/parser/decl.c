@@ -176,6 +176,7 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	FILE *fp = stdout;
 	char *ident;
 	struct scope *scope;
+	union astnode *sc;
 
 	// get ident from declarator
 	ident = decl->decl.ident;
@@ -198,6 +199,12 @@ void decl_install(union astnode *decl, union astnode *declspec)
 	// on the stack)
 	decl->decl.scope = scope;
 
+	// if prototype scope, indicate that on the variable, since prototype
+	// scope will later be "merged" into function scope
+	if (scope->type == ST_PROTO) {
+		decl->decl.is_proto = 1;
+	}
+
 	// fill in missing fields of declspec; this has to go after
 	// scope_insert because it depends on which scope it gets inserted into
 	// (which may not be the current scope in the case of a function def)
@@ -208,10 +215,30 @@ void decl_install(union astnode *decl, union astnode *declspec)
 
 	// add this variable to the linked list of variables (either global
 	// or local); if in global scope or has static/extern duration, then
-	// global; else local
+	// global; else local; calculate offset from base pointer
 	// TODO: confirm that it is global scope or static/extern
-	decl->decl.global_next = global_vars;
-	global_vars = decl;
+	if (NT(decl->decl.components) != NT_DECLARATOR_FUNCTION) {
+		sc = decl->decl.declspec->declspec.sc;
+
+		// global scope
+		if (sc->sc.scspec == SC_STATIC || sc->sc.scspec == SC_EXTERN
+			|| scope->type == ST_FILE) {
+			decl->decl.symbol_next = global_vars;
+			global_vars = decl;
+		}
+		// prototype scope
+		else if (scope->type == ST_PROTO) {
+			decl->decl.symbol_next = scope->symbols_ll;
+			scope->symbols_ll = decl;
+		}
+		// local scope: add to nearest function scope symbols ll
+		else {
+			scope = get_fn_scope();
+			decl->decl.symbol_next = scope->symbols_ll;
+			scope->symbols_ll = decl;
+		}
+	}
+	
 
 #if DEBUG
 	print_symbol(decl, 1, 0);

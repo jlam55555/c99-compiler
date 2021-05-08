@@ -546,7 +546,10 @@ externdecl: 	funcdef								{$$=$1;}
 /* 6.9.1 Function definitions */
 funcdef:	declspeclist declarator {decl_check_fndef($2);scope_set_fndef();decl_install($2,$1);} compoundstmt
 										{/*note that this doesn't allow for old fndef syntax*/
-										 $$=$2;$2->decl.fn_body=$4;
+										 $$=$2;
+										 $2->decl.fn_body=$4;
+										 /*scopes get "lost" after pop, so need this*/
+										 associate_fn_with_scope($2);
 										 /*print function body*/
 										 print_astnode($$);
 										 /*generate quads for this function*/
