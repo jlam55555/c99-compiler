@@ -9,9 +9,6 @@
 // linearized linked list of directives
 union asm_component *asm_out;
 
-// linked list of strings
-union asm_component *rodata_ll;
-
 // x86_64 param register order; we assume no more than 6 parameters in a fncall
 static enum asm_reg_name param_reg[] = {AR_DI, AR_SI, AR_D, AR_C, AR_8, AR_9};
 
@@ -697,49 +694,9 @@ void print_asm_addr(struct asm_addr *addr)
 		NYI("printing register-offset mode asm addr");
 		break;
 
-	case AAM_IMMEDIATE:;
-		switch(addr->value.addr->type)
-		{
-			case AT_CONST:
-				const_val = addr->value.addr->val.constval;
-				fprintf(fp, "$%llu", *((uint64_t*)const_val));
-				break;
-			case AT_STRING:
-				dir = asm_dir_new(APOC_STRING);
-
-				// remove dir from asm_out b/c we will print
-				// at the end
-				asm_out = asm_out->generic.next;
-
-				// this is messy
-				char *str = malloc(4096);
-				strcat(str, "\"");
-				strcat(str, print_string(&addr->value.addr->
-					val.astnode->string.string));
-				strcat(str, "\"");
-
-				dir->dir.param1 = str;
-
-				// add to th end of rodata_ll;
-				// messy to build ll in forward direction
-				int count = 0;
-				union asm_component *iter;
-				_LL_FOR(rodata_ll, iter, dir.rodata_next) {
-					++count;
-					if (!iter->dir.rodata_next) {
-						iter->dir.rodata_next = dir;
-						break;
-					}
-				}
-				if (!count) {
-					rodata_ll = dir;
-				}
-
-				fprintf(fp, ".RO%d", count);
-				break;
-		
-		}
-		
+	case AAM_IMMEDIATE:
+		const_val = addr->value.addr->val.constval;
+		fprintf(fp, "$%llu", *((uint64_t*)const_val));
 		break;
 
 	default:
@@ -911,15 +868,16 @@ void gen_globalvar_asm(union astnode *globals)
 			? iter->decl.static_uid : iter->decl.ident);
 	}
 
-	// also dump .rodata (strings)
-	i = 0;
-	_LL_FOR(rodata_ll, dir, dir.rodata_next) {
-		LL_NEXT(dir) = asm_out;
-		asm_out = dir;
+	_LL_FOR(string_ll, iter, decl.symbol_next) {
+		dir = asm_dir_new(APOC_STRING);
 
-		sprintf(size_buf, ".RO%d", i++);
-		asm_label_new(strdup(size_buf));
+		char *str = malloc(4096);
+		sprintf(str, "\"%s\"", print_string(&iter->string.string));
+		dir->dir.param1 = str;
+
+		asm_label_new(iter->string.label);
 	}
+
 	dir = asm_dir_new(APOC_SECTION);
 	dir->dir.param1 = ".rodata";
 

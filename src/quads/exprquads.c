@@ -2,6 +2,9 @@
 #include <quads/sizeof.h>
 #include <quads/cfquads.h>
 #include <parser.tab.h>
+#include <stdio.h>
+
+union astnode *string_ll;
 
 /**
  * helper function to demote astnode array to pointer
@@ -136,24 +139,39 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 		ALLOC_TYPE(ts, NT_DECLARATOR_ARRAY);
 		ts->decl_array.of = ts_tmp;
 
-		// this is kludgey
+		// this is kludgey: make the pointer act like an array,
+		// but give it length 8 so it has size 8
 		ALLOC_TYPE(ts_tmp, NT_NUMBER);
 		*((uint64_t*)ts_tmp->num.buf) = 8;
 		ts->decl_array.length = ts_tmp;
 
-		// src1 = addr_new(AT_STRING, ts);
-		// src1->val.astnode = expr;
-
 		union astnode *decl;
 		ALLOC_TYPE(decl, NT_DECL);
 		decl->decl.components = ts;
-		decl->decl.ident = "TESTSTRING";
 		decl->decl.is_string = 1;
 
-		// string is an lvalue!
-		return gen_lvalue(decl, NULL, dest, 0);
+		// add it to the end of the ll (messy to build forwards)
+		int count = 0;
+		union astnode *iter;
+		_LL_FOR(string_ll, iter, decl.symbol_next) {
+			++count;
+			if (!iter->decl.symbol_next) {
+				iter->decl.symbol_next = expr;
+				break;
+			}
+		}
+		if (!count) {
+			string_ll = expr;
+		}
 
-		// goto constliteral;
+		char name[10];
+		sprintf(name, ".RO%d", count);
+
+		decl->decl.ident = strdup(name);
+		expr->string.label = decl->decl.ident;
+
+		// string is an lvalue! like an array
+		return gen_lvalue(decl, NULL, dest, 0);
 
 	// constant character
 	case NT_CHARLIT:
@@ -692,37 +710,6 @@ struct addr *gen_lvalue(union astnode *expr, enum addr_mode *mode,
 			}
 
 			return dest;
-
-		// treat string as array
-		// case NT_STRING:
-		// 	// set up character pointer declaration
-		// 	ALLOC_TYPE(ts, NT_TS_SCALAR);
-		// 	ts->ts_scalar.basetype = BT_CHAR;
-		// 	ts->ts_scalar.modifiers.sign = SIGN_SIGNED;
-
-		// 	union astnode *ts_tmp;
-		// 	ALLOC_TYPE(ts_tmp, NT_DECLSPEC);
-		// 	ts_tmp->declspec.ts = ts;
-
-		// 	ALLOC_TYPE(ts, NT_DECLARATOR_ARRAY);
-		// 	ts->decl_array.of = ts_tmp;
-
-		// 	// this is kludgey -- used to get correct sizeof
-		// 	ALLOC_TYPE(ts_tmp, NT_NUMBER);
-		// 	*((uint64_t*)ts_tmp->num.buf) = 8;
-		// 	ts->decl_array.length = ts_tmp;
-
-		// 	union astnode *decl;
-		// 	ALLOC_TYPE(decl, NT_DECL);
-		// 	decl->decl.components = ts;
-		// 	decl->decl.ident = ".STRING";
-
-		// 	expr = decl;
-
-			// src1 = addr_new(AT_STRING, ts);
-			// src1->val.astnode = expr;
-
-			// fallthrough
 
 		// treat array as pointer
 		case NT_DECLARATOR_ARRAY:
