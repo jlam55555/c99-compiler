@@ -216,6 +216,7 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			cmp = asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
 			asm_inst_new(AOC_MOV, dest, tmp2, dest->size);
 			asm_inst_new(AOC_MOV, tmp3, tmp2, dest->size);
+			asm_inst_new(AOC_MOV, tmp2, dest, dest->size);
 
 			ADD_COMMENT(cmp, "LOAD");
 			break;
