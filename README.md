@@ -21,12 +21,20 @@ This will build to the `build` directory.
 
 ---
 
-### Running testcases
-(Up to quad generation)
+### Run Instructions
 ```bash
-$ gcc -E res/qtests/tc1.c | make run
+$ path/to/compiler -o [OUT_FILE] -d [DEBUG_OUT_FILE] [INFILE1] [INFILE2] ...
 ```
-Four testcases are provided, `res/qtests/tc[1-4].c`.
+All of the options are optional: the compiler will use stdin for input, stdout
+for asm output, and stderr for debug output by default. By default,
+`path/to/compiler` will be `build/compiler` (built by cmake). The input files
+should be preprocessed (`gcc -E`).
+
+Sample usage (testcases):
+```bash
+$ gcc -E res/ttests/*.c | build/compiler -o testcases.S -d debug.txt \
+    && gcc -m64 -o testcases testcases.S && ./testcases
+```
 
 ---
 
@@ -309,6 +317,10 @@ Not implemented:
     - fixed basic block ordering in for loops
 
 TODO: write output, debugging output to files
+TODO: remove branches to immediate next block
+TODO: fix extra intermediate value for fncalls -- default rettype is int
+    (4 bytes), so if you want to set something else you have to explicitly
+    assign it directly to the type you want
 
 ---
   

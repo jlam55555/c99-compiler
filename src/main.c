@@ -12,48 +12,35 @@
 static int parse_args(int argc, char **argv)
 {
 	int c, i;
+	FILE *fp;
 
 	while ((c = getopt(argc, argv, "d:o:")) != -1) {
 		switch (c) {
 
 		// debug output file
 		case 'd':
-			if (!(dfp = fopen(optarg, "w+"))) {
-				fprintf(stderr, "could not open debug file %s"
+			if (!(fp = fopen(optarg, "w+"))) {
+				fprintf(dfp, "could not open debug file %s"
 					" for writing: %s\n",
 					optarg, strerror(errno));
-				return errno;
+				break;
 			}
+			dfp = fp;
 			break;
 
 		// output file
 		case 'o':
-			if (!(ofp = fopen(optarg, "w+"))) {
+			if (!(fp = fopen(optarg, "w+"))) {
 				fprintf(dfp, "could not open output file %s"
 					" for writing: %s\n",
 					optarg, strerror(errno));
-				return errno;
+				break;
 			}
+			ofp = fp;
 			break;
 
 		case '?':
 			return 1;
-		}
-	}
-
-	// remaining arguments are the input files; set these to stdin
-	if (argc - optind > 1) {
-		fprintf(dfp, "warning: only one source file at a time is"
-			" currently supported. Only the first file will be"
-			" compiled.\n");
-	}
-
-	if (optind < argc) {
-		if (!(yyin = fopen(argv[optind], "r"))) {
-			fprintf(dfp, "could not open input file %s for"
-				" reading: %s\n",
-				argv[optind], strerror(errno));
-			return errno;
 		}
 	}
 
@@ -62,6 +49,9 @@ static int parse_args(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+	int i;
+	FILE *ifp;
+
 #if YYDEBUG
 	yydebug = 1;
 #endif
@@ -79,16 +69,30 @@ int main(int argc, char **argv)
 	// create default global scope
 	scope_push(0);
 
-	// begin parsing
-	yyparse();
+	// parse each input file serially
+	if (optind == argc) {
+		yyparse();
+	} else {
+		for (i = optind; i < argc; ++i) {
+			if (!(ifp = fopen(argv[i], "r"))) {
+				fprintf(dfp, "could not open input file %s for"
+					" reading: %s\n",
+					argv[i], strerror(errno));
+				continue;
+			}
+			fprintf(dfp, "Compiling input file %s...\n", argv[i]);
+
+			yyin = ifp;
+			yyparse();
+
+			fclose(ifp);
+		}
+	}
 
 	// after file is complete, add global vars to output
 	gen_globalvar_asm(global_vars);
 
 	// close file pointers as appropriate
-	if (yyin != stdin) {
-		fclose(yyin);
-	}
 	if (dfp != stderr) {
 		fclose(stderr);
 	}
