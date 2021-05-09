@@ -228,9 +228,29 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 		}
 
 		if (!dest) {
-			// TODO: should infer type from function declaration;
-			// 	for now, default return type is int
+			// take function return type, or int for implicit fn
 			dest = tmp_addr_new(create_int());
+			dest->decl->ts_scalar.modifiers.lls = LLS_LONG;
+			dest->size = astnode_sizeof_type(dest->decl);
+
+			// if implicit make return type 4
+			if (!src1->decl->decl_function.of) {
+				dest = tmp_addr_new(create_int());
+			} else {
+				ts = src1->decl->decl_function.of;
+
+				// if void we don't need a dest, but we make it
+				// implicitly an int so we don't upset things
+				// if this is used as an intermediate value
+				if (NT(ts) == NT_DECLSPEC
+					&& NT(ts->declspec.ts) == NT_TS_SCALAR
+					&& ts->declspec.ts->ts_scalar.basetype
+						== BT_VOID) {
+					dest = tmp_addr_new(create_int());
+				} else {
+					dest = tmp_addr_new(ts);
+				}
+			}
 		}
 
 		quad_new(OC_CALL, dest, src1, src2->next);

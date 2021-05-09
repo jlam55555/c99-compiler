@@ -5,13 +5,13 @@ long fib(int n)
 	int i;
 
 	if (n == 0) {
-		return 0;
+		return (long)0;
 	}
 
 	// this is to ensure top bits get properly zero-filled
-	cur = (long)0;
-	next = (long)1;
-	i = (long)1;
+	cur = 0;
+	next = 1;
+	i = 1;
 
 	while (i < n) {
 		tmp = cur;

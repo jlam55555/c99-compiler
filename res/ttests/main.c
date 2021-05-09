@@ -42,11 +42,10 @@ int main(void)
 	}
 	printf("\n");
 
-	// currently have a problem with returning long values to intermediates;
-	// have to use the long result of a fncall in a direct assignment
-	long fib75, fib(int);
-	fib75 = fib(75);
-	printf("%dth fibonacci number: %ld\n", 75, fib75);
+	// implicit ret type of function is int, but we want long here, so
+	// have to predeclare
+	long fib(int);
+	printf("%dth fibonacci number: %ld\n", 75, fib(75));
 
 	return 0;
 }

@@ -183,6 +183,15 @@ Not implemented:
 - a decent register allocation scheme
 - as before, support for structs and fp values is omitted
 
+Semantic notes:
+- String literals are implemented like character arrays (in .rodata), since they
+    are memory addresses; their array length is set to 8 so that sizeof works
+    correctly
+- Currently, the program allows you to input multiple source files but outputs
+    the entire output into one output file. This is usually fine but may cause
+    problems (e.g., multiple static variables with the same name). If necessary,
+    compile files separately.
+
 ---
 
 ### Changelog
@@ -318,14 +327,16 @@ Not implemented:
     - implemented directives for extern and static variables
     - fixed basic block ordering in for loops
 - 5/9/21: touchups
-    - implemented getopt flags to read in fron non-stdin, print out to
+    - implemented getopt flags to read in from non-stdin, print out to
         non-stdout, print debug to non-stderr
+    - implemented function return type is as declared, unless implicit (implicit
+        return type is still int) or void (also defaults to int just in case
+        it is used in intermediate values)
+    - fixed implicit upcasting of longs to quadwords
     - added sample programs to res/ttests
-
-TODO: remove branches to immediate next block
-TODO: fix extra intermediate value for fncalls -- default rettype is int
-    (4 bytes), so if you want to set something else you have to explicitly
-    assign it directly to the type you want
+    - removed branches to immediate next block (basic block fallthrough
+        optimization)
+    - updated README with new run instructions
 
 ---
   

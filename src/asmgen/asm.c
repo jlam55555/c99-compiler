@@ -118,10 +118,15 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			src1 = addr2asmaddr(quad->src1);
 			dest = addr2asmaddr(quad->dest);
 
+			// implicit cast
+			if (src1->size != dest->size) {
+				goto implcast;
+			}
+
 			tmp1 = reg2addr(AR_A, src1->size);
 
 			cmp = asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
-			asm_inst_new(AOC_MOV, tmp1, dest, src1->size);
+			asm_inst_new(AOC_MOV, tmp1, dest, dest->size);
 
 			ADD_COMMENT(cmp, "MOV");
 			break;
@@ -286,7 +291,6 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			addr_label->size = AS_Q;
 			addr_label->value.label
 				= quad->src1->val.astnode->decl.ident;
-			//printf("call_label:%s", addr_label->value.label);
 			asm_inst_new(AOC_CALL, addr_label, NULL, AS_NONE);
 			if (quad->dest){
 				dest = addr2asmaddr(quad->dest);
@@ -327,11 +331,12 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			
 			ADD_COMMENT(cmp, "RETURN");
 			break;
-		
+
 		case OC_CAST:
 			src1 = addr2asmaddr(quad->src1);
 			dest = addr2asmaddr(quad->dest);
 
+		implcast:
 			tmp1 = reg2addr(AR_A, src1->size);
 			tmp2 = reg2addr(AR_A, dest->size);
 
@@ -341,7 +346,7 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			// size; noop
 
 			// cast 4 byte -> 8 byte
-			if (tmp1->size == 4 && tmp2->size == 8) {
+			if (tmp1->size == AS_L && tmp2->size == AS_Q) {
 				asm_inst_new(AOC_CLTQ, NULL, NULL, AS_NONE);
 			}
 			
@@ -547,7 +552,7 @@ void print_CC(struct basic_block *bb){
 		asm_inst_new(oc, addr_label1, NULL, AS_NONE);
 	}
 
-	if (bb->next_def) {
+	if (bb->next_def && bb->next_def->bb_no != bb->next->bb_no) {
 		addr_label2 = calloc(1, sizeof(struct asm_addr));
 		addr_label2->mode = AAM_LABEL;
 		addr_label2->size = AS_Q;
