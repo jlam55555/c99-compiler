@@ -10,6 +10,8 @@
 #ifndef COMMONH
 #define COMMONH
 
+#include <stdio.h>
+
 // basic debugging info -- like the level in Hak's output
 #define DEBUG 1
 
@@ -101,7 +103,7 @@ extern union astnode *ELLIPSIS_DECLARATOR;
 extern int indi;
 #define INDENT(depth)\
 	for (indi = 0; indi < (depth); indi++) \
-		fprintf(stdout, "  ");
+		fprintf(dfp, "  ");
 
 // indicates a feature is not yet implemented; somewhat equivalent to a to-do
 // (not that it will not be implemented); not fatal
@@ -109,5 +111,8 @@ extern int indi;
 
 // max of two numbers
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+// debug and output file pointers
+extern FILE *dfp, *ofp;
 
 #endif	// COMMONH

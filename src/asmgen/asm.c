@@ -414,7 +414,6 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 	int offset = 0, param_count = 0;
 	struct asm_addr *asm_addr;
 	struct addr *addr;
-	FILE *fp = stdout;
 
 	// clear the current assembly
 	asm_out = NULL;
@@ -425,15 +424,14 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 		offset -= astnode_sizeof_symbol(var_iter);
 		var_iter->decl.offset = offset;
 
-		// TODO: make sure these don't get printed out to the output
-		// 	assembly file
+		// debug output
 		if (var_iter->decl.is_proto) {
-			fprintf(fp, "proto");
+			fprintf(dfp, "proto");
 			++param_count;
 		} else {
-			fprintf(fp, "local");
+			fprintf(dfp, "local");
 		}
-		fprintf(fp, " var: %s (size: %d; offset: %d)\n",
+		fprintf(dfp, " var: %s (size: %d; offset: %d)\n",
 			var_iter->decl.ident,
 			astnode_sizeof_symbol(var_iter),
 			var_iter->decl.offset);
@@ -449,7 +447,7 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 			offset -= quad_iter->addr->size;\
 			quad_iter->addr->offset = offset;\
 			\
-			fprintf(fp, "tmp %d (size: %d; offset: %d)\n",\
+			fprintf(dfp, "tmp %d (size: %d; offset: %d)\n",\
 				quad_iter->addr->val.tmpid,\
 				quad_iter->addr->size,\
 				quad_iter->addr->offset);\
@@ -530,7 +528,6 @@ void generate_asm(union astnode *fndecl, struct basic_block *bb_ll)
 
 // print controls and branches
 void print_CC(struct basic_block *bb){
-	FILE *fp = stdout;
 	struct asm_addr *addr_label1, *addr_label2;
 	enum asm_opcode oc;
 
@@ -562,13 +559,12 @@ void print_CC(struct basic_block *bb){
 
 // print comment of asm_component, if applicable
 void print_comment(char *comment) {
-	FILE *fp = stdout;
-	
+
 	if (!comment) {
 		return;
 	}
 
-	fprintf(fp, "\t\t#%s", comment);
+	fprintf(ofp, "\t\t#%s", comment);
 }
 
 // TODO: remove this predeclaration
@@ -576,7 +572,6 @@ void print_asm_dir(struct asm_dir *dir);
 
 void print_asm_addr(struct asm_addr *addr)
 {
-	FILE *fp = stdout;
 	struct asm_reg *reg;
 	char *r1, *r2, *r3;
 	unsigned char *const_val;
@@ -591,7 +586,7 @@ void print_asm_addr(struct asm_addr *addr)
 		reg = &addr->value.reg;
 
 		if (addr->mode == AAM_INDIRECT) {
-			fprintf(fp, "(");
+			fprintf(ofp, "(");
 		}
 
 		r1 = r3 = "";
@@ -643,10 +638,10 @@ void print_asm_addr(struct asm_addr *addr)
 			}
 		}
 
-		fprintf(fp, "%%%s%s%s", r1, r2, r3);
+		fprintf(ofp, "%%%s%s%s", r1, r2, r3);
 
 		if (addr->mode == AAM_INDIRECT) {
-			fprintf(fp, ")");
+			fprintf(ofp, ")");
 		}
 
 		break;
@@ -655,7 +650,7 @@ void print_asm_addr(struct asm_addr *addr)
 		quad_addr = addr->value.addr;
 
 		if (quad_addr->type == AT_TMP) {
-			fprintf(fp, "%d(%%rbp)", quad_addr->offset);
+			fprintf(ofp, "%d(%%rbp)", quad_addr->offset);
 			break;
 		}
 
@@ -670,14 +665,14 @@ void print_asm_addr(struct asm_addr *addr)
 		if (!decl->decl.is_string
 			&& sc->sc.scspec != SC_EXTERN
 			&& sc->sc.scspec != SC_STATIC) {
-			fprintf(fp, "%d(%%rbp)", decl->decl.offset);
+			fprintf(ofp, "%d(%%rbp)", decl->decl.offset);
 		}
 
 		// if global (extern or static) variable:
 		// use rip-relative addressing
 		// MOVL	$2, i(%rip)
 		else {
-			fprintf(fp, "%s(%%rip)",
+			fprintf(ofp, "%s(%%rip)",
 				!decl->decl.is_string
 					&& sc->sc.scspec == SC_STATIC
 				? decl->decl.static_uid
@@ -687,7 +682,7 @@ void print_asm_addr(struct asm_addr *addr)
 
 	case AAM_LABEL:
 		//NYI("printing label mode asm addr")
-		fprintf(fp, "%s", addr->value.label);
+		fprintf(ofp, "%s", addr->value.label);
 		break;
 
 	case AAM_REG_OFF:
@@ -696,7 +691,7 @@ void print_asm_addr(struct asm_addr *addr)
 
 	case AAM_IMMEDIATE:
 		const_val = addr->value.addr->val.constval;
-		fprintf(fp, "$%llu", *((uint64_t*)const_val));
+		fprintf(ofp, "$%llu", *((uint64_t*)const_val));
 		break;
 
 	default:
@@ -706,7 +701,6 @@ void print_asm_addr(struct asm_addr *addr)
 
 void print_asm_inst(struct asm_inst *inst)
 {
-	FILE *fp = stdout;
 	char *inst_text, *size_text;
 
 	switch (inst->oc) {
@@ -749,25 +743,24 @@ void print_asm_inst(struct asm_inst *inst)
 		yyerror_fatal("unknown asm instruction size");
 	}
 
-	fprintf(fp, "\t%s%s", inst_text, size_text);
+	fprintf(ofp, "\t%s%s", inst_text, size_text);
 
 	if (inst->src) {
-		fprintf(fp, "\t");
+		fprintf(ofp, "\t");
 		print_asm_addr(inst->src);
 
 		if (inst->dest) {
-			fprintf(fp, ", ");
+			fprintf(ofp, ", ");
 			print_asm_addr(inst->dest);
 		}
 	}
 
 	print_comment(inst->comment);
-	fprintf(fp, "\n");
+	fprintf(ofp, "\n");
 }
 
 void print_asm_dir(struct asm_dir *dir)
 {
-	FILE *fp = stdout;
 	char *dir_text;
 
 	switch (dir->poc) {
@@ -784,38 +777,34 @@ void print_asm_dir(struct asm_dir *dir)
 		yyerror_fatal("unknown asm directive");
 	}
 
-	fprintf(fp, "\t.%s", dir_text);
+	fprintf(ofp, "\t.%s", dir_text);
 
 	// print arguments if they exist
 	if (dir->param1) {
-		fprintf(fp, " %s", dir->param1);
+		fprintf(ofp, " %s", dir->param1);
 
 		if (dir->param2) {
-			fprintf(fp, ", %s", dir->param2);
+			fprintf(ofp, ", %s", dir->param2);
 
 			if (dir->param3) {
-				fprintf(fp, ", %s", dir->param3);
+				fprintf(ofp, ", %s", dir->param3);
 			}
 		}
 	}
 
 	print_comment(dir->comment);
-	fprintf(fp, "\n");
+	fprintf(ofp, "\n");
 }
 
 void print_asm_label(struct asm_label *label)
 {
-	FILE *fp = stdout;
-
-	
-	fprintf(fp, "%s:", label->name);
+	fprintf(ofp, "%s:", label->name);
 	print_comment(label->comment);
-	fprintf(fp, "\n");
+	fprintf(ofp, "\n");
 }
 
 void print_asm()
 {
-	FILE *fp = stdout;
 	union asm_component *iter;
 
 	LL_FOR(asm_out, iter) {
@@ -835,7 +824,6 @@ void print_asm()
 
 void gen_globalvar_asm(union astnode *globals)
 {
-	FILE *fp = stdout;
 	union astnode *iter, *iter2;
 	union asm_component *dir, *dir2;
 	char size_buf[10];
@@ -864,7 +852,7 @@ void gen_globalvar_asm(union astnode *globals)
 		}
 		dir->dir.param2 = strdup(size_buf);
 
-		fprintf(fp, "Got global variable: %s\n", iter->decl.static_uid
+		fprintf(dfp, "Got global variable: %s\n", iter->decl.static_uid
 			? iter->decl.static_uid : iter->decl.ident);
 	}
 
