@@ -1,16 +1,38 @@
 // for esieve
 static int buf[10000];
+extern int multidim[5][5][5];
 
 int main(void)
 {
 	// Hello, world!
 	printf("Hello, world!\n");
 
-	// calling an external fn
+	// calling an external fn that returns something
 	printf("%d\n", f());
 
-	// siece of eratosthenes!
-	int prime_count, max, i;
+	// calling an external function which takes a parameter
+	int b;
+	b = 52;
+	add_two(&b);
+	printf("b+2: %d\n", b);
+
+	// multidim arrays!
+	int i, j, k;
+	multidim_test();
+	for (i=0; i<5; ++i) {
+		printf("slice %d:\n", i);
+
+		for (j=0; j<5; ++j) {
+			for (k=0; k<5; ++k) {
+				printf("%2d ", multidim[i][j][k]);
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
+
+	// sieve of eratosthenes!
+	int prime_count, max;
 	max = 1000;
 
 	esieve(max, buf, &prime_count);
@@ -22,7 +44,7 @@ int main(void)
 
 	// currently have a problem with returning long values to intermediates;
 	// have to use the long result of a fncall in a direct assignment
-	long fib75;
+	long fib75, fib(int);
 	fib75 = fib(75);
 	printf("%dth fibonacci number: %ld\n", 75, fib75);
 

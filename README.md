@@ -30,11 +30,13 @@ for asm output, and stderr for debug output by default. By default,
 `path/to/compiler` will be `build/compiler` (built by cmake). The input files
 should be preprocessed (`gcc -E`).
 
-Sample usage (testcases):
+Sample usage: There are some sample programs in `res/ttests` that should
+compile correctly.
 ```bash
 $ gcc -E res/ttests/*.c | build/compiler -o testcases.S -d debug.txt \
     && gcc -m64 -o testcases testcases.S && ./testcases
 ```
+(Compare the output to: ```gcc res/ttests/*.c && ./a.out`.)
 
 ---
 
@@ -315,8 +317,11 @@ Not implemented:
         string constants, and rbp-relative addressing for all local values
     - implemented directives for extern and static variables
     - fixed basic block ordering in for loops
+- 5/9/21: touchups
+    - implemented getopt flags to read in fron non-stdin, print out to
+        non-stdout, print debug to non-stderr
+    - added sample programs to res/ttests
 
-TODO: write output, debugging output to files
 TODO: remove branches to immediate next block
 TODO: fix extra intermediate value for fncalls -- default rettype is int
     (4 bytes), so if you want to set something else you have to explicitly
