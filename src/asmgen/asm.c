@@ -305,6 +305,19 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			asm_inst_new(AOC_RET, NULL, NULL, AS_NONE);
 			break;
 		
+		case OC_CAST:
+			src1 = addr2asmaddr(quad->src1);
+			dest = addr2asmaddr(quad->dest);
+			tmp1 = reg2addr(AR_A, src1->size);
+
+			cmp = asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
+			asm_inst_new(AOC_MOV, tmp1, dest, src1->size);
+
+			ADD_COMMENT(cmp, "CAST");
+			break;
+
+		default:
+			yyerror("select_asm_inst: unhandled opcode");
 	}
 }
 
@@ -795,11 +808,10 @@ void gen_globalvar_asm(union astnode *globals)
 			dir->dir.param1 = iter->decl.ident;
 
 			// also emit .globl
-			dir2 = asm_dir_new(APOC_LOCAL);
+			dir2 = asm_dir_new(APOC_GLOBL);
 			dir2->dir.param1 = iter->decl.ident;
 		}
 		dir->dir.param2 = strdup(size_buf);
-		dir->dir.param3 = dir->dir.param2;
 
 		fprintf(fp, "Got global variable: %s\n", iter->decl.static_uid
 			? iter->decl.static_uid : iter->decl.ident);
