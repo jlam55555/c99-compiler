@@ -37,6 +37,7 @@ enum asm_opcode {
 	AOC_SETLE,
 	AOC_SETG,
 	AOC_SETGE,
+	AOC_CLTQ,
 };
 
 // x86_64 instruction sizes
@@ -58,7 +59,8 @@ enum asm_pseudo_opcode {
 
 	APOC_TEXT,
 	APOC_BSS,
-	APOC_RODATA,
+	APOC_SECTION,
+	APOC_STRING,
 };
 
 // x86 asm addressing modes
@@ -112,6 +114,10 @@ struct asm_dir {
 
 	enum asm_pseudo_opcode poc;
 	char *param1, *param2, *param3;
+
+	// basically a kludge -- need a second iterator pointer for
+	// string constants in .rodata
+	union asm_component *rodata_next;
 };
 
 // x86 asm label

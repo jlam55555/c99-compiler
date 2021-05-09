@@ -38,12 +38,13 @@ void generate_for_quads(union astnode *stmt)
 	gen_rvalue(stmt->stmt_for.update, NULL, NULL);
 	link_bb(CC_ALWAYS, bb_cond, NULL);
 
+
 	// condition body
 	cur_bb = bb_cond;
 	bb_ll_push(cur_bb);
 	if (stmt->stmt_for.cond) {
-		generate_conditional_quads(stmt->stmt_for.cond, bb_next,
-			bb_body, 0);
+		generate_conditional_quads(stmt->stmt_for.cond, bb_body,
+			bb_next, 0);
 	} else {
 		link_bb(CC_ALWAYS, bb_body, NULL);
 	}

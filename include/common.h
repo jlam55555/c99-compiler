@@ -107,4 +107,7 @@ extern int indi;
 // (not that it will not be implemented); not fatal
 #define NYI(what) yyerror(#what " not yet implemented");
 
+// max of two numbers
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 #endif	// COMMONH

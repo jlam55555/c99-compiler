@@ -102,6 +102,9 @@ struct astnode_decl {
 
 	// for static variables with the same name
 	char *static_uid;
+
+	// indicates whether this is a string literal
+	int is_string;
 };
 
 /**

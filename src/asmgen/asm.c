@@ -6,7 +6,11 @@
 #include <stdio.h>
 #include <string.h>
 
+// linearized linked list of directives
 union asm_component *asm_out;
+
+// linked list of strings
+union asm_component *rodata_ll;
 
 // x86_64 param register order; we assume no more than 6 parameters in a fncall
 static enum asm_reg_name param_reg[] = {AR_DI, AR_SI, AR_D, AR_C, AR_8, AR_9};
@@ -90,15 +94,15 @@ struct asm_addr *addr2asmaddr(struct addr *addr)
 		case 4:	asm_addr->size = AS_L;	break;
 		case 8:	asm_addr->size = AS_Q;	break;
 		default:
+			// this may happen if array; this is ok
 			yyerror("addr2asmaddr: unknown size");
+			asm_addr->size = AS_Q;
 	}
 
 	asm_addr->value.addr = addr;
 
 	return asm_addr;
 }
-
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 //select the opcodes and find the size 
 struct asm_inst *select_asm_inst(struct quad *quad)
@@ -112,9 +116,17 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 	switch(quad->opcode)
 	{
 		case OC_MOV:
+			// have to break this up in case of memory-memory mov
+			// in quad opcode
 			src1 = addr2asmaddr(quad->src1);
 			dest = addr2asmaddr(quad->dest);
-			asm_inst_new(AOC_MOV, src1, dest, src1->size);
+
+			tmp1 = reg2addr(AR_A, src1->size);
+
+			cmp = asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
+			asm_inst_new(AOC_MOV, tmp1, dest, src1->size);
+
+			ADD_COMMENT(cmp, "MOV");
 			break;
 
 		//arithmetic
@@ -124,9 +136,11 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			dest = addr2asmaddr(quad->dest);
 			size_tmp = MAX(src1->size, src2->size);
 			tmp1 = reg2addr(AR_A, size_tmp);
-			asm_inst_new(AOC_MOV, src1, tmp1, size_tmp);
+			cmp = asm_inst_new(AOC_MOV, src1, tmp1, size_tmp);
 			asm_inst_new(AOC_ADD, src2, tmp1, size_tmp);
 			asm_inst_new(AOC_MOV, tmp1, dest, size_tmp);
+
+			ADD_COMMENT(cmp, "ADD");
 			break;
 
 		case OC_SUB:
@@ -135,9 +149,11 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			dest = addr2asmaddr(quad->dest);
 			size_tmp = MAX(src1->size, src2->size);
 			tmp1 = reg2addr(AR_A, size_tmp);
-			asm_inst_new(AOC_MOV, src1, tmp1, size_tmp);
+			cmp = asm_inst_new(AOC_MOV, src1, tmp1, size_tmp);
 			asm_inst_new(AOC_SUB, src2, tmp1, size_tmp);
 			asm_inst_new(AOC_MOV, tmp1, dest, size_tmp);
+
+			ADD_COMMENT(cmp, "SUB");
 			break;
 
 		case OC_MUL:
@@ -146,9 +162,11 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			dest = addr2asmaddr(quad->dest);
 			size_tmp = MAX(src1->size, src2->size);
 			tmp1 = reg2addr(AR_A, size_tmp);
-			asm_inst_new(AOC_MOV, src1, tmp1, size_tmp);
+			cmp = asm_inst_new(AOC_MOV, src1, tmp1, size_tmp);
 			asm_inst_new(AOC_MUL, src2, tmp1, size_tmp);
 			asm_inst_new(AOC_MOV, tmp1, dest, size_tmp);
+
+			ADD_COMMENT(cmp, "MUL");
 			break;
 
 		case OC_DIV:;
@@ -159,7 +177,7 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			tmp1 = reg2addr(AR_A, size_tmp);
 			tmp2 = reg2addr(AR_D, size_tmp);
 			//push %rax
-			asm_inst_new(AOC_PUSH, tmp1, NULL, AS_Q);
+			cmp = asm_inst_new(AOC_PUSH, tmp1, NULL, AS_Q);
 			//mov src1 to %rax
 			asm_inst_new(AOC_MOV, src1, tmp1, AS_Q);
 			//push %rdx
@@ -170,6 +188,8 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			asm_inst_new(AOC_DIV, src2, NULL, size_tmp);
 			//mov result from %eax
 			asm_inst_new(AOC_MOV, tmp1, dest, size_tmp);
+
+			ADD_COMMENT(cmp, "DIV");
 			break;
 			
 
@@ -181,7 +201,7 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			tmp1 = reg2addr(AR_A, size_tmp);
 			tmp2 = reg2addr(AR_D, size_tmp);
 			//push %rax
-			asm_inst_new(AOC_PUSH, tmp1, NULL, AS_Q);
+			cmp = asm_inst_new(AOC_PUSH, tmp1, NULL, AS_Q);
 			//mov src1 to %rax
 			asm_inst_new(AOC_MOV, src1, tmp1, AS_Q);
 			//push %rdx
@@ -192,6 +212,8 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			asm_inst_new(AOC_DIV, src2, NULL, size_tmp);
 			//mov result from %eax
 			asm_inst_new(AOC_MOV, tmp2, dest, size_tmp);
+
+			ADD_COMMENT(cmp, "MOD");
 			break;
 
 		
@@ -200,8 +222,10 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			src1 = addr2asmaddr(quad->src1);
 			dest = addr2asmaddr(quad->dest);
 			tmp1 = reg2addr(AR_A, AS_Q);
-			asm_inst_new(AOC_LEA, src1, tmp1, AS_Q);
+			cmp = asm_inst_new(AOC_LEA, src1, tmp1, AS_Q);
 			asm_inst_new(AOC_MOV, tmp1, dest, AS_Q);
+
+			ADD_COMMENT(cmp, "LEA");
 			break;
 		
 		case OC_LOAD:;
@@ -265,7 +289,7 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 			addr_label->size = AS_Q;
 			addr_label->value.label
 				= quad->src1->val.astnode->decl.ident;
-			printf("call_label:%s", addr_label->value.label);
+			//printf("call_label:%s", addr_label->value.label);
 			asm_inst_new(AOC_CALL, addr_label, NULL, AS_NONE);
 			if (quad->dest){
 				dest = addr2asmaddr(quad->dest);
@@ -300,18 +324,34 @@ struct asm_inst *select_asm_inst(struct quad *quad)
 		case OC_RET:;
 			src1 = addr2asmaddr(quad->src1);
 			struct asm_addr *reg_ret = reg2addr(AR_A, src1->size);
-			asm_inst_new(AOC_MOV, src1, reg_ret, src1->size);
+			cmp = asm_inst_new(AOC_MOV, src1, reg_ret, src1->size);
 			asm_inst_new(AOC_LEAVE, NULL, NULL, AS_NONE);
 			asm_inst_new(AOC_RET, NULL, NULL, AS_NONE);
+			
+			ADD_COMMENT(cmp, "RETURN");
 			break;
 		
 		case OC_CAST:
 			src1 = addr2asmaddr(quad->src1);
 			dest = addr2asmaddr(quad->dest);
+
 			tmp1 = reg2addr(AR_A, src1->size);
+			tmp2 = reg2addr(AR_A, dest->size);
 
 			cmp = asm_inst_new(AOC_MOV, src1, tmp1, src1->size);
-			asm_inst_new(AOC_MOV, tmp1, dest, src1->size);
+
+			// reinterpret cast; input and output are the same
+			// size; noop
+
+			// cast 4 byte -> 8 byte
+			if (tmp1->size == 4 && tmp2->size == 8) {
+				asm_inst_new(AOC_CLTQ, NULL, NULL, AS_NONE);
+			}
+			
+			// cast 8 byte -> 4 byte
+			// noop
+			
+			asm_inst_new(AOC_MOV, tmp2, dest, dest->size);
 
 			ADD_COMMENT(cmp, "CAST");
 			break;
@@ -531,8 +571,11 @@ void print_comment(char *comment) {
 		return;
 	}
 
-	fprintf(fp, "\t#%s", comment);
+	fprintf(fp, "\t\t#%s", comment);
 }
+
+// TODO: remove this predeclaration
+void print_asm_dir(struct asm_dir *dir);
 
 void print_asm_addr(struct asm_addr *addr)
 {
@@ -540,6 +583,7 @@ void print_asm_addr(struct asm_addr *addr)
 	struct asm_reg *reg;
 	char *r1, *r2, *r3;
 	unsigned char *const_val;
+	union asm_component *dir;
 	struct addr *quad_addr;
 	union astnode *decl, *sc;
 	int offset;
@@ -619,12 +663,16 @@ void print_asm_addr(struct asm_addr *addr)
 		}
 
 		decl = quad_addr->val.astnode;
-		sc = decl->decl.declspec->declspec.sc;
+		if (!decl->decl.is_string) {
+			sc = decl->decl.declspec->declspec.sc;
+		}
 
 		// if local (not extern or static) variable or pseudo-register:
 		// use rbp-relative addressing
 		// MOVL	$2, -4(%rbp)
-		if (sc->sc.scspec != SC_EXTERN && sc->sc.scspec != SC_STATIC) {
+		if (!decl->decl.is_string
+			&& sc->sc.scspec != SC_EXTERN
+			&& sc->sc.scspec != SC_STATIC) {
 			fprintf(fp, "%d(%%rbp)", decl->decl.offset);
 		}
 
@@ -632,7 +680,9 @@ void print_asm_addr(struct asm_addr *addr)
 		// use rip-relative addressing
 		// MOVL	$2, i(%rip)
 		else {
-			fprintf(fp, "%s(%%rip)", sc->sc.scspec == SC_STATIC
+			fprintf(fp, "%s(%%rip)",
+				!decl->decl.is_string
+					&& sc->sc.scspec == SC_STATIC
 				? decl->decl.static_uid
 				: decl->decl.ident);
 		}
@@ -647,9 +697,49 @@ void print_asm_addr(struct asm_addr *addr)
 		NYI("printing register-offset mode asm addr");
 		break;
 
-	case AAM_IMMEDIATE:
-		const_val = addr->value.addr->val.constval;
-		fprintf(fp, "$%llu", *((uint64_t*)const_val));
+	case AAM_IMMEDIATE:;
+		switch(addr->value.addr->type)
+		{
+			case AT_CONST:
+				const_val = addr->value.addr->val.constval;
+				fprintf(fp, "$%llu", *((uint64_t*)const_val));
+				break;
+			case AT_STRING:
+				dir = asm_dir_new(APOC_STRING);
+
+				// remove dir from asm_out b/c we will print
+				// at the end
+				asm_out = asm_out->generic.next;
+
+				// this is messy
+				char *str = malloc(4096);
+				strcat(str, "\"");
+				strcat(str, print_string(&addr->value.addr->
+					val.astnode->string.string));
+				strcat(str, "\"");
+
+				dir->dir.param1 = str;
+
+				// add to th end of rodata_ll;
+				// messy to build ll in forward direction
+				int count = 0;
+				union asm_component *iter;
+				_LL_FOR(rodata_ll, iter, dir.rodata_next) {
+					++count;
+					if (!iter->dir.rodata_next) {
+						iter->dir.rodata_next = dir;
+						break;
+					}
+				}
+				if (!count) {
+					rodata_ll = dir;
+				}
+
+				fprintf(fp, ".RO%d", count);
+				break;
+		
+		}
+		
 		break;
 
 	default:
@@ -689,6 +779,7 @@ void print_asm_inst(struct asm_inst *inst)
 	case AOC_SETLE:	inst_text = "setle"; break;
 	case AOC_SETG:	inst_text = "setg"; break;
 	case AOC_SETGE:	inst_text = "setge"; break;
+	case AOC_CLTQ:	inst_text = "cltq"; break;
 	}
 
 	switch (inst->size) {
@@ -730,7 +821,8 @@ void print_asm_dir(struct asm_dir *dir)
 	case APOC_TYPE:		dir_text = "type"; break;
 	case APOC_TEXT:		dir_text = "text"; break;
 	case APOC_BSS:		dir_text = "bss"; break;
-	case APOC_RODATA:	dir_text = "rodata"; break;
+	case APOC_SECTION:	dir_text = "section"; break;
+	case APOC_STRING:	dir_text = "string"; break;
 	default:
 		yyerror_fatal("unknown asm directive");
 	}
@@ -790,10 +882,12 @@ void gen_globalvar_asm(union astnode *globals)
 	union astnode *iter, *iter2;
 	union asm_component *dir, *dir2;
 	char size_buf[10];
+	unsigned i;
 
 	// clear current asm code
 	asm_out = NULL;
 
+	// dump global (extern/static) vars
 	_LL_FOR(globals, iter, decl.symbol_next) {
 		sprintf(size_buf, "%d", astnode_sizeof_symbol(iter));
 
@@ -816,6 +910,18 @@ void gen_globalvar_asm(union astnode *globals)
 		fprintf(fp, "Got global variable: %s\n", iter->decl.static_uid
 			? iter->decl.static_uid : iter->decl.ident);
 	}
+
+	// also dump .rodata (strings)
+	i = 0;
+	_LL_FOR(rodata_ll, dir, dir.rodata_next) {
+		LL_NEXT(dir) = asm_out;
+		asm_out = dir;
+
+		sprintf(size_buf, ".RO%d", i++);
+		asm_label_new(strdup(size_buf));
+	}
+	dir = asm_dir_new(APOC_SECTION);
+	dir->dir.param1 = ".rodata";
 
 	print_asm();
 }

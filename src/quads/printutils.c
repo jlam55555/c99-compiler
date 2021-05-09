@@ -92,7 +92,7 @@ void print_addr(struct addr *addr)
 
 		if (decl->decl.is_implicit) {
 			st = -1;
-		} else {
+		} else if (!decl->decl.is_string) {
 			// get scope; proto scopes are fully promoted to function scopes
 			// so we have to check the is_proto member to see if a local
 			// var is from the prototype or not
