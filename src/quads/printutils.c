@@ -42,7 +42,6 @@ char *cc2str(enum cc cc) {
 
 void print_addr(struct addr *addr)
 {
-	FILE *fp = stdout;
 	unsigned char *constval;
 	enum scope_type st;
 	union astnode *decl;
@@ -54,13 +53,13 @@ void print_addr(struct addr *addr)
 	}
 
 	// indicate size of addr
-	fprintf(fp, "[%d:", addr->size);
+	fprintf(dfp, "[%d:", addr->size);
 
 #if DEBUG2
 	// more intense debugging: print all struct addr types
 	// probably unnecessary unless trying to debug something
 	print_declarator(addr->decl, 0);
-	fprintf(fp, ":");
+	fprintf(dfp, ":");
 #endif
 
 	switch (addr->type) {
@@ -68,22 +67,22 @@ void print_addr(struct addr *addr)
 	// print constant (scalar) value (as hex)
 	case AT_CONST:
 		constval = addr->val.constval;
-		fprintf(fp, "const:0x");
+		fprintf(dfp, "const:0x");
 		switch (addr->size) {
-		case 1: fprintf(fp, "%x",  *((uint8_t *) constval)); break;
-		case 2: fprintf(fp, "%x",  *((uint16_t *)constval)); break;
-		case 4: fprintf(fp, "%x",  *((uint32_t *)constval)); break;
-		case 8: fprintf(fp, "%lx", *((uint64_t *)constval)); break;
-		case 16: fprintf(fp, "%lx%lx", *((uint64_t *)constval),
+		case 1: fprintf(dfp, "%x",  *((uint8_t *) constval)); break;
+		case 2: fprintf(dfp, "%x",  *((uint16_t *)constval)); break;
+		case 4: fprintf(dfp, "%x",  *((uint32_t *)constval)); break;
+		case 8: fprintf(dfp, "%lx", *((uint64_t *)constval)); break;
+		case 16: fprintf(dfp, "%lx%lx", *((uint64_t *)constval),
 			*((uint64_t *)constval+1)); break;
 		default: yyerror_fatal("quadgen: invalid size");
 		}
-		fprintf(fp, "]");
+		fprintf(dfp, "]");
 		break;
 
 	// print temporary value (id)
 	case AT_TMP:
-		fprintf(fp, "tmp:%%%d]", addr->val.tmpid);
+		fprintf(dfp, "tmp:%%%d]", addr->val.tmpid);
 		break;
 
 	// print symbol table value
@@ -92,7 +91,7 @@ void print_addr(struct addr *addr)
 
 		if (decl->decl.is_implicit) {
 			st = -1;
-		} else {
+		} else if (!decl->decl.is_string) {
 			// get scope; proto scopes are fully promoted to function scopes
 			// so we have to check the is_proto member to see if a local
 			// var is from the prototype or not
@@ -100,7 +99,7 @@ void print_addr(struct addr *addr)
 				: decl->decl.scope->type;
 		}
 
-		fprintf(fp, "%s:%s]",
+		fprintf(dfp, "%s:%s]",
 			st == -1 ? "implicit" :
 			st == ST_FILE ? "globalvar" :
 			st == ST_PROTO ? "protovar" : "localvar",
@@ -108,7 +107,7 @@ void print_addr(struct addr *addr)
 		break;
 
 	case AT_STRING:
-		fprintf(fp, "string:\"%s\"]",
+		fprintf(dfp, "string:\"%s\"]",
 	  		print_string(&addr->val.astnode->string.string));
 		break;
 
@@ -119,7 +118,6 @@ void print_addr(struct addr *addr)
 
 void print_quad(struct quad *quad)
 {
-	FILE *fp = stdout;
 	struct addr *iter;
 
 	if (!quad) {
@@ -128,16 +126,16 @@ void print_quad(struct quad *quad)
 		return;
 	}
 
-	fprintf(fp, "\t");
+	fprintf(dfp, "\t");
 
 	// print dest addr (if applicable)
 	if (quad->dest) {
 		print_addr(quad->dest);
-		fprintf(fp, "=");
+		fprintf(dfp, "=");
 	}
 
 	// print opcode
-	fprintf(fp, "%s ", opcode2str(quad->opcode));
+	fprintf(dfp, "%s ", opcode2str(quad->opcode));
 
 	// print source addr (if applicable)
 	// (0- and 1-operand opcodes exist)
@@ -145,7 +143,7 @@ void print_quad(struct quad *quad)
 		print_addr(quad->src1);
 		
 		if (quad->src2) {
-			fprintf(fp, ", ");
+			fprintf(dfp, ", ");
 
 			// regular opcodes
 			if (quad->opcode != OC_CALL) {
@@ -153,22 +151,21 @@ void print_quad(struct quad *quad)
 			}
 			// fncall opcode: ll of fncall arglist
 			else {
-				fprintf(fp, "(arglist");
+				fprintf(dfp, "(arglist");
 				_LL_FOR(quad->src2, iter, next) {
-					fprintf(fp, " ");
+					fprintf(dfp, " ");
 					print_addr(iter);
 				}
-				fprintf(fp, ")");
+				fprintf(dfp, ")");
 			}
 		}
 	}
 	
-	fprintf(fp, "\n");
+	fprintf(dfp, "\n");
 }
 
 void print_basic_block(struct basic_block *bb)
 {
-	FILE *fp = stdout;
 	struct quad *iter;
 	struct bb_history *hist_iter, *cur;
 
@@ -179,7 +176,7 @@ void print_basic_block(struct basic_block *bb)
 	}
 
 	// print bb identifier
-	fprintf(fp, ".BB.%s.%d {\n", bb->fn_name, bb->bb_no);
+	fprintf(dfp, ".BB.%s.%d {\n", bb->fn_name, bb->bb_no);
 
 	// print all quads in bb
 	_LL_FOR(bb->ll, iter, next) {
@@ -189,19 +186,19 @@ void print_basic_block(struct basic_block *bb)
 	// print what it branches to
 	// conditional branch (if exists)
 	if (bb->next_cond && bb->branch_cc != CC_ALWAYS) {
-		fprintf(fp, "\tJMP%s .BB.%s.%d\n", cc2str(bb->branch_cc),
+		fprintf(dfp, "\tJMP%s .BB.%s.%d\n", cc2str(bb->branch_cc),
 			bb->next_cond->fn_name, bb->next_cond->bb_no);
 	}
 	// unconditional branch (if exists; doesn't exist for final
 	// bb in function, i.e., CFG terminal node)
 	if (bb->next_def) {
-		fprintf(fp, "\tJMP .BB.%s.%d\n",
+		fprintf(dfp, "\tJMP .BB.%s.%d\n",
 			bb->next_def->fn_name, bb->next_def->bb_no);
 	} else {
-		fprintf(fp, "\t(CFG terminal node)\n");
+		fprintf(dfp, "\t(CFG terminal node)\n");
 	}
 
-	fprintf(fp, "}\n");
+	fprintf(dfp, "}\n");
 }
 
 void print_basic_blocks()

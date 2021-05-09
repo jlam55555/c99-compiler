@@ -20,13 +20,26 @@ void generate_for_quads(union astnode *stmt)
 	cur_loop->bb_cont = bb_update;
 	cur_loop->bb_break = bb_next;
 
-	//Initial statment
+	// initial statment; always jumps to condition
 	if (stmt->stmt_for.init) {
 		gen_assign(stmt->stmt_for.init, NULL);
 	}
-
-	//jump to condition
 	link_bb(CC_ALWAYS, bb_cond, NULL);
+
+	// gen body
+	cur_bb = bb_body;
+	bb_ll_push(cur_bb);
+	gen_stmt_quads(stmt->stmt_for.body);
+	link_bb(CC_ALWAYS, bb_update, NULL);
+
+	// link to update
+	cur_bb = bb_update;
+	bb_ll_push(cur_bb);
+	gen_rvalue(stmt->stmt_for.update, NULL, NULL);
+	link_bb(CC_ALWAYS, bb_cond, NULL);
+
+
+	// condition body
 	cur_bb = bb_cond;
 	bb_ll_push(cur_bb);
 	if (stmt->stmt_for.cond) {
@@ -36,20 +49,6 @@ void generate_for_quads(union astnode *stmt)
 		link_bb(CC_ALWAYS, bb_body, NULL);
 	}
 
-	//gen body quad
-	cur_bb = bb_body;
-	bb_ll_push(cur_bb);
-	gen_stmt_quads(stmt->stmt_for.body);
-	link_bb(CC_ALWAYS, bb_update, NULL);
-
-	//link to update
-	cur_bb = bb_update;
-	bb_ll_push(cur_bb);
-	// gen_stmt_quads(stmt->stmt_for.update);
-	gen_rvalue(stmt->stmt_for.update, NULL, NULL);
-
-	link_bb(CC_ALWAYS, bb_cond, NULL);
-
 	// restore prev loop
 	cur_loop = prev_loop;
 
@@ -58,7 +57,7 @@ void generate_for_quads(union astnode *stmt)
 
 }
 
-
+// TODO: can probably merge this with while loops, only one opcode difference
 void generate_do_while_quads(union astnode *stmt)
 {
 	struct basic_block *bb_initjmp, *bb_body, *bb_cond, *bb_next;
@@ -86,7 +85,8 @@ void generate_do_while_quads(union astnode *stmt)
 	link_bb(CC_ALWAYS, bb_cond, NULL);
 	cur_bb = bb_cond;
 	bb_ll_push(cur_bb);
-	generate_conditional_quads(stmt->stmt_do_while.cond, bb_body, bb_next, 0);
+	generate_conditional_quads(stmt->stmt_do_while.cond,
+		bb_body, bb_next, 0);
 
 	// restore prev loop
 	cur_loop = prev_loop;

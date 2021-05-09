@@ -9,6 +9,11 @@
 #include <quads/quads.h>
 
 /**
+ * linked list of astnode string for target code generation
+ */
+extern union astnode *string_ll;
+
+/**
  * helper function to generate a typespec emulating size_t (which acts like an
  * unsigned long long)
  *

@@ -2,6 +2,9 @@
 #include <quads/sizeof.h>
 #include <quads/cfquads.h>
 #include <parser.tab.h>
+#include <stdio.h>
+
+union astnode *string_ll;
 
 /**
  * helper function to demote astnode array to pointer
@@ -86,7 +89,7 @@ union astnode *create_int(void)
 
 struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 {
-	struct addr *src1, *src2, *tmp, *tmp2;
+	struct addr *src1, *src2, *tmp, *tmp2, *tmp3;
 	struct quad *quad;
 	struct basic_block *tmp_bb;
 	enum opcode op;
@@ -133,13 +136,42 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 		ALLOC_TYPE(ts_tmp, NT_DECLSPEC);
 		ts_tmp->declspec.ts = ts;
 
-		ALLOC_TYPE(ts, NT_DECLARATOR_POINTER);
-		ts->decl_pointer.of = ts_tmp;
+		ALLOC_TYPE(ts, NT_DECLARATOR_ARRAY);
+		ts->decl_array.of = ts_tmp;
 
-		src1 = addr_new(AT_STRING, ts);
-		src1->val.astnode = expr;
+		// this is kludgey: make the pointer act like an array,
+		// but give it length 8 so it has size 8
+		ALLOC_TYPE(ts_tmp, NT_NUMBER);
+		*((uint64_t*)ts_tmp->num.buf) = 8;
+		ts->decl_array.length = ts_tmp;
 
-		goto constliteral;
+		union astnode *decl;
+		ALLOC_TYPE(decl, NT_DECL);
+		decl->decl.components = ts;
+		decl->decl.is_string = 1;
+
+		// add it to the end of the ll (messy to build forwards)
+		int count = 0;
+		union astnode *iter;
+		_LL_FOR(string_ll, iter, decl.symbol_next) {
+			++count;
+			if (!iter->decl.symbol_next) {
+				iter->decl.symbol_next = expr;
+				break;
+			}
+		}
+		if (!count) {
+			string_ll = expr;
+		}
+
+		char name[10];
+		sprintf(name, ".RO%d", count);
+
+		decl->decl.ident = strdup(name);
+		expr->string.label = decl->decl.ident;
+
+		// string is an lvalue! like an array
+		return gen_lvalue(decl, NULL, dest, 0);
 
 	// constant character
 	case NT_CHARLIT:
@@ -196,8 +228,29 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 		}
 
 		if (!dest) {
-			// TODO: should infer type from function declaration
-			dest = tmp_addr_new(create_size_t());
+			// take function return type, or int for implicit fn
+			dest = tmp_addr_new(create_int());
+			dest->decl->ts_scalar.modifiers.lls = LLS_LONG;
+			dest->size = astnode_sizeof_type(dest->decl);
+
+			// if implicit make return type 4
+			if (!src1->decl->decl_function.of) {
+				dest = tmp_addr_new(create_int());
+			} else {
+				ts = src1->decl->decl_function.of;
+
+				// if void we don't need a dest, but we make it
+				// implicitly an int so we don't upset things
+				// if this is used as an intermediate value
+				if (NT(ts) == NT_DECLSPEC
+					&& NT(ts->declspec.ts) == NT_TS_SCALAR
+					&& ts->declspec.ts->ts_scalar.basetype
+						== BT_VOID) {
+					dest = tmp_addr_new(create_int());
+				} else {
+					dest = tmp_addr_new(ts);
+				}
+			}
 		}
 
 		quad_new(OC_CALL, dest, src1, src2->next);
@@ -438,17 +491,20 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 					astnode_sizeof_type(src1->decl->
 						decl_pointer.of);
 
+				// implicitly upcast src2
+				if (src2->size != 8) {
+					tmp3 = tmp_addr_new(create_size_t());
+					quad_new(OC_CAST, tmp3, src2, NULL);
+					src2 = tmp3;
+				}
+
 				tmp2 = tmp_addr_new(create_size_t());
 				quad_new(OC_MUL, tmp2, tmp, src2);
 				src2 = tmp2;
 			}
 
-			// create new tmp
-			if (!dest) {
-				dest = tmp_addr_new(src1->decl);
-			}
-			quad_new(OC_ADD, dest, src1, src2);
-			return dest;
+			op = OC_ADD;
+			goto basicop;
 
 		// subtraction (regular and pointer)
 		case '-':
@@ -467,16 +523,22 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 					astnode_sizeof_type(src1->decl->
 						decl_pointer.of);
 
+				// implicitly upcast src2
+				if (src2->size != 8) {
+					tmp3 = tmp_addr_new(create_size_t());
+					quad_new(OC_CAST, tmp3, src2, NULL);
+					src2 = tmp3;
+				}
+
 				tmp2 = tmp_addr_new(create_size_t());
 				quad_new(OC_MUL, tmp2, tmp, src2);
 				src2 = tmp2;
 			}
 
-			if (!dest) {
-				dest = tmp_addr_new(src1->decl);
-			}
-			quad = quad_new(OC_SUB, dest, src1, src2);
+			op = OC_SUB;
+			goto basicop;
 
+		finishsubop:
 			// pointer - pointer
 			if (AOP(src1) && AOP(src2)) {
 				// p1-p2 = p1-p2 / sizeof(*p1)
@@ -534,7 +596,32 @@ struct addr *gen_rvalue(union astnode *expr, struct addr *dest, enum cc *cc)
 			if (!dest) {
 				dest = tmp_addr_new(src1->decl);
 			}
-			quad_new(op, dest, src1, src2);
+
+			// implicit cast to larger type
+			if (src1->size < src2->size) {
+				tmp = tmp_addr_new(src2->decl);
+				quad_new(OC_CAST, src1, tmp, NULL);
+				src1 = tmp;
+			} else if (src1->size > src2->size) {
+				tmp = tmp_addr_new(src1->decl);
+				quad_new(OC_CAST, src2, tmp, NULL);
+				src2 = tmp;
+			}
+
+			// implicit cast to dest type
+			if (MAX(src1->size, src2->size) != dest->size) {
+				tmp = tmp_addr_new(src1->decl);
+				quad_new(op, tmp, src1, src2);
+				quad_new(OC_CAST, dest, tmp, NULL);
+			} else {
+				quad_new(op, dest, src1, src2);
+			}
+
+			// subtraction has special hook for pointer - pointer
+			if (expr->binop.op == '-') {
+				goto finishsubop;
+			}
+
 			return dest;
 
 		// relational operators

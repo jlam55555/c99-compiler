@@ -18,6 +18,9 @@
 #include <common.h>
 #include <lexer/errorutils.h>
 
+// linked list of all the global variables
+extern union astnode *global_vars;
+
 // need a second linked-list pointer *of since the generic *next may be used
 // for linking declarators together (e.g., in parameter type list)
 #define _ASTNODE_DECLARATOR_COMPONENT\
@@ -61,6 +64,11 @@ struct astnode_decl {
 	// scope which this symbol is inserted into
 	struct scope *scope;
 
+	// function scope associated with this function (for functions only)
+	// not same as scope (above) because that would be the global scope for
+	// function declarations; see associate_fn_with_scope()
+	struct scope *fn_scope;
+
 	// whether this variable comes from a prototype scope (for local
 	// variables only); because prototype scope become incorporated into
 	// local scope, have to distinguish it manually here
@@ -71,7 +79,9 @@ struct astnode_decl {
 	// decl_finalize()
 	union astnode *components;
 
-	// declspec (to be added
+	// declspec (also redundantly in the component chain, because it
+	// includes the typespec -- in hindsight it would've been smarter to
+	// separate storage class from the typespec)
 	union astnode *declspec;
 
 	// function body (for defined functions only)
@@ -83,6 +93,18 @@ struct astnode_decl {
 
 	// indicates whether it is an implicit declaration
 	int is_implicit;
+
+	// need a list of global/local symbols for target code generation
+	union astnode *symbol_next;
+	
+	// for local variables: need offset for target code generation
+	int offset;
+
+	// for static variables with the same name
+	char *static_uid;
+
+	// indicates whether this is a string literal
+	int is_string;
 };
 
 /**

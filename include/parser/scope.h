@@ -19,6 +19,11 @@ struct scope {
 	enum scope_type type;
 	struct symtab ns[3];
 
+	// holds a linked list of all of the symbols in the scope, for
+	// prototype/function scopes; need an ordered list during quad
+	// generation to build offsets
+	union astnode *symbols_ll;
+
 	// for debugging/printing purposes
 	char *filename;
 	int lineno;
@@ -83,5 +88,21 @@ struct scope *get_current_scope();
  * current function declarator (somewhat kludgey)
  */
 void scope_set_fndef();
+
+/**
+ * gets the enclosing function scope
+ * 
+ * @return		the enclosing function scope, or NULL if not in a
+ * 			function scope
+ */
+struct scope *get_fn_scope();
+
+/**
+ * associates a function declarator with its associated function scope
+ * 
+ * @param fn_decl	the function with which to associate the previous
+ * 			fn scope 
+ */
+void associate_fn_with_scope(union astnode *fn_decl);
 
 #endif	// SCOPEH

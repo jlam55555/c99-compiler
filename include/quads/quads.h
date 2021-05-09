@@ -116,6 +116,12 @@ struct addr {
 		unsigned tmpid;
 	} val;
 
+	// memory offset for pseudo-registers (AT_TMP addr values) 
+	// (this is due to us using a really simple (bad) register
+	// "allocation" model -- every temporary value is memory-backed);
+	// this has no meaning for non-tmp vals
+	int offset;
+
 	// astnode representation of addr type
 	union astnode *decl;
 };
@@ -141,10 +147,9 @@ struct basic_block {
 	char *fn_name;
 	int bb_no;
 
-	enum cc branch_cc;
-
 	// next_def is default (fall-through) BB
 	// next_cond is non-default (conditional) BB
+	enum cc branch_cc;
 	struct basic_block *next_def, *next_cond;
 
 	// to store a regular linked list of basic blocks in order of
@@ -167,6 +172,15 @@ struct basic_block {
  * @return		a new basic block
  */
 struct basic_block *basic_block_new(int add_to_ll);
+
+/**
+ * returns the name of a basic block as a newly-allocated string, in the format
+ * .BB.[fn name].[basic block id]
+ * 
+ * @param bb		basic block
+ * @return		basic block name
+ */
+char *bb_name(struct basic_block *bb);
 
 /**
  * adds the basic block to the linearized set of basic blocks. Calling this

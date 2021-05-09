@@ -1,7 +1,9 @@
-This directory mostly contains test cases and assignment sheets.
+This directory mostly contains test cases and assignment sheets for each
+of the major assignments.
 
-- ltests: lexer tests
-- ptests: parser tests
-- dtests: declaration tests
-- stests: statement tests
-- qtests: quad tests
+- ltests: lexing
+- ptests: parsing
+- dtests: declarations
+- stests: statements and blocks
+- qtests: quad generation
+- ttests: target code generation

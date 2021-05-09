@@ -4,8 +4,11 @@
 #include <lexer/errorutils.h>
 #include <stdio.h>
 
-static struct scope *scope_stack = NULL;
+static struct scope **scope_stack = NULL;
 static int scope_pos = -1, scope_stack_capacity = 0;
+
+// see associate_fn_with_scope
+static struct scope *prev_fn_scope = NULL;
 
 // special flag used for transferring prototype scopes to function scopes
 // if definition (function body) follows function declaration
@@ -29,7 +32,7 @@ void scope_push(enum scope_type type)
 		if (scope_pos != 1) {
 			yyerror_fatal("unexpected scope position");
 		}
-		scope_stack[1].type = ST_FILE;
+		scope_stack[1]->type = ST_FILE;
 		scope_pop();
 		prototype_hold = 0;
 	}
@@ -43,16 +46,21 @@ void scope_push(enum scope_type type)
 		}
 		// top-level function scope, promote existing prototype scope
 		else if (scope_pos == 1 && prototype_hold) {
-			// indicate all variables in prototype scope are
-			// from prototype scope
-			for (i = 0, st = &scope_stack[1].ns[NS_IDENT];
-				i < st->capacity; ++i) {
-				if (st->bs[i]) {
-					st->bs[i]->value->decl.is_proto = 1;
-				}
-			}
 
-			scope_stack[1].type = ST_FUNC;
+			// TODO: remove; don't actually need to do this here,
+			// 	simpler to do in decl_install
+			// // indicate all variables in prototype scope are
+			// // from prototype scope
+			// for (i = 0, st = &scope_stack[1].ns[NS_IDENT];
+			// 	i < st->capacity; ++i) {
+			// 	if (st->bs[i]) {
+			// 		st->bs[i]->value->decl.is_proto = 1;
+			// 	}
+			// }
+
+			prev_fn_scope = scope_stack[1];
+
+			scope_stack[1]->type = ST_FUNC;
 			prototype_hold = 0;
 			// TODO: check that there are no abstract declarators?
 			return;
@@ -72,11 +80,12 @@ void scope_push(enum scope_type type)
 			scope_stack_capacity *= 2;
 		}
 		scope_stack = realloc(scope_stack,
-			scope_stack_capacity * sizeof(struct scope));
+			scope_stack_capacity * sizeof(struct scope *));
 	}
 
 	// create scope
-	struct scope *scope = &scope_stack[++scope_pos];
+	struct scope *scope = scope_stack[++scope_pos]
+		= calloc(1, sizeof(struct scope));
 	for (i = 0; i < 3; i++) {
 		symtab_init(&scope->ns[i]);
 	}
@@ -98,14 +107,14 @@ void scope_pop(void)
 
 	// prevent deleting top-level prototype scope right away, because
 	// it may need to be transferred to a function scope
-	if (scope_pos == 1 && scope_stack[scope_pos].type == ST_PROTO) {
+	if (scope_pos == 1 && scope_stack[scope_pos]->type == ST_PROTO) {
 		prototype_hold = 1;
 		return;
 	}
 
 	// destroy scope
 	for (i = 0; i < 3; i++) {
-		symtab_destroy(&scope_stack[scope_pos].ns[i]);
+		symtab_destroy(&scope_stack[scope_pos]->ns[i]);
 	}
 	--scope_pos;
 }
@@ -123,7 +132,7 @@ static int extern_redeclaration(char *ident, enum name_space ns,
 {
 	union astnode *search;
 
-	if (!(search = symtab_lookup(&scope_stack[is_fndef?0:scope_pos].ns[ns],
+	if (!(search = symtab_lookup(&scope_stack[is_fndef?0:scope_pos]->ns[ns],
 			ident))) {
 		// not already defined, this wouldn't be a redeclaration
 		return 0;
@@ -159,7 +168,7 @@ struct scope *scope_insert(char *ident, enum name_space ns, union astnode *node)
 		if (scope_pos != 1) {
 			yyerror_fatal("unexpected scope position");
 		}
-		scope_stack[1].type = ST_FILE;
+		scope_stack[1]->type = ST_FILE;
 		scope_pop();
 		prototype_hold = 0;
 	}
@@ -181,7 +190,7 @@ struct scope *scope_insert(char *ident, enum name_space ns, union astnode *node)
 		}
 	}
 
-	scope = &scope_stack[is_fndef?0:scope_pos];
+	scope = scope_stack[is_fndef?0:scope_pos];
 	symtab_insert(&scope->ns[ns], ident, node);
 	is_fndef = 0;
 	return scope;
@@ -195,7 +204,7 @@ union astnode *scope_lookup(char *ident, enum name_space ns)
 
 	for (current_scope = scope_pos;
 		current_scope >= 0 && !(search =
-		symtab_lookup(&scope_stack[current_scope].ns[ns], ident));
+		symtab_lookup(&scope_stack[current_scope]->ns[ns], ident));
 		--current_scope);
 
 	return search;
@@ -209,13 +218,28 @@ struct scope *get_scope(char *ident, enum name_space ns)
 
 	for (current_scope = scope_pos;
 		current_scope >= 0 && !(search =
-		symtab_lookup(&scope_stack[current_scope].ns[ns], ident));
+		symtab_lookup(&scope_stack[current_scope]->ns[ns], ident));
 		--current_scope);
 
-	return current_scope >= 0 ? &scope_stack[current_scope] : NULL;
+	return current_scope >= 0 ? scope_stack[current_scope] : NULL;
 }
 
 struct scope *get_current_scope()
 {
-	return &scope_stack[scope_pos];
+	return scope_stack[scope_pos];
+}
+
+struct scope *get_fn_scope()
+{
+	// error: in global or prototype scope
+	if (scope_pos < 1 || scope_stack[1]->type != ST_FUNC) {
+		return NULL;
+	}
+
+	return scope_stack[1];
+}
+
+void associate_fn_with_scope(union astnode *fn_decl)
+{
+	fn_decl->decl.fn_scope = prev_fn_scope;
 }

@@ -65,6 +65,7 @@ struct astnode_string {
 	_ASTNODE
 
 	struct string string;
+	char *label;
 };
 
 struct astnode_fncall {		// function invocation
